@@ -1,26 +1,22 @@
 import pytest
-from src.domain.entities.user import UserEntity
+from src.domain.entities.user import User, UserRole
 
-
-def test_user_entity_creation():
+def test_user_creation():
     """Test creating a user entity"""
-    user = UserEntity(
+    user = User(
+        id=1,
         username="testuser",
         email="test@example.com",
-        full_name="Test User"
+        role=UserRole.PLAYER,
+        password_hash="hashed_secret"
     )
 
     assert user.username == "testuser"
     assert user.email == "test@example.com"
-    assert user.full_name == "Test User"
+    assert user.role == UserRole.PLAYER
     assert user.is_active is True
 
-
-def test_user_entity_validation():
-    """Test user entity validation"""
-    with pytest.raises(ValueError):
-        UserEntity(username="", email="test@example.com")
-
-    with pytest.raises(ValueError):
-        UserEntity(username="testuser", email="")
-
+def test_user_role_enum():
+    """Test UserRole enum values"""
+    assert UserRole.PLAYER == "player"
+    assert UserRole.ADMIN == "admin"

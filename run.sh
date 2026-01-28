@@ -2,5 +2,5 @@
 
 # Start the FastAPI server
 echo "🚀 Starting AI Backend Service..."
-uvicorn src.presentation.main:app --reload --host 0.0.0.0 --port 8000
+./venv/bin/uvicorn src.presentation.main:app --reload --host 0.0.0.0 --port 8000
 

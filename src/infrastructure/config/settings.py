@@ -44,6 +44,17 @@ class Settings(BaseSettings):
     MODEL_NAME: str = "ai_model"
     MAX_PREDICTION_BATCH_SIZE: int = 32
 
+    # Mail Settings
+    MAIL_USERNAME: str = "your_email@gmail.com"
+    MAIL_PASSWORD: str = "your_password"
+    MAIL_FROM: str = "noreply@speakvn.com"
+    MAIL_PORT: int = 587
+    MAIL_SERVER: str = "smtp.gmail.com"
+    MAIL_STARTTLS: bool = True
+    MAIL_SSL_TLS: bool = False
+    USE_CREDENTIALS: bool = True
+    VALIDATE_CERTS: bool = True
+
     class Config:
         env_file = ".env"
         case_sensitive = True

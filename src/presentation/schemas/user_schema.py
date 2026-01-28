@@ -1,41 +1,44 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
-from datetime import datetime
+from enum import Enum
 
+class UserRole(str, Enum):
+    PLAYER = "player"
+    EDUCATOR = "educator"
+    ADMIN = "admin"
 
-class UserCreate(BaseModel):
-    """Schema for creating user"""
-    username: str = Field(..., min_length=3, max_length=50)
+# --- Shared Properties ---
+class UserBase(BaseModel):
     email: EmailStr
-    full_name: Optional[str] = Field(None, max_length=100)
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "username": "johndoe",
-                "email": "john@example.com",
-                "full_name": "John Doe"
-            }
-        }
-
-
-class UserResponse(BaseModel):
-    """Schema for user response"""
-    id: int
     username: str
-    email: str
-    full_name: Optional[str]
+
+# --- Properties to receive via API on creation ---
+class UserCreate(UserBase):
+    password: str = Field(..., min_length=6)
+    role: UserRole = UserRole.PLAYER # Default role
+
+# --- Properties to return to client ---
+class UserResponse(UserBase):
+    id: int
     is_active: bool
-    created_at: datetime
+    role: UserRole
 
     class Config:
         from_attributes = True
 
+# --- Token Schemas ---
+class Token(BaseModel):
+    access_token: str
+    token_type: str
 
-class UserUpdate(BaseModel):
-    """Schema for updating user"""
-    username: Optional[str] = Field(None, min_length=3, max_length=50)
-    email: Optional[EmailStr] = None
-    full_name: Optional[str] = Field(None, max_length=100)
-    is_active: Optional[bool] = None
+class TokenData(BaseModel):
+    user_id: Optional[int] = None
 
+# --- Password Reset Schemas ---
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+class PasswordResetConfirm(BaseModel):
+    email: EmailStr
+    otp: str = Field(..., min_length=6, max_length=6)
+    new_password: str = Field(..., min_length=6)

@@ -1,22 +1,45 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 from datetime import datetime
+from enum import Enum
 
+class UserRole(str, Enum):
+    PLAYER = "player"
+    EDUCATOR = "educator"
+    ADMIN = "admin"
+
+class RegionType(str, Enum):
+    NORTH = "north"
+    CENTRAL = "central"
+    SOUTH = "south"
 
 @dataclass
-class UserEntity:
-    """User domain entity"""
-    id: Optional[int] = None
-    username: str = ""
-    email: str = ""
-    full_name: Optional[str] = None
+class User:
+    """Core User Entity"""
+    id: Optional[int]
+    username: str
+    email: str
+    role: UserRole
+    password_hash: str # In domain, we might keep this or hide it. Keeping for now.
     is_active: bool = True
     created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    
+    # Relationships could be loaded here or handled via separate calls. 
+    # For Clean Architecture entities, we often keep them lightweight.
 
-    def __post_init__(self):
-        if not self.username:
-            raise ValueError("Username is required")
-        if not self.email:
-            raise ValueError("Email is required")
-
+@dataclass
+class UserProfile:
+    """Extended Player Profile"""
+    id: Optional[int]
+    user_id: int
+    full_name: Optional[str] = None
+    avatar_url: Optional[str] = None
+    
+    # Gamification
+    total_stars: int = 0
+    current_streak: int = 0
+    total_xp: int = 0
+    
+    # Regional Focus
+    native_region: Optional[RegionType] = None
+    target_region: Optional[RegionType] = None

@@ -1,17 +1,14 @@
+from src.infrastructure.config.settings import settings
+
 def test_health_check(client):
     """Test health check endpoint"""
-    response = client.get("/api/v1/health")
+    response = client.get("/health")
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "healthy"
-    assert "timestamp" in data
+    assert data["service"] == settings.APP_NAME
 
-
-def test_root_endpoint(client):
-    """Test root endpoint"""
-    response = client.get("/")
+def test_docs_endpoint(client):
+    """Test documentation endpoint exists"""
+    response = client.get("/docs")
     assert response.status_code == 200
-    data = response.json()
-    assert "message" in data
-    assert "version" in data
-
