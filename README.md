@@ -1,6 +1,23 @@
-# AI Backend Service
+## ☕ Java Spring Boot Migration
 
-Dự án Backend cho dịch vụ AI, được xây dựng dựa trên kiến trúc **Clean Architecture** và **FastAPI**.
+Dự án đã được cập nhật sang **Java Spring Boot 3.x** để tăng hiệu năng và khả năng mở rộng.
+
+### Yêu cầu hệ thống
+- **Java 21 (LTS)**
+- **Maven 3.9+**
+
+### Cách chạy phiên bản Java
+Sử dụng script `run_java.sh` đã được cấu hình sẵn cho macOS:
+```bash
+./run_java.sh
+```
+
+Hoặc chạy thủ công qua Maven:
+```bash
+mvn spring-boot:run
+```
+
+Tài liệu Swagger cho phiên bản Java sẽ có tại: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
 
 ## 🏗 Kiến trúc dự án (Clean Architecture)
 

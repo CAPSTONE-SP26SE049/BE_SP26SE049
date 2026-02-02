@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: be-sp26se049
+  datasource:
+    # Ưu tiên dùng PostgreSQL từ biến môi trường DATABASE_URL
+    # Nếu không có, sẽ mặc định kết nối tới speakvn_db trên localhost
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/speakvn_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  
+  mail:
+    host: ${MAIL_SERVER:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:nguyenductuan11012003@gmail.com}
+    password: ${MAIL_PASSWORD:xmpr uidx edig fygu}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:8520af2bad412296716a445f62decdcb59c7336b13cf14a51e6b8c6e267d3e26}
+    expiration: 86400000 # 24 hours
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.springframework.security: DEBUG
