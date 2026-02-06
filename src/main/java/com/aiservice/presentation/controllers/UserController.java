@@ -3,6 +3,8 @@ package com.aiservice.presentation.controllers;
 import com.aiservice.application.services.UserService;
 import com.aiservice.domain.entities.User;
 import com.aiservice.presentation.dto.UserResponse;
+import com.aiservice.presentation.dto.UserUpdateRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -25,15 +27,8 @@ public class UserController {
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
         log.info("Fetching user: {}", id);
-        User user = userService.getUserById(id);
-        return ResponseEntity.ok(UserResponse.builder()
-            .id(user.getId())
-            .username(user.getUsername())
-            .email(user.getEmail())
-            .role(user.getRole())
-            .isActive(user.isActive())
-            .createdAt(user.getCreatedAt())
-            .build());
+        UserResponse user = userService.getUserById(id);
+        return ResponseEntity.ok(user);
     }
 
     /**
@@ -42,16 +37,8 @@ public class UserController {
     @GetMapping
     public ResponseEntity<List<UserResponse>> getAllUsers() {
         log.info("Fetching all active users");
-        List<User> users = userService.getAllActiveUsers();
-        List<UserResponse> responses = users.stream()
-            .map(u -> UserResponse.builder()
-                .id(u.getId())
-                .username(u.getUsername())
-                .email(u.getEmail())
-                .role(u.getRole())
-                .isActive(u.isActive())
-                .createdAt(u.getCreatedAt())
-                .build())
+        List<UserResponse> responses = userService.getAllUsers().stream()
+            .filter(u -> u.isActive())
             .toList();
         return ResponseEntity.ok(responses);
     }
@@ -62,20 +49,12 @@ public class UserController {
     @PutMapping("/{id}")
     public ResponseEntity<UserResponse> updateUser(
         @PathVariable Long id,
-        @RequestBody User request) {
+        @Valid @RequestBody UserUpdateRequest request) {
 
         log.info("Updating user: {}", id);
-        request.setId(id);
-        User user = userService.updateUser(request);
+        UserResponse user = userService.updateUser(id, request);
 
-        return ResponseEntity.ok(UserResponse.builder()
-            .id(user.getId())
-            .username(user.getUsername())
-            .email(user.getEmail())
-            .role(user.getRole())
-            .isActive(user.isActive())
-            .createdAt(user.getCreatedAt())
-            .build());
+        return ResponseEntity.ok(user);
     }
 
     /**
@@ -90,20 +69,29 @@ public class UserController {
     }
 
     /**
-     * Deactivate user
+     * Deactivate user (soft delete)
      */
     @PostMapping("/{id}/deactivate")
     public ResponseEntity<UserResponse> deactivateUser(@PathVariable Long id) {
         log.info("Deactivating user: {}", id);
-        User user = userService.deactivateUser(id);
-        return ResponseEntity.ok(UserResponse.builder()
+        UserResponse user = userService.deactivateUser(id);
+        return ResponseEntity.ok(user);
+    }
+
+    /**
+     * Helper method to map User entity to UserResponse DTO
+     */
+    private UserResponse mapToResponse(User user) {
+        return UserResponse.builder()
             .id(user.getId())
             .username(user.getUsername())
             .email(user.getEmail())
             .role(user.getRole())
-            .isActive(user.isActive())
+            .active(user.isActive())
             .createdAt(user.getCreatedAt())
-            .build());
+            .build();
     }
 }
+
+
 

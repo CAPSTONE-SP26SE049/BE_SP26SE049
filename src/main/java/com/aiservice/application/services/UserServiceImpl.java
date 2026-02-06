@@ -1,11 +1,9 @@
-package com.aiservice.infrastructure.services;
+package com.aiservice.application.services;
 
-import com.aiservice.application.services.UserService;
 import com.aiservice.domain.entities.User;
 import com.aiservice.domain.repositories.UserRepository;
 import com.aiservice.infrastructure.exceptions.DuplicateUsernameException;
 import com.aiservice.infrastructure.exceptions.ResourceNotFoundException;
-import com.aiservice.infrastructure.exceptions.UnauthorizedException;
 import com.aiservice.presentation.dto.UserCreateRequest;
 import com.aiservice.presentation.dto.UserResponse;
 import com.aiservice.presentation.dto.UserUpdateRequest;
@@ -15,8 +13,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -155,5 +151,16 @@ public class UserServiceImpl implements UserService {
                 .stream()
                 .map(UserResponse::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public UserResponse deactivateUser(Long id) {
+        log.info("Deactivating user: {}", id);
+        User user = userRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        user.setActive(false);
+        user = userRepository.save(user);
+        return UserResponse.fromEntity(user);
     }
 }

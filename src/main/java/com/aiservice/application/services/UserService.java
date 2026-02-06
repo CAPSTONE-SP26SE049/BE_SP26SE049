@@ -57,4 +57,11 @@ public interface UserService {
      * @return list of user responses
      */
     List<UserResponse> getAllUsers();
+
+    /**
+     * Deactivate user (soft delete)
+     * @param id user ID
+     * @return deactivated user response
+     */
+    UserResponse deactivateUser(Long id);
 }
