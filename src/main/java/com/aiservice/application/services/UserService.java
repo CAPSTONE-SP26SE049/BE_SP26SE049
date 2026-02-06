@@ -1,150 +1,60 @@
 package com.aiservice.application.services;
 
 import com.aiservice.domain.entities.User;
-import com.aiservice.domain.repositories.UserRepository;
-import com.aiservice.infrastructure.exceptions.DuplicateUsernameException;
-import com.aiservice.infrastructure.exceptions.ResourceNotFoundException;
 import com.aiservice.presentation.dto.UserCreateRequest;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import com.aiservice.presentation.dto.UserResponse;
+import com.aiservice.presentation.dto.UserUpdateRequest;
 
 import java.util.List;
 
-@Slf4j
-@Service
-@RequiredArgsConstructor
-@Transactional
-public class UserService {
-
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-
+public interface UserService {
+    
     /**
-     * Register a new user
+     * Create a new user
+     * @param request user creation request
+     * @return created user response
      */
-    public User registerUser(UserCreateRequest request) {
-        log.info("Registering user: {}", request.getUsername());
-
-        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            log.warn("Registration failed - duplicate username: {}", request.getUsername());
-            throw new DuplicateUsernameException("Username already exists");
-        }
-
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            log.warn("Registration failed - duplicate email: {}", request.getEmail());
-            throw new DuplicateUsernameException("Email already exists");
-        }
-
-        User user = User.builder()
-            .username(request.getUsername())
-            .email(request.getEmail())
-            .passwordHash(passwordEncoder.encode(request.getPassword()))
-            .role(request.getRole() != null ? request.getRole() : User.UserRole.PLAYER)
-            .isActive(true)
-            .build();
-
-        user = userRepository.save(user);
-        log.info("User registered successfully: {}", user.getId());
-        return user;
-    }
-
+    UserResponse createUser(UserCreateRequest request);
+    
+    /**
+     * Authenticate user with username and password
+     * @param username user's username
+     * @param password user's password
+     * @return authenticated user
+     */
+    User authenticateUser(String username, String password);
+    
     /**
      * Get user by ID
+     * @param id user ID
+     * @return user response
      */
-    @Transactional(readOnly = true)
-    public User getUserById(Long id) {
-        log.debug("Fetching user by ID: {}", id);
-        return userRepository.findById(id)
-            .orElseThrow(() -> {
-                log.warn("User not found: {}", id);
-                return new ResourceNotFoundException("User not found with ID: " + id);
-            });
-    }
-
+    UserResponse getUserById(Long id);
+    
     /**
      * Get user by username
+     * @param username user's username
+     * @return user response
      */
-    @Transactional(readOnly = true)
-    public User getUserByUsername(String username) {
-        log.debug("Fetching user by username: {}", username);
-        return userRepository.findByUsername(username)
-            .orElseThrow(() -> {
-                log.warn("User not found: {}", username);
-                return new ResourceNotFoundException("User not found with username: " + username);
-            });
-    }
-
-    /**
-     * Get all active users
-     */
-    @Transactional(readOnly = true)
-    public List<User> getAllActiveUsers() {
-        log.debug("Fetching all active users");
-        return userRepository.findAll().stream()
-            .filter(User::isActive)
-            .toList();
-    }
-
+    UserResponse getUserByUsername(String username);
+    
     /**
      * Update user
+     * @param id user ID
+     * @param request update request
+     * @return updated user response
      */
-    public User updateUser(User user) {
-        log.info("Updating user: {}", user.getId());
-
-        if (!userRepository.existsById(user.getId())) {
-            log.warn("User not found for update: {}", user.getId());
-            throw new ResourceNotFoundException("User not found with ID: " + user.getId());
-        }
-
-        user = userRepository.save(user);
-        log.info("User updated successfully: {}", user.getId());
-        return user;
-    }
-
+    UserResponse updateUser(Long id, UserUpdateRequest request);
+    
     /**
      * Delete user
+     * @param id user ID
      */
-    public void deleteUser(Long id) {
-        log.info("Deleting user: {}", id);
-
-        if (!userRepository.existsById(id)) {
-            log.warn("User not found for deletion: {}", id);
-            throw new ResourceNotFoundException("User not found with ID: " + id);
-        }
-
-        userRepository.deleteById(id);
-        log.info("User deleted successfully: {}", id);
-    }
-
+    void deleteUser(Long id);
+    
     /**
-     * Deactivate user (soft delete)
+     * Get all users
+     * @return list of user responses
      */
-    public User deactivateUser(Long id) {
-        log.info("Deactivating user: {}", id);
-        User user = getUserById(id);
-        user.setActive(false);
-        user = userRepository.save(user);
-        log.info("User deactivated: {}", id);
-        return user;
-    }
-
-    /**
-     * Check if username exists
-     */
-    @Transactional(readOnly = true)
-    public boolean usernameExists(String username) {
-        return userRepository.findByUsername(username).isPresent();
-    }
-
-    /**
-     * Check if email exists
-     */
-    @Transactional(readOnly = true)
-    public boolean emailExists(String email) {
-        return userRepository.findByEmail(email).isPresent();
-    }
+    List<UserResponse> getAllUsers();
 }
-

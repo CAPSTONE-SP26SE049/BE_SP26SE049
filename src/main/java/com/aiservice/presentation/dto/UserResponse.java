@@ -1,6 +1,7 @@
 package com.aiservice.presentation.dto;
 
 import com.aiservice.domain.entities.User;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,7 +18,19 @@ public class UserResponse {
     private String username;
     private String email;
     private User.UserRole role;
-    private boolean isActive;
+    
+    @JsonProperty("isActive")
+    private boolean active;
     private LocalDateTime createdAt;
-}
 
+    public static UserResponse fromEntity(User user) {
+        return UserResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .role(user.getRole())
+                .active(user.isActive())
+                .createdAt(user.getCreatedAt())
+                .build();
+    }
+}

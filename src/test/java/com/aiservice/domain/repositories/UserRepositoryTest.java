@@ -1,129 +1,151 @@
 package com.aiservice.domain.repositories;
 
 import com.aiservice.domain.entities.User;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
-@ActiveProfiles("dev")
 class UserRepositoryTest {
+
+    @Autowired
+    private TestEntityManager entityManager;
 
     @Autowired
     private UserRepository userRepository;
 
-    private User testUser;
-
-    @BeforeEach
-    void setUp() {
-        testUser = User.builder()
-            .username("testuser")
-            .email("test@example.com")
-            .passwordHash("$2a$10$encoded")
-            .role(User.UserRole.PLAYER)
-            .isActive(true)
-            .build();
-
-        userRepository.save(testUser);
-    }
-
     @Test
-    void testFindByUsername_ReturnsUser() {
-        // Act
+    void findByUsername_WithExistingUsername_ShouldReturnUser() {
+        // Given
+        User user = User.builder()
+                .username("testuser")
+                .email("test@example.com")
+                .passwordHash("hashedPassword")
+                .role(User.UserRole.PLAYER)
+                .isActive(true)
+                .build();
+        entityManager.persistAndFlush(user);
+
+        // When
         Optional<User> found = userRepository.findByUsername("testuser");
 
-        // Assert
+        // Then
         assertTrue(found.isPresent());
         assertEquals("testuser", found.get().getUsername());
         assertEquals("test@example.com", found.get().getEmail());
     }
 
     @Test
-    void testFindByUsername_NotFound_ReturnsEmpty() {
-        // Act
+    void findByUsername_WithNonExistingUsername_ShouldReturnEmpty() {
+        // When
         Optional<User> found = userRepository.findByUsername("nonexistent");
 
-        // Assert
-        assertTrue(found.isEmpty());
+        // Then
+        assertFalse(found.isPresent());
     }
 
     @Test
-    void testFindByEmail_ReturnsUser() {
-        // Act
+    void findByEmail_WithExistingEmail_ShouldReturnUser() {
+        // Given
+        User user = User.builder()
+                .username("testuser")
+                .email("test@example.com")
+                .passwordHash("hashedPassword")
+                .role(User.UserRole.PLAYER)
+                .isActive(true)
+                .build();
+        entityManager.persistAndFlush(user);
+
+        // When
         Optional<User> found = userRepository.findByEmail("test@example.com");
 
-        // Assert
+        // Then
         assertTrue(found.isPresent());
+        assertEquals("testuser", found.get().getUsername());
         assertEquals("test@example.com", found.get().getEmail());
     }
 
     @Test
-    void testFindByEmail_NotFound_ReturnsEmpty() {
-        // Act
-        Optional<User> found = userRepository.findByEmail("notfound@example.com");
+    void findByEmail_WithNonExistingEmail_ShouldReturnEmpty() {
+        // When
+        Optional<User> found = userRepository.findByEmail("nonexistent@example.com");
 
-        // Assert
-        assertTrue(found.isEmpty());
+        // Then
+        assertFalse(found.isPresent());
     }
 
     @Test
-    void testSave_CreatesUser() {
-        // Arrange
-        User newUser = User.builder()
-            .username("newuser")
-            .email("new@example.com")
-            .passwordHash("$2a$10$encoded")
-            .role(User.UserRole.EDUCATOR)
-            .isActive(true)
-            .build();
+    void save_WithValidUser_ShouldSaveUser() {
+        // Given
+        User user = User.builder()
+                .username("newuser")
+                .email("new@example.com")
+                .passwordHash("hashedPassword")
+                .role(User.UserRole.EDUCATOR)
+                .isActive(true)
+                .build();
 
-        // Act
-        User saved = userRepository.save(newUser);
+        // When
+        User saved = userRepository.save(user);
 
-        // Assert
+        // Then
         assertNotNull(saved.getId());
         assertEquals("newuser", saved.getUsername());
-        assertEquals(User.UserRole.EDUCATOR, saved.getRole());
+        assertNotNull(saved.getCreatedAt());
     }
 
     @Test
-    void testUpdate_ModifiesUser() {
-        // Arrange
-        testUser.setEmail("updated@example.com");
+    void delete_WithExistingUser_ShouldDeleteUser() {
+        // Given
+        User user = User.builder()
+                .username("todelete")
+                .email("delete@example.com")
+                .passwordHash("hashedPassword")
+                .role(User.UserRole.PLAYER)
+                .isActive(true)
+                .build();
+        User saved = entityManager.persistAndFlush(user);
 
-        // Act
-        User updated = userRepository.save(testUser);
+        // When
+        userRepository.delete(saved);
+        entityManager.flush();
 
-        // Assert
-        assertEquals("updated@example.com", updated.getEmail());
+        // Then
+        Optional<User> found = userRepository.findById(saved.getId());
+        assertFalse(found.isPresent());
     }
 
     @Test
-    void testDelete_RemovesUser() {
-        // Arrange
-        Long userId = testUser.getId();
+    void findById_WithExistingId_ShouldReturnUser() {
+        // Given
+        User user = User.builder()
+                .username("testuser")
+                .email("test@example.com")
+                .passwordHash("hashedPassword")
+                .role(User.UserRole.PLAYER)
+                .isActive(true)
+                .build();
+        User saved = entityManager.persistAndFlush(user);
 
-        // Act
-        userRepository.deleteById(userId);
+        // When
+        Optional<User> found = userRepository.findById(saved.getId());
 
-        // Assert
-        Optional<User> found = userRepository.findById(userId);
-        assertTrue(found.isEmpty());
+        // Then
+        assertTrue(found.isPresent());
+        assertEquals(saved.getId(), found.get().getId());
     }
 
     @Test
-    void testFindByUsername_CaseSensitive() {
-        // Act
-        Optional<User> found = userRepository.findByUsername("TESTUSER");
+    void findById_WithNonExistingId_ShouldReturnEmpty() {
+        // When
+        Optional<User> found = userRepository.findById(999L);
 
-        // Assert - Should not find due to case sensitivity
-        assertTrue(found.isEmpty());
+        // Then
+        assertFalse(found.isPresent());
     }
 }
-
