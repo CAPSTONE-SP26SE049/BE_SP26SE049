@@ -1,5 +1,6 @@
 package com.aiservice.presentation.dto;
 
+import com.aiservice.domain.entities.Prediction;
 import lombok.*;
 import java.time.LocalDateTime;
 
@@ -14,4 +15,15 @@ public class PredictionResponse {
     private String modelVersion;
     private long processingTimeMs;
     private LocalDateTime createdAt;
+
+    public static PredictionResponse fromEntity(Prediction prediction) {
+        return PredictionResponse.builder()
+                .id(prediction.getId())
+                .predictionResult(prediction.getPredictionResult())
+                .confidenceScore(prediction.getConfidenceScore())
+                .modelVersion(prediction.getModelVersion())
+                .processingTimeMs(prediction.getProcessingTimeMs())
+                .createdAt(prediction.getCreatedAt())
+                .build();
+    }
 }

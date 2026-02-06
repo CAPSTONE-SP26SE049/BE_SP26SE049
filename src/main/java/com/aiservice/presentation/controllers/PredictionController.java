@@ -1,53 +1,53 @@
 package com.aiservice.presentation.controllers;
 
-import com.aiservice.application.services.AIService;
-import com.aiservice.domain.entities.Prediction;
-import com.aiservice.domain.repositories.PredictionRepository;
+import com.aiservice.application.services.PredictionService;
 import com.aiservice.presentation.dto.PredictionRequest;
 import com.aiservice.presentation.dto.PredictionResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
-
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/predictions")
 @RequiredArgsConstructor
 public class PredictionController {
 
-    private final PredictionRepository predictionRepository;
-    private final AIService aiService;
+    private final PredictionService predictionService;
 
     @PostMapping("/")
     @ResponseStatus(HttpStatus.CREATED)
     public PredictionResponse createPrediction(@Valid @RequestBody PredictionRequest request) {
-        long startTime = System.currentTimeMillis();
+        log.info("Creating prediction for user ID: {}", request.getUserId());
+        return predictionService.createPrediction(request);
+    }
 
-        Map<String, Object> aiResult = aiService.predict(request.getInputData());
+    @GetMapping("/{id}")
+    public PredictionResponse getPredictionById(@PathVariable Long id) {
+        log.info("Fetching prediction by ID: {}", id);
+        return predictionService.getPredictionById(id);
+    }
 
-        long endTime = System.currentTimeMillis();
-        long processingTime = endTime - startTime;
+    @GetMapping("/")
+    public Page<PredictionResponse> getAllPredictions(Pageable pageable) {
+        log.info("Fetching all predictions with pagination");
+        return predictionService.getAllPredictions(pageable);
+    }
 
-        Prediction prediction = Prediction.builder()
-                .userId(request.getUserId())
-                .inputData(request.getInputData().toString())
-                .predictionResult(aiResult.get("result").toString())
-                .modelVersion((String) aiResult.get("model_version"))
-                .confidenceScore((Double) aiResult.get("confidence"))
-                .processingTimeMs(processingTime)
-                .build();
+    @GetMapping("/user/{userId}")
+    public Page<PredictionResponse> getPredictionsByUserId(@PathVariable Long userId, Pageable pageable) {
+        log.info("Fetching predictions for user ID: {}", userId);
+        return predictionService.getPredictionsByUserId(userId, pageable);
+    }
 
-        prediction = predictionRepository.save(prediction);
-
-        return PredictionResponse.builder()
-                .id(prediction.getId())
-                .predictionResult(prediction.getPredictionResult())
-                .confidenceScore(prediction.getConfidenceScore())
-                .modelVersion(prediction.getModelVersion())
-                .processingTimeMs(prediction.getProcessingTimeMs())
-                .createdAt(prediction.getCreatedAt())
-                .build();
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletePrediction(@PathVariable Long id) {
+        log.info("Deleting prediction with ID: {}", id);
+        predictionService.deletePrediction(id);
     }
 }
