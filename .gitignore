@@ -57,3 +57,6 @@ htmlcov/
 *.log
 logs/
 
+# Maven
+target/
+

@@ -16,8 +16,8 @@ com/aiservice/domain/entities/Prediction.class
 com/aiservice/infrastructure/security/SecurityConfig.class
 com/aiservice/domain/entities/Attempt.class
 com/aiservice/infrastructure/security/JwtUtils.class
-com/aiservice/domain/repositories/PredictionRepository.class
 com/aiservice/domain/entities/Region.class
+com/aiservice/domain/repositories/PredictionRepository.class
 com/aiservice/domain/entities/Region$RegionBuilder.class
 com/aiservice/domain/entities/User$UserBuilder.class
 com/aiservice/domain/entities/Classroom.class
@@ -32,8 +32,8 @@ com/aiservice/domain/entities/Level$LevelBuilder.class
 com/aiservice/presentation/dto/UserLoginRequest$UserLoginRequestBuilder.class
 com/aiservice/domain/entities/UserProfile$UserProfileBuilder.class
 com/aiservice/domain/entities/Challenge$ChallengeType.class
-com/aiservice/presentation/controllers/HealthController.class
 com/aiservice/presentation/controllers/PredictionController.class
+com/aiservice/presentation/controllers/HealthController.class
 com/aiservice/domain/entities/User$UserRole.class
 com/aiservice/domain/entities/Classroom$ClassroomBuilder.class
 com/aiservice/presentation/dto/TokenResponse.class
