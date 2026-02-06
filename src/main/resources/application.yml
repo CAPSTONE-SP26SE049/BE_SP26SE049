@@ -17,8 +17,8 @@ spring:
   mail:
     host: ${MAIL_SERVER:smtp.gmail.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:nguyenductuan11012003@gmail.com}
-    password: ${MAIL_PASSWORD:xmpr uidx edig fygu}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
@@ -28,7 +28,7 @@ spring:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:8520af2bad412296716a445f62decdcb59c7336b13cf14a51e6b8c6e267d3e26}
+    secret: ${JWT_SECRET:}
     expiration: 86400000 # 24 hours
 
 logging:
