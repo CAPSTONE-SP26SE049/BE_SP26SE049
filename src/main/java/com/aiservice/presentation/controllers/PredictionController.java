@@ -5,6 +5,7 @@ import com.aiservice.domain.entities.Prediction;
 import com.aiservice.domain.repositories.PredictionRepository;
 import com.aiservice.presentation.dto.PredictionRequest;
 import com.aiservice.presentation.dto.PredictionResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +22,7 @@ public class PredictionController {
 
     @PostMapping("/")
     @ResponseStatus(HttpStatus.CREATED)
-    public PredictionResponse createPrediction(@RequestBody PredictionRequest request) {
+    public PredictionResponse createPrediction(@Valid @RequestBody PredictionRequest request) {
         long startTime = System.currentTimeMillis();
 
         Map<String, Object> aiResult = aiService.predict(request.getInputData());

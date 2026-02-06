@@ -56,6 +56,14 @@ public class JwtUtils {
         return (tokenUsername.equals(username) && !isTokenExpired(token));
     }
 
+    public Boolean validateToken(String token) {
+        try {
+            return !isTokenExpired(token);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     private Boolean isTokenExpired(String token) {
         final Date expirationDate = getClaimFromToken(token, Claims::getExpiration);
         return expirationDate.before(new Date());

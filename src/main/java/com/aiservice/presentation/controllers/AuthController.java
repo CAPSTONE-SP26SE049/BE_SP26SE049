@@ -2,15 +2,17 @@ package com.aiservice.presentation.controllers;
 
 import com.aiservice.domain.entities.User;
 import com.aiservice.domain.repositories.UserRepository;
+import com.aiservice.infrastructure.exceptions.DuplicateUsernameException;
+import com.aiservice.infrastructure.exceptions.UnauthorizedException;
 import com.aiservice.infrastructure.security.JwtUtils;
 import com.aiservice.presentation.dto.TokenResponse;
 import com.aiservice.presentation.dto.UserCreateRequest;
 import com.aiservice.presentation.dto.UserLoginRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -23,9 +25,9 @@ public class AuthController {
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public User register(@RequestBody UserCreateRequest request) {
+    public User register(@Valid @RequestBody UserCreateRequest request) {
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username already exists");
+            throw new DuplicateUsernameException("Username already exists");
         }
 
         User user = User.builder()
@@ -40,13 +42,12 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public TokenResponse login(@RequestBody UserLoginRequest request) {
+    public TokenResponse login(@Valid @RequestBody UserLoginRequest request) {
         User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(
-                        () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password"));
+                .orElseThrow(() -> new UnauthorizedException("Invalid username or password"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
+            throw new UnauthorizedException("Invalid username or password");
         }
 
         String token = jwtUtils.generateToken(user.getUsername());

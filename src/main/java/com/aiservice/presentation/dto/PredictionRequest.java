@@ -1,5 +1,6 @@
 package com.aiservice.presentation.dto;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import java.util.Map;
 
@@ -8,6 +9,9 @@ import java.util.Map;
 @AllArgsConstructor
 @Builder
 public class PredictionRequest {
+    @NotNull(message = "Input data is required")
     private Map<String, Object> inputData;
+    
+    @NotNull(message = "User ID is required")
     private Long userId;
 }
