@@ -62,7 +62,7 @@ class AuthControllerIntegrationTest {
                 .andExpect(jsonPath("$.username").value("testuser"))
                 .andExpect(jsonPath("$.email").value("test@example.com"))
                 .andExpect(jsonPath("$.role").value("PLAYER"))
-                .andExpect(jsonPath("$.active").value(true));
+                .andExpect(jsonPath("$.isActive").value(true));
     }
 
     @Test

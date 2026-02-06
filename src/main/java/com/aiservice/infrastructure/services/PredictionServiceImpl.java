@@ -50,14 +50,7 @@ public class PredictionServiceImpl implements PredictionService {
         Prediction savedPrediction = predictionRepository.save(prediction);
         log.info("Prediction created successfully with ID: {}", savedPrediction.getId());
         
-        return PredictionResponse.builder()
-                .id(savedPrediction.getId())
-                .predictionResult(savedPrediction.getPredictionResult())
-                .confidenceScore(savedPrediction.getConfidenceScore())
-                .modelVersion(savedPrediction.getModelVersion())
-                .processingTimeMs(savedPrediction.getProcessingTimeMs())
-                .createdAt(savedPrediction.getCreatedAt())
-                .build();
+        return PredictionResponse.fromEntity(savedPrediction);
     }
     
     @Override
@@ -68,14 +61,7 @@ public class PredictionServiceImpl implements PredictionService {
         Prediction prediction = predictionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Prediction", "id", id));
         
-        return PredictionResponse.builder()
-                .id(prediction.getId())
-                .predictionResult(prediction.getPredictionResult())
-                .confidenceScore(prediction.getConfidenceScore())
-                .modelVersion(prediction.getModelVersion())
-                .processingTimeMs(prediction.getProcessingTimeMs())
-                .createdAt(prediction.getCreatedAt())
-                .build();
+        return PredictionResponse.fromEntity(prediction);
     }
     
     @Override
@@ -84,14 +70,7 @@ public class PredictionServiceImpl implements PredictionService {
         log.info("Fetching all predictions with pagination");
         
         return predictionRepository.findAll(pageable)
-                .map(prediction -> PredictionResponse.builder()
-                        .id(prediction.getId())
-                        .predictionResult(prediction.getPredictionResult())
-                        .confidenceScore(prediction.getConfidenceScore())
-                        .modelVersion(prediction.getModelVersion())
-                        .processingTimeMs(prediction.getProcessingTimeMs())
-                        .createdAt(prediction.getCreatedAt())
-                        .build());
+                .map(PredictionResponse::fromEntity);
     }
     
     @Override
@@ -100,14 +79,7 @@ public class PredictionServiceImpl implements PredictionService {
         log.info("Fetching predictions for user ID: {}", userId);
         
         return predictionRepository.findByUserId(userId, pageable)
-                .map(prediction -> PredictionResponse.builder()
-                        .id(prediction.getId())
-                        .predictionResult(prediction.getPredictionResult())
-                        .confidenceScore(prediction.getConfidenceScore())
-                        .modelVersion(prediction.getModelVersion())
-                        .processingTimeMs(prediction.getProcessingTimeMs())
-                        .createdAt(prediction.getCreatedAt())
-                        .build());
+                .map(PredictionResponse::fromEntity);
     }
     
     @Override
