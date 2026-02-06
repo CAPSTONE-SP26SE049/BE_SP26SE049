@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: be-sp26se049
+  datasource:
+    url: jdbc:h2:mem:testdb
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: test@gmail.com
+    password: test-password
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+app:
+  jwt:
+    secret: dev-secret-key-must-be-at-least-256-bits-long-for-HS256-algorithm-testing-purpose-only
+    expiration: 86400000
+
+logging:
+  level:
+    root: INFO
+    org.springframework.security: WARN
+
