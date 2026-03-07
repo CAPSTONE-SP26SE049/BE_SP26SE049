@@ -1,0 +1,526 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="1.0.0-001-enable-uuid-extension" author="fsa-team">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM pg_extension WHERE extname = 'uuid-ossp'
+            </sqlCheck>
+        </preConditions>
+        <sql>CREATE EXTENSION IF NOT EXISTS "uuid-ossp";</sql>
+    </changeSet>
+
+    <changeSet id="1.0.0-002-create-language-table" author="fsa-team">
+        <createTable tableName="language">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="code" type="VARCHAR(10)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1.0.0-003-create-country-table" author="fsa-team">
+        <createTable tableName="country">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="code" type="VARCHAR(10)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1.0.0-004-create-dialect-table" author="fsa-team">
+        <createTable tableName="dialect">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="language_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_dialect_language" references="language(id)"/>
+            </column>
+            <column name="country_id" type="UUID">
+                <constraints foreignKeyName="fk_dialect_country" references="country(id)"/>
+            </column>
+            <column name="name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="code" type="VARCHAR(20)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1.0.0-005-create-account-table" author="fsa-team">
+        <createTable tableName="account">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="username" type="VARCHAR(50)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="email" type="VARCHAR(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="password_hash" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="role_code" type="VARCHAR(20)" defaultValue="USER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="native_language" type="UUID">
+                <constraints foreignKeyName="fk_account_native_lang" references="language(id)"/>
+            </column>
+            <column name="target_language" type="UUID">
+                <constraints foreignKeyName="fk_account_target_lang" references="language(id)"/>
+            </column>
+            <column name="native_dialect_id" type="UUID">
+                <constraints foreignKeyName="fk_account_native_dialect" references="dialect(id)"/>
+            </column>
+            <column name="target_dialect_id" type="UUID">
+                <constraints foreignKeyName="fk_account_target_dialect" references="dialect(id)"/>
+            </column>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reset_code" type="VARCHAR(255)"/>
+            <column name="reset_expires_at" type="TIMESTAMPTZ"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1.0.0-006-create-user-profile-table" author="fsa-team">
+        <createTable tableName="user_profile">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="account_id" type="UUID">
+                <constraints nullable="false" unique="true" foreignKeyName="fk_user_profile_account" references="account(id)"/>
+            </column>
+            <column name="first_name" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_name" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="avatar_url" type="VARCHAR(500)"/>
+            <column name="bio" type="TEXT"/>
+            <column name="total_points" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_stars" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1.0.0-007-create-badge-table" author="fsa-team">
+        <createTable tableName="badge">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="icon_url" type="VARCHAR(500)"/>
+            <column name="min_points_required" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1.0.0-008-create-level-table" author="fsa-team">
+        <createTable tableName="level">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="dialect_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_level_dialect" references="dialect(id)"/>
+            </column>
+            <column name="level_order" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="min_stars_required" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1.0.0-009-create-classroom-table" author="fsa-team">
+        <createTable tableName="classroom">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="teacher_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_classroom_teacher" references="account(id)"/>
+            </column>
+            <column name="name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="code" type="VARCHAR(20)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1.0.0-010-create-classroom-member-table" author="fsa-team">
+        <createTable tableName="classroom_member">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="classroom_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_classroom_member_classroom" references="classroom(id)"/>
+            </column>
+            <column name="account_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_classroom_member_account" references="account(id)"/>
+            </column>
+            <column name="role" type="VARCHAR(20)" defaultValue="STUDENT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="joined_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+        <addUniqueConstraint
+            constraintName="uk_classroom_member_classroom_account"
+            tableName="classroom_member"
+            columnNames="classroom_id,account_id"/>
+    </changeSet>
+
+    <changeSet id="1.0.0-011-create-practice-session-table" author="fsa-team">
+        <createTable tableName="practice_session">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="account_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_practice_session_account" references="account(id)"/>
+            </column>
+            <column name="level_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_practice_session_level" references="level(id)"/>
+            </column>
+            <column name="session_duration" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_points_earned" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_stars_earned" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_completed" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1.0.0-012-create-challenge-table" author="fsa-team">
+        <createTable tableName="challenge">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="level_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_challenge_level" references="level(id)"/>
+            </column>
+            <column name="challenge_order" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="word" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="phonetic_spelling" type="VARCHAR(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="difficulty_level" type="VARCHAR(20)" defaultValue="MEDIUM">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1.0.0-013-create-attempt-table" author="fsa-team">
+        <createTable tableName="attempt">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="practice_session_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_attempt_practice_session" references="practice_session(id)"/>
+            </column>
+            <column name="challenge_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_attempt_challenge" references="challenge(id)"/>
+            </column>
+            <column name="recorded_audio_url" type="VARCHAR(500)"/>
+            <column name="is_correct" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="similarity_score" type="DECIMAL(5,2)" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="points_earned" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="stars_earned" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1.0.0-014-create-attempt-phoneme-feedback-table" author="fsa-team">
+        <createTable tableName="attempt_phoneme_feedback">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="attempt_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_attempt_phoneme_feedback_attempt" references="attempt(id)"/>
+            </column>
+            <column name="phoneme" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expected_phoneme" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_correct" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="similarity_score" type="DECIMAL(5,2)" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="feedback_message" type="TEXT"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1.0.0-015-create-prediction-table" author="fsa-team">
+        <createTable tableName="prediction">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="attempt_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_prediction_attempt" references="attempt(id)"/>
+            </column>
+            <column name="predicted_phoneme" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="confidence_score" type="DECIMAL(5,2)" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="model_version" type="VARCHAR(50)"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1.0.0-016-create-account-badge-table" author="fsa-team">
+        <createTable tableName="account_badge">
+            <column name="account_id" type="UUID">
+                <constraints primaryKey="true" nullable="false" foreignKeyName="fk_account_badge_account" references="account(id)"/>
+            </column>
+            <column name="badge_id" type="UUID">
+                <constraints primaryKey="true" nullable="false" foreignKeyName="fk_account_badge_badge" references="badge(id)"/>
+            </column>
+            <column name="earned_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1.0.0-017-create-indexes" author="fsa-team">
+        <!-- Account indexes -->
+        <createIndex indexName="idx_account_username" tableName="account">
+            <column name="username"/>
+        </createIndex>
+        <createIndex indexName="idx_account_email" tableName="account">
+            <column name="email"/>
+        </createIndex>
+        <createIndex indexName="idx_account_role_code" tableName="account">
+            <column name="role_code"/>
+        </createIndex>
+
+        <!-- User Profile indexes -->
+        <createIndex indexName="idx_user_profile_account_id" tableName="user_profile">
+            <column name="account_id"/>
+        </createIndex>
+
+        <!-- Classroom indexes -->
+        <createIndex indexName="idx_classroom_teacher_id" tableName="classroom">
+            <column name="teacher_id"/>
+        </createIndex>
+        <createIndex indexName="idx_classroom_code" tableName="classroom">
+            <column name="code"/>
+        </createIndex>
+
+        <!-- Level indexes -->
+        <createIndex indexName="idx_level_dialect_id" tableName="level">
+            <column name="dialect_id"/>
+        </createIndex>
+
+        <!-- Practice Session indexes -->
+        <createIndex indexName="idx_practice_session_account_id" tableName="practice_session">
+            <column name="account_id"/>
+        </createIndex>
+        <createIndex indexName="idx_practice_session_level_id" tableName="practice_session">
+            <column name="level_id"/>
+        </createIndex>
+
+        <!-- Challenge indexes -->
+        <createIndex indexName="idx_challenge_level_id" tableName="challenge">
+            <column name="level_id"/>
+        </createIndex>
+
+        <!-- Attempt indexes -->
+        <createIndex indexName="idx_attempt_practice_session_id" tableName="attempt">
+            <column name="practice_session_id"/>
+        </createIndex>
+        <createIndex indexName="idx_attempt_challenge_id" tableName="attempt">
+            <column name="challenge_id"/>
+        </createIndex>
+
+        <!-- Phoneme Feedback indexes -->
+        <createIndex indexName="idx_attempt_phoneme_feedback_attempt_id" tableName="attempt_phoneme_feedback">
+            <column name="attempt_id"/>
+        </createIndex>
+
+        <!-- Prediction indexes -->
+        <createIndex indexName="idx_prediction_attempt_id" tableName="prediction">
+            <column name="attempt_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
+

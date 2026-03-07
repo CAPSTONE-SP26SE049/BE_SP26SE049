@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="1.0.1-001-update-user-profile" author="fsa-team">
+        <addColumn tableName="user_profile">
+            <column name="full_name" type="VARCHAR(255)"/>
+            <column name="current_streak_days" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_experience" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <dropColumn tableName="user_profile" columnName="first_name"/>
+        <dropColumn tableName="user_profile" columnName="last_name"/>
+        <dropColumn tableName="user_profile" columnName="bio"/>
+        <dropColumn tableName="user_profile" columnName="total_points"/>
+    </changeSet>
+
+    <changeSet id="1.0.1-002-update-classroom" author="fsa-team">
+        <renameColumn tableName="classroom" oldColumnName="teacher_id" newColumnName="educator_id" columnDataType="UUID"/>
+        <dropColumn tableName="classroom" columnName="description"/>
+        <dropColumn tableName="classroom" columnName="is_active"/>
+    </changeSet>
+
+    <changeSet id="1.0.1-003-update-classroom-member" author="fsa-team">
+        <renameColumn tableName="classroom_member" oldColumnName="account_id" newColumnName="student_id" columnDataType="UUID"/>
+        <dropColumn tableName="classroom_member" columnName="role"/>
+    </changeSet>
+
+    <changeSet id="1.0.1-004-update-practice-session" author="fsa-team">
+        <addColumn tableName="practice_session">
+            <column name="ended_at" type="TIMESTAMPTZ"/>
+        </addColumn>
+        <dropColumn tableName="practice_session" columnName="session_duration"/>
+        <dropColumn tableName="practice_session" columnName="total_points_earned"/>
+        <dropColumn tableName="practice_session" columnName="total_stars_earned"/>
+        <dropColumn tableName="practice_session" columnName="is_completed"/>
+        <dropColumn tableName="practice_session" columnName="created_by"/>
+        <dropColumn tableName="practice_session" columnName="updated_by"/>
+        <renameColumn tableName="practice_session" oldColumnName="created_at" newColumnName="started_at" columnDataType="TIMESTAMPTZ"/>
+        <dropColumn tableName="practice_session" columnName="updated_at"/>
+        <dropColumn tableName="practice_session" columnName="level_id"/>
+    </changeSet>
+
+    <changeSet id="1.0.1-005-update-challenge" author="fsa-team">
+        <addColumn tableName="challenge">
+            <column name="type" type="VARCHAR(255)"/>
+            <column name="reference_audio_url" type="VARCHAR(255)"/>
+            <column name="focus_phonemes" type="TEXT"/>
+        </addColumn>
+        <renameColumn tableName="challenge" oldColumnName="word" newColumnName="content_text" columnDataType="TEXT"/>
+        <renameColumn tableName="challenge" oldColumnName="phonetic_spelling" newColumnName="phonetic_transcription_ipa" columnDataType="VARCHAR(255)"/>
+        
+        <dropColumn tableName="challenge" columnName="challenge_order"/>
+        <dropColumn tableName="challenge" columnName="description"/>
+        <dropColumn tableName="challenge" columnName="difficulty_level"/>
+        
+        <renameTable oldTableName="challenge" newTableName="challenges"/>
+    </changeSet>
+
+    <changeSet id="1.0.1-006-update-attempt" author="fsa-team">
+        <addColumn tableName="attempt">
+            <column name="account_id" type="UUID"/>
+        </addColumn>
+        <addForeignKeyConstraint baseTableName="attempt" baseColumnNames="account_id" constraintName="fk_attempt_account" referencedTableName="account" referencedColumnNames="id"/>
+        
+        <renameColumn tableName="attempt" oldColumnName="practice_session_id" newColumnName="session_id" columnDataType="UUID"/>
+        <renameColumn tableName="attempt" oldColumnName="recorded_audio_url" newColumnName="audio_url" columnDataType="VARCHAR(500)"/>
+        <renameColumn tableName="attempt" oldColumnName="similarity_score" newColumnName="score_overall" columnDataType="DECIMAL(5,2)"/>
+        <renameColumn tableName="attempt" oldColumnName="is_correct" newColumnName="is_passed" columnDataType="BOOLEAN"/>
+        
+        <addColumn tableName="attempt">
+            <column name="latency_ms" type="INTEGER"/>
+        </addColumn>
+        
+        <dropColumn tableName="attempt" columnName="points_earned"/>
+        <dropColumn tableName="attempt" columnName="stars_earned"/>
+        <dropColumn tableName="attempt" columnName="updated_at"/>
+        <dropColumn tableName="attempt" columnName="created_by"/>
+        <dropColumn tableName="attempt" columnName="updated_by"/>
+    </changeSet>
+
+    <changeSet id="1.0.1-007-update-attempt-phoneme-feedback" author="fsa-team">
+        <renameColumn tableName="attempt_phoneme_feedback" oldColumnName="phoneme" newColumnName="phoneme_ipa" columnDataType="VARCHAR(10)"/>
+        <renameColumn tableName="attempt_phoneme_feedback" oldColumnName="similarity_score" newColumnName="score" columnDataType="DECIMAL(5,2)"/>
+        <addColumn tableName="attempt_phoneme_feedback">
+            <column name="sequence_order" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="start_time_ms" type="INTEGER"/>
+            <column name="end_time_ms" type="INTEGER"/>
+        </addColumn>
+        <dropColumn tableName="attempt_phoneme_feedback" columnName="expected_phoneme"/>
+        <dropColumn tableName="attempt_phoneme_feedback" columnName="is_correct"/>
+        <dropColumn tableName="attempt_phoneme_feedback" columnName="feedback_message"/>
+    </changeSet>
+
+    <changeSet id="1.0.1-008-update-account" author="fsa-team">
+        <addColumn tableName="account">
+            <column name="phone" type="VARCHAR(20)"/>
+            <column name="region" type="VARCHAR(20)"/>
+            <column name="email_verified" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="email_verify_code" type="VARCHAR(6)"/>
+            <column name="email_verify_expires_at" type="TIMESTAMPTZ"/>
+        </addColumn>
+        
+        <modifyDataType tableName="account" columnName="email" newDataType="VARCHAR(255)"/>
+        <modifyDataType tableName="account" columnName="reset_code" newDataType="VARCHAR(6)"/>
+
+        <!-- Drop old native language and target language -->
+        <dropForeignKeyConstraint baseTableName="account" constraintName="fk_account_native_lang"/>
+        <dropForeignKeyConstraint baseTableName="account" constraintName="fk_account_target_lang"/>
+        <dropColumn tableName="account" columnName="native_language"/>
+        <dropColumn tableName="account" columnName="target_language"/>
+        
+        <!-- Drop username as we only use email now -->
+        <dropColumn tableName="account" columnName="username"/>
+    </changeSet>
+
+    <changeSet id="1.0.1-009-update-badge" author="fsa-team">
+        <addColumn tableName="badge">
+            <column name="code" type="VARCHAR(50)"/>
+            <column name="criteria_json" type="JSONB"/>
+        </addColumn>
+        <addUniqueConstraint tableName="badge" columnNames="code" constraintName="uk_badge_code"/>
+        <dropColumn tableName="badge" columnName="min_points_required"/>
+    </changeSet>
+
+    <changeSet id="1.0.1-010-update-dialect" author="fsa-team">
+        <dropForeignKeyConstraint baseTableName="dialect" constraintName="fk_dialect_language"/>
+        <dropForeignKeyConstraint baseTableName="dialect" constraintName="fk_dialect_country"/>
+        <dropColumn tableName="dialect" columnName="language_id"/>
+        <dropColumn tableName="dialect" columnName="country_id"/>
+        <dropColumn tableName="dialect" columnName="code"/>
+        
+        <dropTable tableName="country" cascadeConstraints="true"/>
+        <dropTable tableName="language" cascadeConstraints="true"/>
+    </changeSet>
+
+    <changeSet id="1.0.1-011-update-account-badge" author="fsa-team">
+        <dropColumn tableName="account_badge" columnName="created_at"/>
+        <dropColumn tableName="account_badge" columnName="updated_at"/>
+        <dropColumn tableName="account_badge" columnName="created_by"/>
+        <dropColumn tableName="account_badge" columnName="updated_by"/>
+    </changeSet>
+
+    <changeSet id="1.0.1-012-update-prediction" author="fsa-team">
+        <!-- Re-creating prediction to match modern Entity -->
+        <dropTable tableName="prediction" cascadeConstraints="true"/>
+        <createTable tableName="predictions">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="BIGINT"/>
+            <column name="input_data" type="TEXT"/>
+            <column name="prediction_result" type="TEXT"/>
+            <column name="confidence_score" type="FLOAT8"/>
+            <column name="model_version" type="VARCHAR(255)"/>
+            <column name="processing_time_ms" type="BIGINT"/>
+            <column name="created_at" type="TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1.0.1-013-create-refresh-token" author="fsa-team">
+        <createTable tableName="refresh_token">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="account_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="token" type="VARCHAR(500)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="expires_at" type="TIMESTAMPTZ">
+                <constraints nullable="false"/>
+            </column>
+            <column name="revoked" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="refresh_token" baseColumnNames="account_id" constraintName="fk_refresh_token_account" referencedTableName="account" referencedColumnNames="id"/>
+    </changeSet>
+
+</databaseChangeLog>

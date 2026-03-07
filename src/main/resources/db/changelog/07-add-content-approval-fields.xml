@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260226-add-content-approval-fields" author="antigravity">
+        <!-- Add columns to 'level' table -->
+        <addColumn tableName="level">
+            <!-- Ensure existing rows get a default APPROVED status so they don't break -->
+            <column name="status" type="VARCHAR(20)" defaultValue="APPROVED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="rejection_reason" type="TEXT"/>
+            <!-- 'created_by' is inherited from BaseEntity, typically a VARCHAR(50). If it already exists, this will fail.
+                 Wait, checking BaseEntity, created_by is already defined there and likely in initial schema. 
+                 So we don't need to add created_by to Liquibase for level or challenges if BaseEntity provided it. -->
+        </addColumn>
+
+        <!-- Add columns to 'challenges' table -->
+        <addColumn tableName="challenges">
+            <column name="status" type="VARCHAR(20)" defaultValue="APPROVED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="rejection_reason" type="TEXT"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

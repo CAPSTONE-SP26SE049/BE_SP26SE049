@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Include all changelog files -->
+    <include file="01-create-initial-schema.xml" relativeToChangelogFile="true"/>
+    <include file="02-update-game-schema.xml" relativeToChangelogFile="true"/>
+    <include file="03-add-daily-analytics.xml" relativeToChangelogFile="true"/>
+    <include file="04-add-educator-extensions.xml" relativeToChangelogFile="true"/>
+    <include file="05-seed-dialect-levels.xml" relativeToChangelogFile="true"/>
+    <include file="06-seed-test-accounts.xml" relativeToChangelogFile="true"/>
+    <!-- Content Approval Workflow additions -->
+    <include file="db/changelog/07-add-content-approval-fields.xml"/>
+    
+    <!-- ISO standards compliance fixes and Error Tag table -->
+    <include file="db/changelog/08-database-iso-fixes-and-error-tag.xml"/>
+
+    <!-- Missing Entity Relationships Links -->
+    <include file="db/changelog/09-add-missing-relationships.xml"/>
+
+    <!-- Content Approval History (Audit Log) -->
+    <include file="db/changelog/10-add-content-approval-history.xml"/>
+
+    <!-- Draft Live Implementation -->
+    <include file="db/changelog/11-add-draft-live-content.xml"/>
+
+    <!-- Content Snapshot Implementation -->
+    <include file="db/changelog/12-add-content-snapshot-to-history.xml"/>
+
+    <!-- Seed Error Tag Rules and Placement Rules -->
+    <include file="db/changelog/13-seed-error-tag-rules.xml"/>
+
+</databaseChangeLog>

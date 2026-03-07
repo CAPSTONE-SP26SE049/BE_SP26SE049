@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Update placement_rule table to use relationships instead of strings -->
+    <changeSet id="20260226-add-missing-relationships" author="antigravity">
+        
+        <!-- Add new UUID columns -->
+        <addColumn tableName="placement_rule">
+            <column name="error_tag_id" type="UUID" />
+            <column name="dialect_id" type="UUID" />
+        </addColumn>
+
+        <!-- Drop old string columns -->
+        <dropColumn tableName="placement_rule" columnName="error_type"/>
+        <dropColumn tableName="placement_rule" columnName="target_region"/>
+
+        <!-- Add Foreign Keys -->
+        <addForeignKeyConstraint baseTableName="placement_rule"
+                                 baseColumnNames="error_tag_id"
+                                 constraintName="fk_placement_rule_error_tag"
+                                 referencedTableName="error_tag"
+                                 referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint baseTableName="placement_rule"
+                                 baseColumnNames="dialect_id"
+                                 constraintName="fk_placement_rule_dialect"
+                                 referencedTableName="dialect"
+                                 referencedColumnNames="id"/>
+                                 
+    </changeSet>
+
+    <changeSet id="20260226-recreate-prediction-table" author="antigravity">
+        <!-- The old predictions table used BIGINT for ids while the Account table uses UUID.
+             This means previous data was orphaned. We drop and recreate it with the correct ISO structure. -->
+        <dropTable tableName="prediction" cascadeConstraints="true"/>
+
+        <createTable tableName="prediction">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_prediction_user" references="account(id)"/>
+            </column>
+            <column name="challenge_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_prediction_challenge" references="challenge(id)"/>
+            </column>
+            <column name="input_data" type="TEXT"/>
+            <column name="prediction_result" type="TEXT"/>
+            <column name="confidence_score" type="FLOAT8"/>
+            <column name="model_version" type="VARCHAR(255)"/>
+            <column name="processing_time_ms" type="BIGINT"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>

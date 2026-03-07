@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- 1. Consistent Naming Conventions -->
+    <changeSet id="20260226-01-rename-plural-tables" author="antigravity">
+        <renameTable oldTableName="challenges" newTableName="challenge"/>
+        <renameTable oldTableName="predictions" newTableName="prediction"/>
+    </changeSet>
+
+    <!-- 2. Timezone Standards -->
+    <changeSet id="20260226-02-alter-timezone-types" author="antigravity">
+        <modifyDataType tableName="daily_analytics" columnName="created_at" newDataType="TIMESTAMPTZ"/>
+        <modifyDataType tableName="daily_analytics" columnName="updated_at" newDataType="TIMESTAMPTZ"/>
+        <modifyDataType tableName="prediction" columnName="created_at" newDataType="TIMESTAMPTZ"/>
+        
+        <addColumn tableName="prediction">
+            <column name="updated_at" type="TIMESTAMPTZ"/>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- 3. Dynamic Error Tag Lookup Table -->
+    <changeSet id="20260226-03-create-error-tag-table" author="antigravity">
+        <createTable tableName="error_tag">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tag_code" type="VARCHAR(50)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+
+        <addColumn tableName="level">
+            <column name="error_tag_id" type="UUID">
+                <constraints foreignKeyName="fk_level_error_tag" references="error_tag(id)"/>
+            </column>
+        </addColumn>
+
+        <dropColumn tableName="level" columnName="error_tag"/>
+    </changeSet>
+
+    <!-- 4. Seed basic Error Tags for test data to keep the systems working -->
+    <changeSet id="20260226-04-seed-error-tags" author="antigravity">
+        <insert tableName="error_tag">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="tag_code" value="L_N"/>
+            <column name="name" value="Ngọng L - N"/>
+            <column name="description" value="Lỗi phát âm nhầm lẫn giữa L và N phổ biến ở miền Bắc"/>
+        </insert>
+        <insert tableName="error_tag">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="tag_code" value="S_X"/>
+            <column name="name" value="Ngọng S - X"/>
+            <column name="description" value="Lỗi phát âm chưa phân biệt âm cuốn lưỡi S và X"/>
+        </insert>
+        <insert tableName="error_tag">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="tag_code" value="CH_TR"/>
+            <column name="name" value="Ngọng CH - TR"/>
+            <column name="description" value="Lỗi phát âm nhầm lẫn giữa CH và TR"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260225-01-add-level-fields" author="antigravity">
+        <addColumn tableName="level">
+            <column name="error_tag" type="VARCHAR(100)"/>
+            <column name="ai_threshold" type="INT"/>
+            <column name="audio_url" type="VARCHAR(500)"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="20260225-02-create-placement-rule" author="antigravity">
+        <createTable tableName="placement_rule">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="error_type" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="threshold" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="target_region" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="checkpoint" type="VARCHAR(100)"/>
+            <column name="priority" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="20260225-03-create-educator-feedback" author="antigravity">
+        <createTable tableName="educator_feedback">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="attempt_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_feedback_attempt" referencedTableName="attempt" referencedColumnNames="id"/>
+            </column>
+            <column name="educator_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_feedback_account" referencedTableName="account" referencedColumnNames="id"/>
+            </column>
+            <column name="comment" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="priority" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>

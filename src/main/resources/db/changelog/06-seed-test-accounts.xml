@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260225-seed-test-accounts" author="antigravity">
+        <!-- Seed Educator Account (Email: educator@fsa.com, Password: password123) -->
+        <insert tableName="account">
+            <column name="id" value="00000000-0000-0000-0002-000000000001"/>
+            <column name="email" value="educator@fsa.com"/>
+            <!-- BCrypt hash for 'password123' -->
+            <column name="password_hash" value="$2a$10$r8VvQXf.w5G.xK6qKz7u6.Y7v6uB0v4f9w5uB0v4f9w5uB0v4f9w5"/>
+            <column name="role_code" value="EDUCATOR"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- Seed Student Account (Email: student@fsa.com, Password: password123) -->
+        <insert tableName="account">
+            <column name="id" value="00000000-0000-0000-0002-000000000002"/>
+            <column name="email" value="student@fsa.com"/>
+            <column name="password_hash" value="$2a$10$r8VvQXf.w5G.xK6qKz7u6.Y7v6uB0v4f9w5uB0v4f9w5uB0v4f9w5"/>
+            <column name="role_code" value="USER"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="20260225-seed-test-classroom" author="antigravity">
+        <!-- Seed Classroom for the Educator -->
+        <insert tableName="classroom">
+            <column name="id" value="00000000-0000-0000-0003-000000000001"/>
+            <column name="educator_id" value="00000000-0000-0000-0002-000000000001"/>
+            <column name="name" value="Lớp Tiếng Việt Cơ Bản 1"/>
+            <column name="code" value="VN101"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- Add Student to Classroom -->
+        <insert tableName="classroom_member">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="classroom_id" value="00000000-0000-0000-0003-000000000001"/>
+            <column name="student_id" value="00000000-0000-0000-0002-000000000002"/>
+            <column name="joined_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

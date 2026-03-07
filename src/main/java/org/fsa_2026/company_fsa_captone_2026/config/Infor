@@ -1,0 +1,35 @@
+Cấu hình hệ thống
+
+SecurityConfig (Bảo mật & Phân quyền):
+
+Cấu hình cơ chế xác thực (Authentication) - thường dùng JWT Filter.
+
+Phân quyền (Authorization) cho từng API (VD: /admin/** chỉ Admin được vào, /public/** ai cũng vào được).
+
+Khai báo Bean PasswordEncoder (sử dụng BCrypt) để mã hóa mật khẩu.
+
+Tắt CSRF (nếu dùng Stateless API/JWT).
+
+CorsConfig (Kết nối Frontend):
+
+Allowed Origins: Chỉ định rõ domain nào được gọi API (VD: http://localhost:3000, https://mydomain.com). Tránh dùng * trong môi trường Production.
+
+Allowed Methods: Quy định các method được phép (GET, POST, PUT, DELETE, OPTIONS).
+
+Allowed Headers: Cho phép các header cần thiết (Authorization, Content-Type...).
+
+OpenApiConfig (Tài liệu API - Swagger):
+
+Thiết lập thông tin dự án (Title, Version, Description).
+
+Cấu hình Security Scheme (nút "Authorize" trên Swagger) để test API có yêu cầu Token.
+
+JpaAuditingConfig (Tự động hóa dữ liệu):
+
+Kích hoạt annotation @EnableJpaAuditing.
+
+Giúp tự động điền giá trị cho các cột created_at, updated_at, created_by, updated_by trong Entity.
+
+AppConfig (Cấu hình chung):
+
+Khai báo các Bean tiện ích dùng chung (VD: ModelMapper, ObjectMapper tùy chỉnh).

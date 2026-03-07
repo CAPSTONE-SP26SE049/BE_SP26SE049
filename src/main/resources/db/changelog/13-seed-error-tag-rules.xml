@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260306-seed-placement-rules" author="antigravity">
+        <!-- Add more Error Tags for Central/South -->
+        <insert tableName="error_tag">
+            <column name="id" value="00000000-0000-0000-0002-000000000001"/>
+            <column name="tag_code" value="V_D_CONFUSION"/>
+            <column name="name" value="Lẫn lộn V - D"/>
+            <column name="description" value="Lỗi phát âm nhầm lẫn giữa V và D phổ biến ở miền Nam và Trung"/>
+        </insert>
+
+        <insert tableName="error_tag">
+            <column name="id" value="00000000-0000-0000-0002-000000000002"/>
+            <column name="tag_code" value="TONE_INTERROGATIVE"/>
+            <column name="name" value="Sai thanh hỏi/ngã"/>
+            <column name="description" value="Lỗi phát âm không phân biệt rõ thanh hỏi và thanh ngã"/>
+        </insert>
+
+        <!-- Seed Placement Rules for NORTH (00000000-0000-0000-0001-000000000001) -->
+        <!-- L_N (Needs to be fetched or hardcoded if consistently seeded) -->
+        <!-- Since IDs for L_N, S_X in 08 were generated, I'll use a subselect or hardcode known ones if I can -->
+        
+        <!-- Let's use custom INSERTs with IDs I control for reliability in this seed -->
+        
+        <insert tableName="placement_rule">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="dialect_id" value="00000000-0000-0000-0001-000000000001"/> <!-- NORTH -->
+            <column name="error_tag_id" value="00000000-0000-0000-0002-000000000001"/> <!-- V_D (Just example, actually V_D is rare in North) -->
+            <column name="threshold" value="60"/>
+            <column name="priority" value="1"/>
+        </insert>
+
+        <insert tableName="placement_rule">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="dialect_id" value="00000000-0000-0000-0001-000000000003"/> <!-- SOUTH -->
+            <column name="error_tag_id" value="00000000-0000-0000-0002-000000000001"/> <!-- V_D -->
+            <column name="threshold" value="65"/>
+            <column name="priority" value="1"/>
+        </insert>
+
+        <insert tableName="placement_rule">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="dialect_id" value="00000000-0000-0000-0001-000000000002"/> <!-- CENTRAL -->
+            <column name="error_tag_id" value="00000000-0000-0000-0002-000000000002"/> <!-- hỏi/ngã -->
+            <column name="threshold" value="55"/>
+            <column name="priority" value="2"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>
