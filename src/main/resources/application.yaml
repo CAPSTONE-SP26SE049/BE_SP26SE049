@@ -74,7 +74,7 @@ server:
 jwt:
   secret: F4/Bv1CjoyB+R3EhxoD4GaGmKzfskIKsyog/ABCL04xKSut2anfVIzvneaT2ZVReoQA5nX9oK8TS782AAOLrmg==
   access-token-expiration: 3600000      # 1 hour in milliseconds
-  refresh-token-expiration: 604800000   # 7 days in milliseconds
+  refresh-token-expiration: 2592000000  # 30 days in milliseconds
 
 # CORS Configuration
 cors:

@@ -27,10 +27,10 @@ public class JwtTokenProvider {
     @Value("${jwt.secret}")
     private String jwtSecret;
 
-    @Value("${jwt.access-token-expiration:3600000}")  // Default 1 hour
+    @Value("${jwt.access-token-expiration:3600000}") // Default 1 hour
     private long accessTokenExpirationMs;
 
-    @Value("${jwt.refresh-token-expiration:604800000}")  // Default 7 days
+    @Value("${jwt.refresh-token-expiration:2592000000}") // Default 30 days
     private long refreshTokenExpirationMs;
 
     private SecretKey getSigningKey() {
@@ -139,4 +139,3 @@ public class JwtTokenProvider {
         return false;
     }
 }
-

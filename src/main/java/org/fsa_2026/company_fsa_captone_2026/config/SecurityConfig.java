@@ -17,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 
 /**
  * Security Configuration
@@ -54,6 +55,14 @@ public class SecurityConfig {
     // Using permitAll() in SecurityFilterChain instead
 
     @Bean
+    public FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration(JwtAuthenticationFilter filter) {
+        FilterRegistrationBean<JwtAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
+
     public SecurityFilterChain filterChain(HttpSecurity http) {
         try {
             http

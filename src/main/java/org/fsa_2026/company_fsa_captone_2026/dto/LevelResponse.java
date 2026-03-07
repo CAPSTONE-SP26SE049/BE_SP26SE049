@@ -25,6 +25,7 @@ public class LevelResponse implements Serializable {
     private Integer minStarsRequired;
     private ErrorTagResponse errorTag;
     private Integer aiThreshold;
+    private String audioUrl;
     private String status;
     private String rejectionReason;
 
@@ -40,6 +41,7 @@ public class LevelResponse implements Serializable {
                 .minStarsRequired(level.getMinStarsRequired())
                 .errorTag(ErrorTagResponse.fromEntity(level.getErrorTag()))
                 .aiThreshold(level.getAiThreshold())
+                .audioUrl(level.getAudioUrl())
                 .status(level.getStatus() != null ? level.getStatus().name() : null)
                 .rejectionReason(level.getRejectionReason())
                 .build();
