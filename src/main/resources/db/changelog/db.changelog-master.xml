@@ -33,4 +33,10 @@
     <!-- Seed Error Tag Rules and Placement Rules -->
     <include file="db/changelog/13-seed-error-tag-rules.xml"/>
 
+    <!-- FE-04: Achievement & Badge System + FE-05: Leaderboard & Tournament System -->
+    <include file="14-add-achievement-and-leaderboard-tables.xml" relativeToChangelogFile="true"/>
+
+    <!-- FE-04: Seed 50+ Badges -->
+    <include file="15-seed-badges.xml" relativeToChangelogFile="true"/>
+
 </databaseChangeLog>

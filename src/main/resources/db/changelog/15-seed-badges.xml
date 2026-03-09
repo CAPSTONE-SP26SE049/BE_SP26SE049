@@ -1,0 +1,777 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- ========================================================
+         Seed 50+ Badges for Achievement and Badge System (FE-04)
+         Categories: STREAK, SCORE, LEARNING, CHALLENGE, SOCIAL, SPECIAL
+         Rarity: BRONZE, SILVER, GOLD, PLATINUM, DIAMOND
+         ======================================================== -->
+    <changeSet id="20260310-seed-badges" author="fsa-team">
+
+        <!-- ========== STREAK Category ========== -->
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="STREAK_3"/>
+            <column name="name" value="Khởi Đầu Tốt"/>
+            <column name="description" value="Duy trì chuỗi học tập 3 ngày liên tiếp"/>
+            <column name="icon_url" value="/badges/streak_3.png"/>
+            <column name="category" value="STREAK"/>
+            <column name="rarity" value="BRONZE"/>
+            <column name="xp_reward" valueNumeric="50"/>
+            <column name="criteria_json" value='{"type": "streak_days", "threshold": 3}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="STREAK_7"/>
+            <column name="name" value="Kiên Trì Một Tuần"/>
+            <column name="description" value="Duy trì chuỗi học tập 7 ngày liên tiếp"/>
+            <column name="icon_url" value="/badges/streak_7.png"/>
+            <column name="category" value="STREAK"/>
+            <column name="rarity" value="BRONZE"/>
+            <column name="xp_reward" valueNumeric="100"/>
+            <column name="criteria_json" value='{"type": "streak_days", "threshold": 7}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="STREAK_14"/>
+            <column name="name" value="Ngọn Lửa Hai Tuần"/>
+            <column name="description" value="Duy trì chuỗi học tập 14 ngày liên tiếp"/>
+            <column name="icon_url" value="/badges/streak_14.png"/>
+            <column name="category" value="STREAK"/>
+            <column name="rarity" value="SILVER"/>
+            <column name="xp_reward" valueNumeric="200"/>
+            <column name="criteria_json" value='{"type": "streak_days", "threshold": 14}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="STREAK_30"/>
+            <column name="name" value="Học Giả Tháng Vàng"/>
+            <column name="description" value="Duy trì chuỗi học tập 30 ngày liên tiếp"/>
+            <column name="icon_url" value="/badges/streak_30.png"/>
+            <column name="category" value="STREAK"/>
+            <column name="rarity" value="GOLD"/>
+            <column name="xp_reward" valueNumeric="500"/>
+            <column name="criteria_json" value='{"type": "streak_days", "threshold": 30}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="STREAK_60"/>
+            <column name="name" value="Bất Khuất"/>
+            <column name="description" value="Duy trì chuỗi học tập 60 ngày liên tiếp"/>
+            <column name="icon_url" value="/badges/streak_60.png"/>
+            <column name="category" value="STREAK"/>
+            <column name="rarity" value="PLATINUM"/>
+            <column name="xp_reward" valueNumeric="1000"/>
+            <column name="criteria_json" value='{"type": "streak_days", "threshold": 60}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="STREAK_100"/>
+            <column name="name" value="Trăm Ngày Vàng Son"/>
+            <column name="description" value="Duy trì chuỗi học tập 100 ngày liên tiếp"/>
+            <column name="icon_url" value="/badges/streak_100.png"/>
+            <column name="category" value="STREAK"/>
+            <column name="rarity" value="DIAMOND"/>
+            <column name="xp_reward" valueNumeric="2000"/>
+            <column name="criteria_json" value='{"type": "streak_days", "threshold": 100}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="STREAK_365"/>
+            <column name="name" value="Truyền Thuyết Năm Tháng"/>
+            <column name="description" value="Duy trì chuỗi học tập 365 ngày liên tiếp - Một huyền thoại thực sự!"/>
+            <column name="icon_url" value="/badges/streak_365.png"/>
+            <column name="category" value="STREAK"/>
+            <column name="rarity" value="DIAMOND"/>
+            <column name="xp_reward" valueNumeric="10000"/>
+            <column name="criteria_json" value='{"type": "streak_days", "threshold": 365}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- ========== SCORE Category ========== -->
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SCORE_FIRST_PERFECT"/>
+            <column name="name" value="Hoàn Hảo Đầu Tiên"/>
+            <column name="description" value="Đạt điểm tuyệt đối 100% trong lần đầu tiên"/>
+            <column name="icon_url" value="/badges/score_first_perfect.png"/>
+            <column name="category" value="SCORE"/>
+            <column name="rarity" value="BRONZE"/>
+            <column name="xp_reward" valueNumeric="150"/>
+            <column name="criteria_json" value='{"type": "perfect_score_count", "threshold": 1}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SCORE_5_PERFECT"/>
+            <column name="name" value="Ngũ Tuyệt"/>
+            <column name="description" value="Đạt điểm tuyệt đối 5 lần"/>
+            <column name="icon_url" value="/badges/score_5_perfect.png"/>
+            <column name="category" value="SCORE"/>
+            <column name="rarity" value="SILVER"/>
+            <column name="xp_reward" valueNumeric="250"/>
+            <column name="criteria_json" value='{"type": "perfect_score_count", "threshold": 5}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SCORE_20_PERFECT"/>
+            <column name="name" value="Thiên Tài Phát Âm"/>
+            <column name="description" value="Đạt điểm tuyệt đối 20 lần"/>
+            <column name="icon_url" value="/badges/score_20_perfect.png"/>
+            <column name="category" value="SCORE"/>
+            <column name="rarity" value="GOLD"/>
+            <column name="xp_reward" valueNumeric="600"/>
+            <column name="criteria_json" value='{"type": "perfect_score_count", "threshold": 20}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SCORE_HIGH_AVG"/>
+            <column name="name" value="Ổn Định Đỉnh Cao"/>
+            <column name="description" value="Duy trì điểm trung bình >= 90% trong 10 thử thách liên tiếp"/>
+            <column name="icon_url" value="/badges/score_high_avg.png"/>
+            <column name="category" value="SCORE"/>
+            <column name="rarity" value="GOLD"/>
+            <column name="xp_reward" valueNumeric="500"/>
+            <column name="criteria_json" value='{"type": "avg_score_streak", "threshold": 90, "consecutive": 10}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- ========== LEARNING Category ========== -->
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_FIRST_CHALLENGE"/>
+            <column name="name" value="Bước Đầu Tiên"/>
+            <column name="description" value="Hoàn thành thử thách đầu tiên"/>
+            <column name="icon_url" value="/badges/learn_first_challenge.png"/>
+            <column name="category" value="LEARNING"/>
+            <column name="rarity" value="BRONZE"/>
+            <column name="xp_reward" valueNumeric="30"/>
+            <column name="criteria_json" value='{"type": "challenges_completed", "threshold": 1}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_10_CHALLENGES"/>
+            <column name="name" value="Học Viên Năng Động"/>
+            <column name="description" value="Hoàn thành 10 thử thách"/>
+            <column name="icon_url" value="/badges/learn_10_challenges.png"/>
+            <column name="category" value="LEARNING"/>
+            <column name="rarity" value="BRONZE"/>
+            <column name="xp_reward" valueNumeric="100"/>
+            <column name="criteria_json" value='{"type": "challenges_completed", "threshold": 10}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_50_CHALLENGES"/>
+            <column name="name" value="Luyện Tập Chăm Chỉ"/>
+            <column name="description" value="Hoàn thành 50 thử thách"/>
+            <column name="icon_url" value="/badges/learn_50_challenges.png"/>
+            <column name="category" value="LEARNING"/>
+            <column name="rarity" value="SILVER"/>
+            <column name="xp_reward" valueNumeric="300"/>
+            <column name="criteria_json" value='{"type": "challenges_completed", "threshold": 50}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_100_CHALLENGES"/>
+            <column name="name" value="Bách Thử Bách Thắng"/>
+            <column name="description" value="Hoàn thành 100 thử thách"/>
+            <column name="icon_url" value="/badges/learn_100_challenges.png"/>
+            <column name="category" value="LEARNING"/>
+            <column name="rarity" value="GOLD"/>
+            <column name="xp_reward" valueNumeric="700"/>
+            <column name="criteria_json" value='{"type": "challenges_completed", "threshold": 100}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_500_CHALLENGES"/>
+            <column name="name" value="Người Chinh Phục"/>
+            <column name="description" value="Hoàn thành 500 thử thách"/>
+            <column name="icon_url" value="/badges/learn_500_challenges.png"/>
+            <column name="category" value="LEARNING"/>
+            <column name="rarity" value="PLATINUM"/>
+            <column name="xp_reward" valueNumeric="2000"/>
+            <column name="criteria_json" value='{"type": "challenges_completed", "threshold": 500}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_LEVEL_1"/>
+            <column name="name" value="Vượt Cấp Đầu Tiên"/>
+            <column name="description" value="Hoàn thành level đầu tiên"/>
+            <column name="icon_url" value="/badges/learn_level_up.png"/>
+            <column name="category" value="LEARNING"/>
+            <column name="rarity" value="BRONZE"/>
+            <column name="xp_reward" valueNumeric="80"/>
+            <column name="criteria_json" value='{"type": "levels_completed", "threshold": 1}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_5_LEVELS"/>
+            <column name="name" value="Leo Thang Xuất Sắc"/>
+            <column name="description" value="Hoàn thành 5 level"/>
+            <column name="icon_url" value="/badges/learn_5_levels.png"/>
+            <column name="category" value="LEARNING"/>
+            <column name="rarity" value="SILVER"/>
+            <column name="xp_reward" valueNumeric="400"/>
+            <column name="criteria_json" value='{"type": "levels_completed", "threshold": 5}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_EARLY_BIRD"/>
+            <column name="name" value="Chim Sớm"/>
+            <column name="description" value="Hoàn thành thử thách trước 7 giờ sáng 5 lần"/>
+            <column name="icon_url" value="/badges/learn_early_bird.png"/>
+            <column name="category" value="LEARNING"/>
+            <column name="rarity" value="SILVER"/>
+            <column name="xp_reward" valueNumeric="200"/>
+            <column name="criteria_json" value='{"type": "early_bird_completions", "threshold": 5, "hour_before": 7}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_NIGHT_OWL"/>
+            <column name="name" value="Cú Đêm"/>
+            <column name="description" value="Hoàn thành thử thách sau 10 giờ tối 5 lần"/>
+            <column name="icon_url" value="/badges/learn_night_owl.png"/>
+            <column name="category" value="LEARNING"/>
+            <column name="rarity" value="SILVER"/>
+            <column name="xp_reward" valueNumeric="200"/>
+            <column name="criteria_json" value='{"type": "night_owl_completions", "threshold": 5, "hour_after": 22}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_SPEED_DEMON"/>
+            <column name="name" value="Tốc Chiến Tốc Thắng"/>
+            <column name="description" value="Hoàn thành thử thách trong vòng 5 giây và đạt điểm >= 90%"/>
+            <column name="icon_url" value="/badges/learn_speed_demon.png"/>
+            <column name="category" value="LEARNING"/>
+            <column name="rarity" value="GOLD"/>
+            <column name="xp_reward" valueNumeric="400"/>
+            <column name="criteria_json" value='{"type": "speed_completion", "max_latency_ms": 5000, "min_score": 90}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_EXPLORER_NORTH"/>
+            <column name="name" value="Nhà Khám Phá Miền Bắc"/>
+            <column name="description" value="Hoàn thành 20 thử thách giọng Bắc"/>
+            <column name="icon_url" value="/badges/learn_explorer_north.png"/>
+            <column name="category" value="LEARNING"/>
+            <column name="rarity" value="SILVER"/>
+            <column name="xp_reward" valueNumeric="250"/>
+            <column name="criteria_json" value='{"type": "dialect_challenges", "dialect_code": "VI-N", "threshold": 20}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_EXPLORER_SOUTH"/>
+            <column name="name" value="Nhà Khám Phá Miền Nam"/>
+            <column name="description" value="Hoàn thành 20 thử thách giọng Nam"/>
+            <column name="icon_url" value="/badges/learn_explorer_south.png"/>
+            <column name="category" value="LEARNING"/>
+            <column name="rarity" value="SILVER"/>
+            <column name="xp_reward" valueNumeric="250"/>
+            <column name="criteria_json" value='{"type": "dialect_challenges", "dialect_code": "VI-S", "threshold": 20}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_EXPLORER_CENTRAL"/>
+            <column name="name" value="Nhà Khám Phá Miền Trung"/>
+            <column name="description" value="Hoàn thành 20 thử thách giọng Trung"/>
+            <column name="icon_url" value="/badges/learn_explorer_central.png"/>
+            <column name="category" value="LEARNING"/>
+            <column name="rarity" value="SILVER"/>
+            <column name="xp_reward" valueNumeric="250"/>
+            <column name="criteria_json" value='{"type": "dialect_challenges", "dialect_code": "VI-C", "threshold": 20}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- ========== CHALLENGE Daily Category ========== -->
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="DAILY_FIRST_COMPLETE"/>
+            <column name="name" value="Chiến Binh Ngày Đầu"/>
+            <column name="description" value="Hoàn thành thử thách hàng ngày lần đầu tiên"/>
+            <column name="icon_url" value="/badges/daily_first.png"/>
+            <column name="category" value="CHALLENGE"/>
+            <column name="rarity" value="BRONZE"/>
+            <column name="xp_reward" valueNumeric="50"/>
+            <column name="criteria_json" value='{"type": "daily_challenges_completed", "threshold": 1}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="DAILY_7"/>
+            <column name="name" value="Thử Thách 7 Ngày"/>
+            <column name="description" value="Hoàn thành 7 thử thách hàng ngày"/>
+            <column name="icon_url" value="/badges/daily_7.png"/>
+            <column name="category" value="CHALLENGE"/>
+            <column name="rarity" value="SILVER"/>
+            <column name="xp_reward" valueNumeric="200"/>
+            <column name="criteria_json" value='{"type": "daily_challenges_completed", "threshold": 7}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="DAILY_30"/>
+            <column name="name" value="Thử Thách Tháng Thép"/>
+            <column name="description" value="Hoàn thành 30 thử thách hàng ngày"/>
+            <column name="icon_url" value="/badges/daily_30.png"/>
+            <column name="category" value="CHALLENGE"/>
+            <column name="rarity" value="GOLD"/>
+            <column name="xp_reward" valueNumeric="600"/>
+            <column name="criteria_json" value='{"type": "daily_challenges_completed", "threshold": 30}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="DAILY_PERFECT_WEEK"/>
+            <column name="name" value="Tuần Hoàn Hảo"/>
+            <column name="description" value="Hoàn thành thử thách hàng ngày 7 ngày liên tiếp với điểm >= 90%"/>
+            <column name="icon_url" value="/badges/daily_perfect_week.png"/>
+            <column name="category" value="CHALLENGE"/>
+            <column name="rarity" value="PLATINUM"/>
+            <column name="xp_reward" valueNumeric="1000"/>
+            <column name="criteria_json" value='{"type": "daily_streak_perfect", "consecutive_days": 7, "min_score": 90}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- ========== SOCIAL Category ========== -->
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SOCIAL_FIRST_FRIEND"/>
+            <column name="name" value="Kết Nối Đầu Tiên"/>
+            <column name="description" value="Kết bạn với người dùng đầu tiên"/>
+            <column name="icon_url" value="/badges/social_first_friend.png"/>
+            <column name="category" value="SOCIAL"/>
+            <column name="rarity" value="BRONZE"/>
+            <column name="xp_reward" valueNumeric="50"/>
+            <column name="criteria_json" value='{"type": "friends_count", "threshold": 1}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SOCIAL_5_FRIENDS"/>
+            <column name="name" value="Cộng Đồng Nhỏ"/>
+            <column name="description" value="Kết bạn với 5 người dùng"/>
+            <column name="icon_url" value="/badges/social_5_friends.png"/>
+            <column name="category" value="SOCIAL"/>
+            <column name="rarity" value="BRONZE"/>
+            <column name="xp_reward" valueNumeric="100"/>
+            <column name="criteria_json" value='{"type": "friends_count", "threshold": 5}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SOCIAL_20_FRIENDS"/>
+            <column name="name" value="Đại Sứ Cộng Đồng"/>
+            <column name="description" value="Kết bạn với 20 người dùng"/>
+            <column name="icon_url" value="/badges/social_20_friends.png"/>
+            <column name="category" value="SOCIAL"/>
+            <column name="rarity" value="GOLD"/>
+            <column name="xp_reward" valueNumeric="400"/>
+            <column name="criteria_json" value='{"type": "friends_count", "threshold": 20}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- ========== LEADERBOARD / Competition Category ========== -->
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LB_FIRST_TOP10"/>
+            <column name="name" value="Top 10"/>
+            <column name="description" value="Lọt vào top 10 bảng xếp hạng lần đầu tiên"/>
+            <column name="icon_url" value="/badges/lb_top10.png"/>
+            <column name="category" value="CHALLENGE"/>
+            <column name="rarity" value="SILVER"/>
+            <column name="xp_reward" valueNumeric="300"/>
+            <column name="criteria_json" value='{"type": "leaderboard_top_rank", "threshold": 10}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LB_FIRST_TOP3"/>
+            <column name="name" value="Bục Vinh Danh"/>
+            <column name="description" value="Lọt vào top 3 bảng xếp hạng lần đầu tiên"/>
+            <column name="icon_url" value="/badges/lb_top3.png"/>
+            <column name="category" value="CHALLENGE"/>
+            <column name="rarity" value="GOLD"/>
+            <column name="xp_reward" valueNumeric="700"/>
+            <column name="criteria_json" value='{"type": "leaderboard_top_rank", "threshold": 3}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LB_CHAMPION"/>
+            <column name="name" value="Nhà Vô Địch"/>
+            <column name="description" value="Đứng số 1 bảng xếp hạng hàng tuần"/>
+            <column name="icon_url" value="/badges/lb_champion.png"/>
+            <column name="category" value="CHALLENGE"/>
+            <column name="rarity" value="PLATINUM"/>
+            <column name="xp_reward" valueNumeric="2000"/>
+            <column name="criteria_json" value='{"type": "leaderboard_rank_1", "period": "WEEKLY"}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="TOURNAMENT_WINNER"/>
+            <column name="name" value="Kiếm Sĩ Giải Đấu"/>
+            <column name="description" value="Vô địch một giải đấu"/>
+            <column name="icon_url" value="/badges/tournament_winner.png"/>
+            <column name="category" value="CHALLENGE"/>
+            <column name="rarity" value="DIAMOND"/>
+            <column name="xp_reward" valueNumeric="3000"/>
+            <column name="criteria_json" value='{"type": "tournament_wins", "threshold": 1}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="TOURNAMENT_PARTICIPANT"/>
+            <column name="name" value="Tham Chiến"/>
+            <column name="description" value="Tham gia giải đấu lần đầu tiên"/>
+            <column name="icon_url" value="/badges/tournament_participant.png"/>
+            <column name="category" value="CHALLENGE"/>
+            <column name="rarity" value="BRONZE"/>
+            <column name="xp_reward" valueNumeric="100"/>
+            <column name="criteria_json" value='{"type": "tournaments_joined", "threshold": 1}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- ========== SPECIAL Category ========== -->
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SPECIAL_BETA_USER"/>
+            <column name="name" value="Người Tiên Phong"/>
+            <column name="description" value="Là một trong những người dùng đầu tiên của FSA 2026"/>
+            <column name="icon_url" value="/badges/special_beta.png"/>
+            <column name="category" value="SPECIAL"/>
+            <column name="rarity" value="DIAMOND"/>
+            <column name="xp_reward" valueNumeric="500"/>
+            <column name="criteria_json" value='{"type": "manual_grant", "reason": "beta_user"}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SPECIAL_PROFILE_COMPLETE"/>
+            <column name="name" value="Hồ Sơ Hoàn Chỉnh"/>
+            <column name="description" value="Hoàn thiện 100% hồ sơ cá nhân"/>
+            <column name="icon_url" value="/badges/special_profile.png"/>
+            <column name="category" value="SPECIAL"/>
+            <column name="rarity" value="BRONZE"/>
+            <column name="xp_reward" valueNumeric="80"/>
+            <column name="criteria_json" value='{"type": "profile_complete", "threshold": 100}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SPECIAL_COMEBACK"/>
+            <column name="name" value="Trở Lại Mạnh Mẽ"/>
+            <column name="description" value="Quay trở lại học sau 14 ngày vắng mặt"/>
+            <column name="icon_url" value="/badges/special_comeback.png"/>
+            <column name="category" value="SPECIAL"/>
+            <column name="rarity" value="SILVER"/>
+            <column name="xp_reward" valueNumeric="150"/>
+            <column name="criteria_json" value='{"type": "comeback_after_days", "threshold": 14}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SPECIAL_TET"/>
+            <column name="name" value="Tết Học Tiếng Việt"/>
+            <column name="description" value="Hoàn thành thử thách vào dịp Tết Nguyên Đán"/>
+            <column name="icon_url" value="/badges/special_tet.png"/>
+            <column name="category" value="SPECIAL"/>
+            <column name="rarity" value="GOLD"/>
+            <column name="xp_reward" valueNumeric="300"/>
+            <column name="criteria_json" value='{"type": "seasonal_event", "event": "TET"}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SPECIAL_QUIZ_MASTER"/>
+            <column name="name" value="Bậc Thầy Kiến Thức"/>
+            <column name="description" value="Đạt 100% trong 3 thử thách HARD liên tiếp"/>
+            <column name="icon_url" value="/badges/special_quiz_master.png"/>
+            <column name="category" value="SPECIAL"/>
+            <column name="rarity" value="PLATINUM"/>
+            <column name="xp_reward" valueNumeric="1500"/>
+            <column name="criteria_json" value='{"type": "hard_perfect_streak", "consecutive": 3}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- ========== XP-based Category ========== -->
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="XP_1000"/>
+            <column name="name" value="Học Sinh Tiềm Năng"/>
+            <column name="description" value="Tích lũy 1,000 điểm kinh nghiệm"/>
+            <column name="icon_url" value="/badges/xp_1000.png"/>
+            <column name="category" value="LEARNING"/>
+            <column name="rarity" value="BRONZE"/>
+            <column name="xp_reward" valueNumeric="50"/>
+            <column name="criteria_json" value='{"type": "total_xp", "threshold": 1000}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="XP_5000"/>
+            <column name="name" value="Người Học Nhiệt Huyết"/>
+            <column name="description" value="Tích lũy 5,000 điểm kinh nghiệm"/>
+            <column name="icon_url" value="/badges/xp_5000.png"/>
+            <column name="category" value="LEARNING"/>
+            <column name="rarity" value="SILVER"/>
+            <column name="xp_reward" valueNumeric="200"/>
+            <column name="criteria_json" value='{"type": "total_xp", "threshold": 5000}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="XP_20000"/>
+            <column name="name" value="Chuyên Gia Ngôn Ngữ"/>
+            <column name="description" value="Tích lũy 20,000 điểm kinh nghiệm"/>
+            <column name="icon_url" value="/badges/xp_20000.png"/>
+            <column name="category" value="LEARNING"/>
+            <column name="rarity" value="GOLD"/>
+            <column name="xp_reward" valueNumeric="500"/>
+            <column name="criteria_json" value='{"type": "total_xp", "threshold": 20000}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="XP_100000"/>
+            <column name="name" value="Đại Sư Phát Âm"/>
+            <column name="description" value="Tích lũy 100,000 điểm kinh nghiệm"/>
+            <column name="icon_url" value="/badges/xp_100000.png"/>
+            <column name="category" value="LEARNING"/>
+            <column name="rarity" value="DIAMOND"/>
+            <column name="xp_reward" valueNumeric="2000"/>
+            <column name="criteria_json" value='{"type": "total_xp", "threshold": 100000}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- ========== Stars-based Category ========== -->
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="STARS_10"/>
+            <column name="name" value="Ngôi Sao Sáng"/>
+            <column name="description" value="Thu thập 10 ngôi sao"/>
+            <column name="icon_url" value="/badges/stars_10.png"/>
+            <column name="category" value="SCORE"/>
+            <column name="rarity" value="BRONZE"/>
+            <column name="xp_reward" valueNumeric="60"/>
+            <column name="criteria_json" value='{"type": "total_stars", "threshold": 10}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="STARS_50"/>
+            <column name="name" value="Bầu Trời Ngôi Sao"/>
+            <column name="description" value="Thu thập 50 ngôi sao"/>
+            <column name="icon_url" value="/badges/stars_50.png"/>
+            <column name="category" value="SCORE"/>
+            <column name="rarity" value="SILVER"/>
+            <column name="xp_reward" valueNumeric="250"/>
+            <column name="criteria_json" value='{"type": "total_stars", "threshold": 50}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="STARS_200"/>
+            <column name="name" value="Dải Ngân Hà"/>
+            <column name="description" value="Thu thập 200 ngôi sao"/>
+            <column name="icon_url" value="/badges/stars_200.png"/>
+            <column name="category" value="SCORE"/>
+            <column name="rarity" value="PLATINUM"/>
+            <column name="xp_reward" valueNumeric="1000"/>
+            <column name="criteria_json" value='{"type": "total_stars", "threshold": 200}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- ========== Session / Practice Category ========== -->
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SESSION_MARATHON"/>
+            <column name="name" value="Phiên Học Thần Thánh"/>
+            <column name="description" value="Hoàn thành phiên học kéo dài > 60 phút"/>
+            <column name="icon_url" value="/badges/session_marathon.png"/>
+            <column name="category" value="LEARNING"/>
+            <column name="rarity" value="GOLD"/>
+            <column name="xp_reward" valueNumeric="350"/>
+            <column name="criteria_json" value='{"type": "session_duration_minutes", "threshold": 60}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="badge">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SESSION_10_SESSIONS"/>
+            <column name="name" value="Thói Quen Lành Mạnh"/>
+            <column name="description" value="Hoàn thành 10 phiên luyện tập"/>
+            <column name="icon_url" value="/badges/session_10.png"/>
+            <column name="category" value="LEARNING"/>
+            <column name="rarity" value="SILVER"/>
+            <column name="xp_reward" valueNumeric="200"/>
+            <column name="criteria_json" value='{"type": "total_sessions", "threshold": 10}'/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+    </changeSet>
+
+</databaseChangeLog>

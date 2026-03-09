@@ -5,6 +5,6 @@
 		}
 	],
 	"settings": {
-		"java.compile.nullAnalysis.mode": "disabled"
+		"java.compile.nullAnalysis.mode": "automatic"
 	}
 }

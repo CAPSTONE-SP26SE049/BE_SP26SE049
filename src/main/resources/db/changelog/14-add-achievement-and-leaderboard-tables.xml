@@ -1,0 +1,444 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- ============================================================
+         FE-04: Achievement and Badge System
+         ============================================================ -->
+
+    <!-- 1. Extend user_profile with richer streak tracking -->
+    <changeSet id="20260310-001-extend-user-profile-streak" author="fsa-team">
+        <addColumn tableName="user_profile">
+            <column name="max_streak_days" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_activity_date" type="DATE"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- 2. Extend badge table with category and rarity tiers -->
+    <changeSet id="20260310-002-extend-badge-table" author="fsa-team">
+        <addColumn tableName="badge">
+            <column name="category" type="VARCHAR(50)" defaultValue="GENERAL">
+                <constraints nullable="false"/>
+            </column>
+            <!-- BRONZE / SILVER / GOLD / PLATINUM / DIAMOND -->
+            <column name="rarity" type="VARCHAR(20)" defaultValue="BRONZE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="xp_reward" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- 3. account_achievement: tracks when user unlocks an achievement milestone -->
+    <changeSet id="20260310-003-create-achievement-table" author="fsa-team">
+        <createTable tableName="achievement">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="code" type="VARCHAR(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="name" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <!-- STREAK / SCORE / SOCIAL / LEARNING / CHALLENGE / SPECIAL -->
+            <column name="category" type="VARCHAR(50)" defaultValue="GENERAL">
+                <constraints nullable="false"/>
+            </column>
+            <column name="icon_url" type="VARCHAR(500)"/>
+            <!-- JSON: {type: "streak_days", threshold: 7, ...} -->
+            <column name="criteria_json" type="JSONB">
+                <constraints nullable="false"/>
+            </column>
+            <column name="xp_reward" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 4. account_achievement: user → achievement mapping -->
+    <changeSet id="20260310-004-create-account-achievement-table" author="fsa-team">
+        <createTable tableName="account_achievement">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="account_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_acct_achievement_account" references="account(id)"/>
+            </column>
+            <column name="achievement_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_acct_achievement_achievement" references="achievement(id)"/>
+            </column>
+            <!-- LOCKED / IN_PROGRESS / UNLOCKED -->
+            <column name="status" type="VARCHAR(20)" defaultValue="LOCKED">
+                <constraints nullable="false"/>
+            </column>
+            <!-- Current progress value (e.g. current streak count, current score) -->
+            <column name="progress_value" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="unlocked_at" type="TIMESTAMPTZ"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint
+            constraintName="uk_account_achievement"
+            tableName="account_achievement"
+            columnNames="account_id,achievement_id"/>
+        <createIndex indexName="idx_account_achievement_account_id" tableName="account_achievement">
+            <column name="account_id"/>
+        </createIndex>
+        <createIndex indexName="idx_account_achievement_status" tableName="account_achievement">
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- 5. daily_challenge: a selection of challenges designated for a specific date -->
+    <changeSet id="20260310-005-create-daily-challenge-table" author="fsa-team">
+        <createTable tableName="daily_challenge">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="challenge_date" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="challenge_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_daily_challenge_challenge" references="challenge(id)"/>
+            </column>
+            <column name="dialect_id" type="UUID">
+                <constraints foreignKeyName="fk_daily_challenge_dialect" references="dialect(id)"/>
+            </column>
+            <!-- EASY / MEDIUM / HARD -->
+            <column name="difficulty" type="VARCHAR(20)" defaultValue="MEDIUM">
+                <constraints nullable="false"/>
+            </column>
+            <column name="bonus_xp" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+        <addUniqueConstraint
+            constraintName="uk_daily_challenge_date_challenge"
+            tableName="daily_challenge"
+            columnNames="challenge_date,challenge_id"/>
+        <createIndex indexName="idx_daily_challenge_date" tableName="daily_challenge">
+            <column name="challenge_date"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- 6. account_daily_challenge: tracks user completion of daily challenges -->
+    <changeSet id="20260310-006-create-account-daily-challenge-table" author="fsa-team">
+        <createTable tableName="account_daily_challenge">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="account_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_adc_account" references="account(id)"/>
+            </column>
+            <column name="daily_challenge_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_adc_daily_challenge" references="daily_challenge(id)"/>
+            </column>
+            <!-- PENDING / COMPLETED / SKIPPED -->
+            <column name="status" type="VARCHAR(20)" defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="score_achieved" type="DECIMAL(5,2)" defaultValue="0"/>
+            <column name="xp_earned" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="attempt_id" type="UUID">
+                <constraints foreignKeyName="fk_adc_attempt" references="attempt(id)"/>
+            </column>
+            <column name="completed_at" type="TIMESTAMPTZ"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint
+            constraintName="uk_account_daily_challenge"
+            tableName="account_daily_challenge"
+            columnNames="account_id,daily_challenge_id"/>
+        <createIndex indexName="idx_adc_account_id" tableName="account_daily_challenge">
+            <column name="account_id"/>
+        </createIndex>
+        <createIndex indexName="idx_adc_status" tableName="account_daily_challenge">
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ============================================================
+         FE-05: Leaderboard System
+         ============================================================ -->
+
+    <!-- 7. leaderboard: snapshot of ranked scores per period and scope -->
+    <changeSet id="20260310-007-create-leaderboard-table" author="fsa-team">
+        <createTable tableName="leaderboard">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <!-- GLOBAL / REGIONAL / CLASSROOM / FRIENDS -->
+            <column name="scope" type="VARCHAR(30)" defaultValue="GLOBAL">
+                <constraints nullable="false"/>
+            </column>
+            <!-- DAILY / WEEKLY / MONTHLY / ALL_TIME -->
+            <column name="period_type" type="VARCHAR(20)" defaultValue="WEEKLY">
+                <constraints nullable="false"/>
+            </column>
+            <column name="period_start" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="period_end" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <!-- Optional: link to region (account.region value) or classroom -->
+            <column name="region_code" type="VARCHAR(30)"/>
+            <column name="classroom_id" type="UUID">
+                <constraints foreignKeyName="fk_leaderboard_classroom" references="classroom(id)"/>
+            </column>
+            <column name="dialect_id" type="UUID">
+                <constraints foreignKeyName="fk_leaderboard_dialect" references="dialect(id)"/>
+            </column>
+            <column name="is_finalized" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+        <createIndex indexName="idx_leaderboard_scope_period" tableName="leaderboard">
+            <column name="scope"/>
+            <column name="period_type"/>
+            <column name="period_start"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- 8. leaderboard_entry: an individual user's rank in a leaderboard -->
+    <changeSet id="20260310-008-create-leaderboard-entry-table" author="fsa-team">
+        <createTable tableName="leaderboard_entry">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="leaderboard_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_lb_entry_leaderboard" references="leaderboard(id)"/>
+            </column>
+            <column name="account_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_lb_entry_account" references="account(id)"/>
+            </column>
+            <column name="rank_position" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_xp" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_stars" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="challenges_completed" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="average_score" type="DECIMAL(5,2)" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <!-- Streak days at the time of this leaderboard snapshot -->
+            <column name="streak_days" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint
+            constraintName="uk_leaderboard_entry"
+            tableName="leaderboard_entry"
+            columnNames="leaderboard_id,account_id"/>
+        <createIndex indexName="idx_lb_entry_leaderboard_rank" tableName="leaderboard_entry">
+            <column name="leaderboard_id"/>
+            <column name="rank_position"/>
+        </createIndex>
+        <createIndex indexName="idx_lb_entry_account_id" tableName="leaderboard_entry">
+            <column name="account_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- 9. tournament: weekly / special competition events -->
+    <changeSet id="20260310-009-create-tournament-table" author="fsa-team">
+        <createTable tableName="tournament">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <!-- WEEKLY / MONTHLY / SPECIAL -->
+            <column name="type" type="VARCHAR(30)" defaultValue="WEEKLY">
+                <constraints nullable="false"/>
+            </column>
+            <!-- UPCOMING / ACTIVE / FINISHED / CANCELLED -->
+            <column name="status" type="VARCHAR(20)" defaultValue="UPCOMING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="dialect_id" type="UUID">
+                <constraints foreignKeyName="fk_tournament_dialect" references="dialect(id)"/>
+            </column>
+            <column name="region_code" type="VARCHAR(30)"/>
+            <column name="starts_at" type="TIMESTAMPTZ">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ends_at" type="TIMESTAMPTZ">
+                <constraints nullable="false"/>
+            </column>
+            <column name="max_participants" type="INTEGER"/>
+            <column name="banner_url" type="VARCHAR(500)"/>
+            <!-- JSON: prize tiers, XP rewards per rank -->
+            <column name="prize_config_json" type="JSONB"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+        <createIndex indexName="idx_tournament_status" tableName="tournament">
+            <column name="status"/>
+        </createIndex>
+        <createIndex indexName="idx_tournament_starts_at" tableName="tournament">
+            <column name="starts_at"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- 10. tournament_participant: user registered for a tournament -->
+    <changeSet id="20260310-010-create-tournament-participant-table" author="fsa-team">
+        <createTable tableName="tournament_participant">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tournament_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_tp_tournament" references="tournament(id)"/>
+            </column>
+            <column name="account_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_tp_account" references="account(id)"/>
+            </column>
+            <column name="rank_position" type="INTEGER"/>
+            <column name="total_xp" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="challenges_completed" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="average_score" type="DECIMAL(5,2)" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <!-- REGISTERED / ACTIVE / COMPLETED / DISQUALIFIED -->
+            <column name="status" type="VARCHAR(20)" defaultValue="REGISTERED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="joined_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint
+            constraintName="uk_tournament_participant"
+            tableName="tournament_participant"
+            columnNames="tournament_id,account_id"/>
+        <createIndex indexName="idx_tp_tournament_rank" tableName="tournament_participant">
+            <column name="tournament_id"/>
+            <column name="rank_position"/>
+        </createIndex>
+        <createIndex indexName="idx_tp_account_id" tableName="tournament_participant">
+            <column name="account_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- 11. friendship: social competition features (follow/friend) -->
+    <changeSet id="20260310-011-create-friendship-table" author="fsa-team">
+        <createTable tableName="friendship">
+            <column name="id" type="UUID" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="requester_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_friendship_requester" references="account(id)"/>
+            </column>
+            <column name="addressee_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_friendship_addressee" references="account(id)"/>
+            </column>
+            <!-- PENDING / ACCEPTED / DECLINED / BLOCKED -->
+            <column name="status" type="VARCHAR(20)" defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint
+            constraintName="uk_friendship_pair"
+            tableName="friendship"
+            columnNames="requester_id,addressee_id"/>
+        <createIndex indexName="idx_friendship_requester" tableName="friendship">
+            <column name="requester_id"/>
+        </createIndex>
+        <createIndex indexName="idx_friendship_addressee" tableName="friendship">
+            <column name="addressee_id"/>
+        </createIndex>
+        <createIndex indexName="idx_friendship_status" tableName="friendship">
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
