@@ -1,0 +1,544 @@
+# Full Database Schema — FSA Capstone 2026
+> ✅ **Confirmed applied to Azure PostgreSQL** — 2026-03-10 01:41 ICT  
+> 61 Liquibase changesets · 28 tables · Spring Boot v4.0.2 · PostgreSQL 17.8
+
+---
+
+## Loại 1: ERD Level (Logical ERD)
+
+```mermaid
+erDiagram
+    %% ── ACCOUNT & PROFILE
+    account ||--o| user_profile           : "1-1 profile"
+    account ||--o{ refresh_token          : "has tokens"
+
+    %% ── CONTENT HIERARCHY
+    dialect   ||--o{ level                : "levels"
+    level     ||--o{ challenge            : "challenges"
+    error_tag ||--o{ level                : "focuses on"
+    error_tag ||--o{ placement_rule       : "rule for"
+    dialect   ||--o{ placement_rule       : "targets"
+    level     ||--o| level                : "parent/draft (self)"
+    challenge ||--o| challenge            : "parent/draft (self)"
+
+    %% ── CLASSROOM
+    account       ||--o{ classroom        : "educator owns"
+    classroom     ||--o{ classroom_member : "has members"
+    account       ||--o{ classroom_member : "student in"
+
+    %% ── PRACTICE & ATTEMPTS
+    account          ||--o{ practice_session           : "starts"
+    account          ||--o{ attempt                    : "makes"
+    practice_session ||--o{ attempt                    : "contains"
+    challenge        ||--o{ attempt                    : "tested via"
+    attempt          ||--o{ attempt_phoneme_feedback   : "phoneme detail"
+    attempt          ||--o| educator_feedback          : "educator review"
+
+    %% ── BADGE
+    badge   ||--o{ account_badge : "earned"
+    account ||--o{ account_badge : "earns"
+
+    %% ── FE-04: ACHIEVEMENT & BADGE SYSTEM
+    achievement ||--o{ account_achievement  : "tracked for"
+    account     ||--o{ account_achievement  : "progresses"
+    challenge   ||--o{ daily_challenge      : "selected as daily"
+    dialect     ||--o{ daily_challenge      : "scoped"
+    daily_challenge ||--o{ account_daily_challenge : "completed by"
+    account         ||--o{ account_daily_challenge : "completes"
+    attempt         ||--o| account_daily_challenge : "result linked"
+
+    %% ── FE-05: LEADERBOARD
+    leaderboard ||--o{ leaderboard_entry : "has rankings"
+    account     ||--o{ leaderboard_entry : "ranked in"
+    classroom   ||--o| leaderboard       : "classroom board"
+    dialect     ||--o| leaderboard       : "dialect board"
+
+    %% ── FE-05: TOURNAMENT
+    tournament ||--o{ tournament_participant : "has participants"
+    account    ||--o{ tournament_participant : "joins"
+    dialect    ||--o| tournament             : "scoped"
+
+    %% ── FE-05: SOCIAL
+    account ||--o{ friendship : "sends request"
+    account ||--o{ friendship : "receives request"
+
+    %% ── AI PREDICTION
+    account   ||--o{ prediction : "receives"
+    challenge ||--o{ prediction : "for"
+
+    %% ── CONTENT WORKFLOW (approval-less in entity but tracked in history)
+    content_approval_history }o--o{ account : "actioned by"
+
+    %% ── ANALYTICS
+    daily_analytics }|--|{ account : "aggregates"
+```
+
+---
+
+## Loại 2: Physical ERD
+
+### 1. `account`
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `email` | VARCHAR(255) | UNIQUE NOT NULL |
+| `password_hash` | VARCHAR(255) | NOT NULL |
+| `role_code` | VARCHAR(20) | NOT NULL default `USER` |
+| `phone` | VARCHAR(20) | |
+| `region` | VARCHAR(20) | |
+| `email_verified` | BOOLEAN | NOT NULL default `false` |
+| `email_verify_code` | VARCHAR(6) | |
+| `email_verify_expires_at` | TIMESTAMPTZ | |
+| `is_active` | BOOLEAN | NOT NULL default `true` |
+| `reset_code` | VARCHAR(6) | |
+| `reset_expires_at` | TIMESTAMPTZ | |
+| `native_dialect_id` | UUID | FK → `dialect(id)` |
+| `target_dialect_id` | UUID | FK → `dialect(id)` |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| `created_by` | VARCHAR(50) | |
+| `updated_by` | VARCHAR(50) | |
+
+### 2. `user_profile`
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `account_id` | UUID | FK → `account(id)` UNIQUE |
+| `full_name` | VARCHAR(255) | |
+| `avatar_url` | VARCHAR(500) | |
+| `total_stars` | INTEGER | NOT NULL default `0` |
+| `total_experience` | INTEGER | NOT NULL default `0` |
+| `current_streak_days` | INTEGER | NOT NULL default `0` |
+| `max_streak_days` | INTEGER | NOT NULL default `0` ⭐ |
+| `last_activity_date` | DATE | ⭐ |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| `created_by` | VARCHAR(50) | |
+| `updated_by` | VARCHAR(50) | |
+
+### 3. `refresh_token`
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `account_id` | UUID | FK → `account(id)` NOT NULL |
+| `token` | VARCHAR(500) | UNIQUE NOT NULL |
+| `expires_at` | TIMESTAMPTZ | NOT NULL |
+| `revoked` | BOOLEAN | NOT NULL default `false` |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+
+### 4. `dialect`
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| [name](file:///Users/penpen1112003/IntelliJ/Java_Project/com.company.FSA_Captone_2026/src/main/java/org/fsa_2026/company_fsa_captone_2026/entity/Tournament.java#15-75) | VARCHAR(100) | NOT NULL |
+| `description` | TEXT | |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| `created_by` | VARCHAR(50) | |
+| `updated_by` | VARCHAR(50) | |
+
+### 5. `error_tag`
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `tag_code` | VARCHAR(50) | UNIQUE NOT NULL |
+| [name](file:///Users/penpen1112003/IntelliJ/Java_Project/com.company.FSA_Captone_2026/src/main/java/org/fsa_2026/company_fsa_captone_2026/entity/Tournament.java#15-75) | VARCHAR(100) | NOT NULL |
+| `description` | TEXT | |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| `created_by` | VARCHAR(50) | |
+| `updated_by` | VARCHAR(50) | |
+
+### 6. `level`
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `dialect_id` | UUID | FK → `dialect(id)` NOT NULL |
+| `error_tag_id` | UUID | FK → `error_tag(id)` |
+| `parent_id` | UUID | FK → `level(id)` (self-ref) |
+| `draft_id` | UUID | FK → `level(id)` (self-ref) |
+| `level_order` | INTEGER | NOT NULL |
+| [name](file:///Users/penpen1112003/IntelliJ/Java_Project/com.company.FSA_Captone_2026/src/main/java/org/fsa_2026/company_fsa_captone_2026/entity/Tournament.java#15-75) | VARCHAR(100) | NOT NULL |
+| `description` | TEXT | |
+| `min_stars_required` | INTEGER | NOT NULL default `0` |
+| `ai_threshold` | INT | |
+| `audio_url` | VARCHAR(500) | |
+| `status` | VARCHAR(20) | NOT NULL default `APPROVED` |
+| `rejection_reason` | TEXT | |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| `created_by` | VARCHAR(50) | |
+| `updated_by` | VARCHAR(50) | |
+
+### 7. `challenge`
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `level_id` | UUID | FK → `level(id)` NOT NULL |
+| `parent_id` | UUID | FK → `challenge(id)` (self-ref) |
+| `draft_id` | UUID | FK → `challenge(id)` (self-ref) |
+| `content_text` | TEXT | NOT NULL |
+| `phonetic_transcription_ipa` | VARCHAR(255) | NOT NULL |
+| `type` | VARCHAR(255) | |
+| `reference_audio_url` | VARCHAR(255) | |
+| `focus_phonemes` | TEXT | |
+| `status` | VARCHAR(20) | NOT NULL default `APPROVED` |
+| `rejection_reason` | TEXT | |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| `created_by` | VARCHAR(50) | |
+| `updated_by` | VARCHAR(50) | |
+
+### 8. `classroom`
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `educator_id` | UUID | FK → `account(id)` NOT NULL |
+| [name](file:///Users/penpen1112003/IntelliJ/Java_Project/com.company.FSA_Captone_2026/src/main/java/org/fsa_2026/company_fsa_captone_2026/entity/Tournament.java#15-75) | VARCHAR(100) | NOT NULL |
+| `code` | VARCHAR(20) | UNIQUE NOT NULL |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| `created_by` | VARCHAR(50) | |
+| `updated_by` | VARCHAR(50) | |
+
+### 9. `classroom_member`
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `classroom_id` | UUID | FK → `classroom(id)` NOT NULL |
+| `student_id` | UUID | FK → `account(id)` NOT NULL |
+| `joined_at` | TIMESTAMPTZ | NOT NULL |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| | | UNIQUE(`classroom_id`, `student_id`) |
+
+### 10. `practice_session`
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `account_id` | UUID | FK → `account(id)` NOT NULL |
+| `started_at` | TIMESTAMPTZ | NOT NULL |
+| `ended_at` | TIMESTAMPTZ | |
+
+### 11. `attempt`
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `session_id` | UUID | FK → `practice_session(id)` NOT NULL |
+| `challenge_id` | UUID | FK → `challenge(id)` NOT NULL |
+| `account_id` | UUID | FK → `account(id)` |
+| `audio_url` | VARCHAR(500) | |
+| `is_passed` | BOOLEAN | NOT NULL default `false` |
+| `score_overall` | DECIMAL(5,2) | NOT NULL default `0` |
+| `latency_ms` | INTEGER | |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+
+### 12. `attempt_phoneme_feedback`
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `attempt_id` | UUID | FK → `attempt(id)` NOT NULL |
+| `phoneme_ipa` | VARCHAR(10) | NOT NULL |
+| `sequence_order` | INTEGER | NOT NULL default `0` |
+| `score` | DECIMAL(5,2) | NOT NULL default `0` |
+| `start_time_ms` | INTEGER | |
+| `end_time_ms` | INTEGER | |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| `created_by` | VARCHAR(50) | |
+| `updated_by` | VARCHAR(50) | |
+
+### 13. `educator_feedback`
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `attempt_id` | UUID | FK → `attempt(id)` NOT NULL |
+| `educator_id` | UUID | FK → `account(id)` NOT NULL |
+| `comment` | TEXT | NOT NULL |
+| `priority` | VARCHAR(20) | NOT NULL |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| `created_by` | VARCHAR(50) | |
+| `updated_by` | VARCHAR(50) | |
+
+### 14. `placement_rule`
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `error_tag_id` | UUID | FK → `error_tag(id)` |
+| `dialect_id` | UUID | FK → `dialect(id)` |
+| `threshold` | INT | NOT NULL |
+| `checkpoint` | VARCHAR(100) | |
+| `priority` | INT | NOT NULL |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| `created_by` | VARCHAR(50) | |
+| `updated_by` | VARCHAR(50) | |
+
+### 15. `prediction`
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `user_id` | UUID | FK → `account(id)` NOT NULL |
+| `challenge_id` | UUID | FK → `challenge(id)` NOT NULL |
+| `input_data` | TEXT | |
+| `prediction_result` | TEXT | |
+| `confidence_score` | FLOAT8 | |
+| `model_version` | VARCHAR(255) | |
+| `processing_time_ms` | BIGINT | |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| `created_by` | VARCHAR(50) | |
+| `updated_by` | VARCHAR(50) | |
+
+### 16. `badge`
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `code` | VARCHAR(50) | UNIQUE NOT NULL |
+| [name](file:///Users/penpen1112003/IntelliJ/Java_Project/com.company.FSA_Captone_2026/src/main/java/org/fsa_2026/company_fsa_captone_2026/entity/Tournament.java#15-75) | VARCHAR(100) | NOT NULL |
+| `description` | TEXT | |
+| `icon_url` | VARCHAR(500) | |
+| `category` | VARCHAR(50) | NOT NULL default `GENERAL` |
+| `rarity` | VARCHAR(20) | NOT NULL default `BRONZE` |
+| `xp_reward` | INTEGER | NOT NULL default `0` |
+| `criteria_json` | JSONB | |
+| `is_active` | BOOLEAN | NOT NULL default `true` |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| `created_by` | VARCHAR(50) | |
+| `updated_by` | VARCHAR(50) | |
+
+### 17. `account_badge`
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `account_id` | UUID | **PK**, FK → `account(id)` |
+| `badge_id` | UUID | **PK**, FK → `badge(id)` |
+| `earned_at` | TIMESTAMPTZ | NOT NULL |
+
+### 18. `achievement` ⭐ FE-04
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `code` | VARCHAR(100) | UNIQUE NOT NULL |
+| [name](file:///Users/penpen1112003/IntelliJ/Java_Project/com.company.FSA_Captone_2026/src/main/java/org/fsa_2026/company_fsa_captone_2026/entity/Tournament.java#15-75) | VARCHAR(200) | NOT NULL |
+| `description` | TEXT | |
+| `category` | VARCHAR(50) | NOT NULL default `GENERAL` |
+| `icon_url` | VARCHAR(500) | |
+| `criteria_json` | JSONB | NOT NULL |
+| `xp_reward` | INTEGER | NOT NULL default `0` |
+| `is_active` | BOOLEAN | NOT NULL default `true` |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| `created_by` | VARCHAR(50) | |
+| `updated_by` | VARCHAR(50) | |
+
+### 19. `account_achievement` ⭐ FE-04
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `account_id` | UUID | FK → `account(id)` NOT NULL |
+| `achievement_id` | UUID | FK → `achievement(id)` NOT NULL |
+| `status` | VARCHAR(20) | NOT NULL default `LOCKED` |
+| `progress_value` | INTEGER | NOT NULL default `0` |
+| `unlocked_at` | TIMESTAMPTZ | |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| | | UNIQUE(`account_id`, `achievement_id`) |
+
+### 20. `daily_challenge` ⭐ FE-04
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `challenge_date` | DATE | NOT NULL |
+| `challenge_id` | UUID | FK → `challenge(id)` NOT NULL |
+| `dialect_id` | UUID | FK → `dialect(id)` |
+| `difficulty` | VARCHAR(20) | NOT NULL default `MEDIUM` |
+| `bonus_xp` | INTEGER | NOT NULL default `0` |
+| `is_active` | BOOLEAN | NOT NULL default `true` |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| `created_by` | VARCHAR(50) | |
+| `updated_by` | VARCHAR(50) | |
+| | | UNIQUE(`challenge_date`, `challenge_id`) |
+
+### 21. `account_daily_challenge` ⭐ FE-04
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `account_id` | UUID | FK → `account(id)` NOT NULL |
+| `daily_challenge_id` | UUID | FK → `daily_challenge(id)` NOT NULL |
+| `status` | VARCHAR(20) | NOT NULL default `PENDING` |
+| `score_achieved` | DECIMAL(5,2) | default `0` |
+| `xp_earned` | INTEGER | NOT NULL default `0` |
+| `attempt_id` | UUID | FK → `attempt(id)` |
+| `completed_at` | TIMESTAMPTZ | |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| | | UNIQUE(`account_id`, `daily_challenge_id`) |
+
+### 22. `leaderboard` ⭐ FE-05
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `scope` | VARCHAR(30) | NOT NULL default `GLOBAL` |
+| `period_type` | VARCHAR(20) | NOT NULL default `WEEKLY` |
+| `period_start` | DATE | NOT NULL |
+| `period_end` | DATE | NOT NULL |
+| `region_code` | VARCHAR(30) | |
+| `classroom_id` | UUID | FK → `classroom(id)` |
+| `dialect_id` | UUID | FK → `dialect(id)` |
+| `is_finalized` | BOOLEAN | NOT NULL default `false` |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| `created_by` | VARCHAR(50) | |
+| `updated_by` | VARCHAR(50) | |
+
+### 23. `leaderboard_entry` ⭐ FE-05
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `leaderboard_id` | UUID | FK → `leaderboard(id)` NOT NULL |
+| `account_id` | UUID | FK → `account(id)` NOT NULL |
+| `rank_position` | INTEGER | NOT NULL |
+| `total_xp` | INTEGER | NOT NULL default `0` |
+| `total_stars` | INTEGER | NOT NULL default `0` |
+| `challenges_completed` | INTEGER | NOT NULL default `0` |
+| `average_score` | DECIMAL(5,2) | NOT NULL default `0` |
+| `streak_days` | INTEGER | NOT NULL default `0` |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| | | UNIQUE(`leaderboard_id`, `account_id`) |
+
+### 24. `tournament` ⭐ FE-05
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| [name](file:///Users/penpen1112003/IntelliJ/Java_Project/com.company.FSA_Captone_2026/src/main/java/org/fsa_2026/company_fsa_captone_2026/entity/Tournament.java#15-75) | VARCHAR(200) | NOT NULL |
+| `description` | TEXT | |
+| `type` | VARCHAR(30) | NOT NULL default `WEEKLY` |
+| `status` | VARCHAR(20) | NOT NULL default `UPCOMING` |
+| `dialect_id` | UUID | FK → `dialect(id)` |
+| `region_code` | VARCHAR(30) | |
+| `starts_at` | TIMESTAMPTZ | NOT NULL |
+| `ends_at` | TIMESTAMPTZ | NOT NULL |
+| `max_participants` | INTEGER | |
+| `banner_url` | VARCHAR(500) | |
+| `prize_config_json` | JSONB | |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| `created_by` | VARCHAR(50) | |
+| `updated_by` | VARCHAR(50) | |
+
+### 25. `tournament_participant` ⭐ FE-05
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `tournament_id` | UUID | FK → `tournament(id)` NOT NULL |
+| `account_id` | UUID | FK → `account(id)` NOT NULL |
+| `rank_position` | INTEGER | |
+| `total_xp` | INTEGER | NOT NULL default `0` |
+| `challenges_completed` | INTEGER | NOT NULL default `0` |
+| `average_score` | DECIMAL(5,2) | NOT NULL default `0` |
+| `status` | VARCHAR(20) | NOT NULL default `REGISTERED` |
+| `joined_at` | TIMESTAMPTZ | NOT NULL |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| | | UNIQUE(`tournament_id`, `account_id`) |
+
+### 26. `friendship` ⭐ FE-05
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `requester_id` | UUID | FK → `account(id)` NOT NULL |
+| `addressee_id` | UUID | FK → `account(id)` NOT NULL |
+| `status` | VARCHAR(20) | NOT NULL default `PENDING` |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| | | UNIQUE(`requester_id`, `addressee_id`) |
+
+### 27. `content_approval_history`
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `content_type` | VARCHAR(20) | NOT NULL |
+| `content_id` | UUID | NOT NULL |
+| `status` | VARCHAR(20) | NOT NULL |
+| `comment` | TEXT | |
+| `content_snapshot` | TEXT | JSON snapshot |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| `created_by` | VARCHAR(50) | |
+| `updated_by` | VARCHAR(50) | |
+
+### 28. `daily_analytics`
+| Column | Type | Constraint |
+|--------|------|-----------|
+| `id` | UUID | **PK** |
+| `record_date` | DATE | UNIQUE NOT NULL |
+| `total_users` | BIGINT | NOT NULL default `0` |
+| `active_users` | BIGINT | NOT NULL default `0` |
+| `total_attempts` | BIGINT | NOT NULL default `0` |
+| `average_score` | DOUBLE PRECISION | NOT NULL default `0.0` |
+| `error_heatmaps_json` | TEXT | |
+| `created_at` | TIMESTAMPTZ | NOT NULL |
+| `updated_at` | TIMESTAMPTZ | NOT NULL |
+| `created_by` | VARCHAR(50) | |
+| `updated_by` | VARCHAR(50) | |
+
+---
+
+## Bảng tổng hợp
+
+| # | Bảng | Module | Ghi chú |
+|---|------|--------|---------|
+| 1 | `account` | Auth | Lõi |
+| 2 | `user_profile` | Profile | +streak mới |
+| 3 | `refresh_token` | Auth | |
+| 4 | `dialect` | Content | |
+| 5 | `error_tag` | Content | Lookup |
+| 6 | `level` | Content | Self-ref |
+| 7 | `challenge` | Content | Self-ref |
+| 8 | `classroom` | Education | |
+| 9 | `classroom_member` | Education | Join |
+| 10 | `practice_session` | Gameplay | |
+| 11 | `attempt` | Gameplay | |
+| 12 | `attempt_phoneme_feedback` | AI | |
+| 13 | `educator_feedback` | Education | |
+| 14 | `placement_rule` | AI/Config | |
+| 15 | `prediction` | AI | |
+| 16 | `badge` | FE-04 | +category/rarity |
+| 17 | `account_badge` | FE-04 | Join |
+| 18 | `achievement` | **FE-04** ⭐ | Mới |
+| 19 | `account_achievement` | **FE-04** ⭐ | Mới |
+| 20 | `daily_challenge` | **FE-04** ⭐ | Mới |
+| 21 | `account_daily_challenge` | **FE-04** ⭐ | Mới |
+| 22 | `leaderboard` | **FE-05** ⭐ | Mới |
+| 23 | `leaderboard_entry` | **FE-05** ⭐ | Mới |
+| 24 | `tournament` | **FE-05** ⭐ | Mới |
+| 25 | `tournament_participant` | **FE-05** ⭐ | Mới |
+| 26 | `friendship` | **FE-05** ⭐ | Mới |
+| 27 | `content_approval_history` | Workflow | |
+| 28 | `daily_analytics` | Admin | |
+
+**Tổng: 28 bảng** | **51 badges seeded** | **61 changesets confirmed ✅**
+
+---
+
+## Enum / Status Values Reference
+
+| Bảng | Column | Giá trị |
+|------|--------|---------|
+| `account` | `role_code` | `USER`, `EDUCATOR`, `ADMIN` |
+| `level` / `challenge` | `status` | `DRAFT`, `PENDING`, `APPROVED`, `REJECTED` |
+| `badge` | `rarity` | `BRONZE`, `SILVER`, `GOLD`, `PLATINUM`, `DIAMOND` |
+| `badge` / `achievement` | `category` | `STREAK`, `SCORE`, `LEARNING`, `CHALLENGE`, `SOCIAL`, `SPECIAL` |
+| `account_achievement` | `status` | `LOCKED`, `IN_PROGRESS`, `UNLOCKED` |
+| `account_daily_challenge` | `status` | `PENDING`, `COMPLETED`, `SKIPPED` |
+| `daily_challenge` | `difficulty` | `EASY`, `MEDIUM`, `HARD` |
+| `leaderboard` | `scope` | `GLOBAL`, `REGIONAL`, `CLASSROOM`, `FRIENDS` |
+| `leaderboard` | `period_type` | `DAILY`, `WEEKLY`, `MONTHLY`, `ALL_TIME` |
+| `tournament` | `type` | `WEEKLY`, `MONTHLY`, `SPECIAL` |
+| `tournament` | `status` | `UPCOMING`, `ACTIVE`, `FINISHED`, `CANCELLED` |
+| `tournament_participant` | `status` | `REGISTERED`, `ACTIVE`, `COMPLETED`, `DISQUALIFIED` |
+| `friendship` | `status` | `PENDING`, `ACCEPTED`, `DECLINED`, `BLOCKED` |

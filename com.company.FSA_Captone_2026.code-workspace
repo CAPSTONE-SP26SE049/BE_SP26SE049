@@ -2,12 +2,9 @@
 	"folders": [
 		{
 			"path": "."
-		},
-		{
-			"path": "../../../WebstormProjects/Highschool.vn"
 		}
 	],
 	"settings": {
-		"java.compile.nullAnalysis.mode": "automatic"
+		"java.compile.nullAnalysis.mode": "disabled"
 	}
 }
