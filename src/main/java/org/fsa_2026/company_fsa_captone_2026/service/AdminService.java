@@ -1,52 +1,20 @@
 package org.fsa_2026.company_fsa_captone_2026.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.fsa_2026.company_fsa_captone_2026.dto.EducatorCreateRequest;
-import org.fsa_2026.company_fsa_captone_2026.dto.RegisterResponse;
-import org.fsa_2026.company_fsa_captone_2026.entity.Account;
-import org.fsa_2026.company_fsa_captone_2026.entity.Challenge;
-import org.fsa_2026.company_fsa_captone_2026.entity.Level;
-import org.fsa_2026.company_fsa_captone_2026.entity.UserProfile;
+import org.fsa_2026.company_fsa_captone_2026.dto.*;
+import org.fsa_2026.company_fsa_captone_2026.entity.*;
 import org.fsa_2026.company_fsa_captone_2026.entity.enums.RoleCode;
 import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
-import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
-import org.fsa_2026.company_fsa_captone_2026.repository.AttemptRepository;
-import org.fsa_2026.company_fsa_captone_2026.repository.ChallengeRepository;
-import org.fsa_2026.company_fsa_captone_2026.repository.LevelRepository;
-import org.fsa_2026.company_fsa_captone_2026.repository.UserProfileRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeCreateRequest;
-import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeResponse;
-import org.fsa_2026.company_fsa_captone_2026.dto.DialectCreateRequest;
-import org.fsa_2026.company_fsa_captone_2026.dto.DialectResponse;
-import org.fsa_2026.company_fsa_captone_2026.dto.LevelCreateRequest;
-import org.fsa_2026.company_fsa_captone_2026.dto.LevelResponse;
-import org.fsa_2026.company_fsa_captone_2026.dto.UserManagementResponse;
-import org.fsa_2026.company_fsa_captone_2026.dto.UserStatusUpdateRequest;
-import org.fsa_2026.company_fsa_captone_2026.dto.UserUpdateRequest;
-import org.fsa_2026.company_fsa_captone_2026.dto.AnalyticsOverviewResponse;
-import org.fsa_2026.company_fsa_captone_2026.entity.Dialect;
-import org.fsa_2026.company_fsa_captone_2026.repository.DialectRepository;
-import org.fsa_2026.company_fsa_captone_2026.repository.ErrorTagRepository;
-
-import org.fsa_2026.company_fsa_captone_2026.repository.DailyAnalyticsRepository;
-import org.fsa_2026.company_fsa_captone_2026.entity.DailyAnalytics;
-import org.fsa_2026.company_fsa_captone_2026.entity.ContentApprovalHistory;
-import org.fsa_2026.company_fsa_captone_2026.dto.ContentApprovalHistoryResponse;
-import org.fsa_2026.company_fsa_captone_2026.repository.ContentApprovalHistoryRepository;
 import java.time.LocalDate;
-import java.util.Optional;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Admin Service
@@ -139,9 +107,10 @@ public class AdminService {
 
     @Transactional(readOnly = true)
     public List<UserManagementResponse> getAllUsers() {
-        return accountRepository.findAll().stream()
-                .filter(acc -> (acc.getRoleCode() == RoleCode.USER || acc.getRoleCode() == RoleCode.EDUCATOR)
-                        && Boolean.TRUE.equals(acc.getIsActive()))
+        // Filter tại DB thay vì load toàn bộ rồi filter bằng Java
+        return accountRepository
+                .findAllActiveByRoleCodeIn(List.of(RoleCode.USER, RoleCode.EDUCATOR))
+                .stream()
                 .map(UserManagementResponse::fromEntity)
                 .collect(Collectors.toList());
     }

@@ -4,20 +4,17 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.fsa_2026.company_fsa_captone_2026.dto.*;
 import org.fsa_2026.company_fsa_captone_2026.entity.*;
+import org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus;
 import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
 import org.fsa_2026.company_fsa_captone_2026.repository.*;
-import org.fsa_2026.company_fsa_captone_2026.repository.ErrorTagRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
-import org.fsa_2026.company_fsa_captone_2026.repository.ChallengeRepository;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.fsa_2026.company_fsa_captone_2026.dto.LevelResponse;
-import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeResponse;
 
 @Slf4j
 @Service
@@ -141,24 +138,11 @@ public class EducatorService {
                 level = levelRepository.save(level);
 
                 LevelResponse response = LevelResponse.fromEntity(level);
-                String contentSnapshot = "";
-                try {
-                        contentSnapshot = objectMapper.writeValueAsString(response);
-                } catch (Exception e) {
-                        log.error("Failed to serialize Level content snapshot", e);
-                }
-
-                ContentApprovalHistory history = ContentApprovalHistory.builder()
-                                .contentType("LEVEL")
-                                .contentId(level.getId())
-                                .status(org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.PENDING)
-                                .comment(request.getComment() != null && !request.getComment().isBlank()
+                saveApprovalHistory("LEVEL", level.getId(), educator, ContentStatus.PENDING,
+                                request.getComment() != null && !request.getComment().isBlank()
                                                 ? request.getComment()
-                                                : "Educator created level")
-                                .contentSnapshot(contentSnapshot)
-                                .build();
-                history.setCreatedBy(educator.getId().toString());
-                contentApprovalHistoryRepository.save(history);
+                                                : "Educator created level",
+                                response);
 
                 return response;
         }
@@ -212,24 +196,11 @@ public class EducatorService {
                 }
 
                 LevelResponse response = LevelResponse.fromEntity(targetLevel);
-                String contentSnapshot = "";
-                try {
-                        contentSnapshot = objectMapper.writeValueAsString(response);
-                } catch (Exception e) {
-                        log.error("Failed to serialize Level content snapshot", e);
-                }
-
-                ContentApprovalHistory history = ContentApprovalHistory.builder()
-                                .contentType("LEVEL")
-                                .contentId(level.getId())
-                                .status(org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.PENDING)
-                                .comment(request.getComment() != null && !request.getComment().isBlank()
+                saveApprovalHistory("LEVEL", level.getId(), educator, ContentStatus.PENDING,
+                                request.getComment() != null && !request.getComment().isBlank()
                                                 ? request.getComment()
-                                                : "Educator updated level")
-                                .contentSnapshot(contentSnapshot)
-                                .build();
-                history.setCreatedBy(educator.getId().toString());
-                contentApprovalHistoryRepository.save(history);
+                                                : "Educator updated level",
+                                response);
 
                 return response;
         }
@@ -268,27 +239,15 @@ public class EducatorService {
                 challenge.setCreatedBy(educator.getId().toString());
 
                 challenge = challengeRepository.save(challenge);
+                ChallengeResponse response = ChallengeResponse.fromEntity(challenge);
 
-                String contentSnapshot = "";
-                try {
-                        contentSnapshot = objectMapper.writeValueAsString(ChallengeResponse.fromEntity(challenge));
-                } catch (Exception e) {
-                        log.error("Failed to serialize Challenge content snapshot", e);
-                }
-
-                ContentApprovalHistory history = ContentApprovalHistory.builder()
-                                .contentType("CHALLENGE")
-                                .contentId(challenge.getId())
-                                .status(org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.PENDING)
-                                .comment(request.getComment() != null && !request.getComment().isBlank()
+                saveApprovalHistory("CHALLENGE", challenge.getId(), educator, ContentStatus.PENDING,
+                                request.getComment() != null && !request.getComment().isBlank()
                                                 ? request.getComment()
-                                                : "Educator created challenge")
-                                .contentSnapshot(contentSnapshot)
-                                .build();
-                history.setCreatedBy(educator.getId().toString());
-                contentApprovalHistoryRepository.save(history);
+                                                : "Educator created challenge",
+                                response);
 
-                return ChallengeResponse.fromEntity(challenge);
+                return response;
         }
 
         @Transactional
@@ -330,27 +289,14 @@ public class EducatorService {
                         challengeRepository.save(challenge);
                 }
 
-                String contentSnapshot = "";
-                try {
-                        contentSnapshot = objectMapper
-                                        .writeValueAsString(ChallengeResponse.fromEntity(targetChallenge));
-                } catch (Exception e) {
-                        log.error("Failed to serialize Challenge content snapshot", e);
-                }
-
-                ContentApprovalHistory history = ContentApprovalHistory.builder()
-                                .contentType("CHALLENGE")
-                                .contentId(challenge.getId())
-                                .status(org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.PENDING)
-                                .comment(request.getComment() != null && !request.getComment().isBlank()
+                ChallengeResponse response = ChallengeResponse.fromEntity(targetChallenge);
+                saveApprovalHistory("CHALLENGE", challenge.getId(), educator, ContentStatus.PENDING,
+                                request.getComment() != null && !request.getComment().isBlank()
                                                 ? request.getComment()
-                                                : "Educator updated challenge")
-                                .contentSnapshot(contentSnapshot)
-                                .build();
-                history.setCreatedBy(educator.getId().toString());
-                contentApprovalHistoryRepository.save(history);
+                                                : "Educator updated challenge",
+                                response);
 
-                return ChallengeResponse.fromEntity(targetChallenge);
+                return response;
         }
 
         @Transactional
@@ -429,12 +375,21 @@ public class EducatorService {
                                 .distinct()
                                 .count();
 
-                // Simplified mock stats for non-essential metrics for now
+                List<Attempt> classroomAttempts = classrooms.stream()
+                                .flatMap(c -> attemptRepository.findByClassroomId(c.getId()).stream())
+                                .collect(Collectors.toList());
+
+                long totalAttempts = classroomAttempts.size();
+                double avgScore = classroomAttempts.stream()
+                                .mapToDouble(a -> a.getScoreOverall().doubleValue())
+                                .average()
+                                .orElse(0.0);
+
                 return EducatorDashboardSummaryResponse.builder()
                                 .activeClassrooms(classrooms.size())
                                 .totalStudents(totalStudents)
-                                .totalAttempts(classrooms.size() * 150L) // Mock
-                                .averageClassScore(2.8) // Mock
+                                .totalAttempts(totalAttempts)
+                                .averageClassScore(avgScore)
                                 .build();
         }
 
@@ -533,20 +488,59 @@ public class EducatorService {
                 Account student = accountRepository.findById(studentId)
                                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy học viên"));
 
-                // Placeholder for real analytics logic - summing up phoneme errors
-                // In a real app, we would query AttemptPhonemeFeedback grouped by IPA
+                // Lấy tất cả feedback về phát âm của học viên này
+                List<AttemptPhonemeFeedback> feedbackList = phonemeFeedbackRepository.findByStudentId(studentId);
 
-                List<StudentAnalyticsResponse.ErrorMetric> mockErrors = List.of(
-                                new StudentAnalyticsResponse.ErrorMetric("l", 0.42, 15),
-                                new StudentAnalyticsResponse.ErrorMetric("n", 0.58, 12),
-                                new StudentAnalyticsResponse.ErrorMetric("tr", 0.65, 8));
+                // Group by Phoneme IPA và tính điểm trung bình
+                Map<String, List<AttemptPhonemeFeedback>> groupedByPhoneme = feedbackList.stream()
+                                .collect(Collectors.groupingBy(AttemptPhonemeFeedback::getPhonemeIpa));
+
+                List<StudentAnalyticsResponse.ErrorMetric> topErrors = groupedByPhoneme.entrySet().stream()
+                                .map(entry -> {
+                                        String phoneme = entry.getKey();
+                                        List<AttemptPhonemeFeedback> feedback = entry.getValue();
+                                        double avgScore = feedback.stream()
+                                                        .mapToDouble(f -> f.getScore().doubleValue())
+                                                        .average()
+                                                        .orElse(0.0);
+                                        return new StudentAnalyticsResponse.ErrorMetric(phoneme, avgScore,
+                                                        feedback.size());
+                                })
+                                // Sắp xếp theo mức độ lỗi giảm dần (điểm càng cao càng lỗi nhiều)
+                                .sorted(Comparator.comparing(StudentAnalyticsResponse.ErrorMetric::getAccuracy)
+                                                .reversed())
+                                .limit(5)
+                                .collect(Collectors.toList());
 
                 return StudentAnalyticsResponse.builder()
                                 .studentId(studentId)
                                 .fullName(student.getUserProfile() != null ? student.getUserProfile().getFullName()
                                                 : "Học viên")
-                                .topErrors(mockErrors)
+                                .topErrors(topErrors)
                                 .build();
+        }
+
+        /**
+         * Helper để lưu lịch sử phê duyệt nội dung
+         */
+        private void saveApprovalHistory(String contentType, UUID contentId, Account educator, ContentStatus status,
+                        String comment, Object responseDTO) {
+                String contentSnapshot = "";
+                try {
+                        contentSnapshot = objectMapper.writeValueAsString(responseDTO);
+                } catch (Exception e) {
+                        log.error("Failed to serialize {} content snapshot", contentType, e);
+                }
+
+                ContentApprovalHistory history = ContentApprovalHistory.builder()
+                                .contentType(contentType)
+                                .contentId(contentId)
+                                .status(status)
+                                .comment(comment)
+                                .contentSnapshot(contentSnapshot)
+                                .build();
+                history.setCreatedBy(educator.getId().toString());
+                contentApprovalHistoryRepository.save(history);
         }
 
         @Transactional(readOnly = true)

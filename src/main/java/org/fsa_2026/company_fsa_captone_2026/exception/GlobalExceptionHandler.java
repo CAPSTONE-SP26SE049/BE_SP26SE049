@@ -19,7 +19,10 @@ import java.util.Map;
  * Returns standardized API responses for all exception types
  */
 @Slf4j
-@RestControllerAdvice(basePackages = "org.fsa_2026.company_fsa_captone_2026.controller")
+@RestControllerAdvice(basePackages = {
+        "org.fsa_2026.company_fsa_captone_2026.controller",
+        "org.fsa_2026.company_fsa_captone_2026.common.base"
+})
 public class GlobalExceptionHandler {
 
     /**

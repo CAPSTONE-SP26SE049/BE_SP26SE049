@@ -89,13 +89,12 @@ public class SecurityConfig {
                                     "/api/v1/public/**",
                                     "/api/v1/health/**",
 
-                                    // Development endpoints
+                                    // Development actuator
                                     "/actuator/**",
-                                    "/h2-console/**",
-                                    "/error",
 
                                     // Root and favicon
                                     "/",
+                                    "/error",
                                     "/favicon.ico")
                             .permitAll()
 
@@ -112,8 +111,8 @@ public class SecurityConfig {
                             .anyRequest().authenticated())
                     .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-            // Tắt frame options cho h2-console (chỉ dùng khi phát triển)
-            http.headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()));
+            // Bảo vệ Clickjacking - chỉ cho phép frame từ cùng origin
+            http.headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()));
 
             return http.build();
         } catch (Exception e) {
