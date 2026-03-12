@@ -35,6 +35,7 @@ public class AdminService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final ErrorTagRepository errorTagRepository;
+    private final QuizRepository quizRepository;
     private final DailyAnalyticsRepository dailyAnalyticsRepository;
     private final ObjectMapper objectMapper;
 
@@ -451,6 +452,97 @@ public class AdminService {
         contentApprovalHistoryRepository.save(history);
 
         return ChallengeResponse.fromEntity(targetChallenge);
+    }
+
+    @Transactional(readOnly = true)
+    public List<QuizResponse> getPendingQuizzes() {
+        return quizRepository.findAll().stream()
+                .filter(quiz -> org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.PENDING
+                        .equals(quiz.getStatus()))
+                .map(QuizResponse::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public QuizResponse getQuizById(UUID id) {
+        Quiz quiz = quizRepository.findById(id)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Quiz"));
+        return QuizResponse.fromEntity(quiz);
+    }
+
+    @Transactional
+    public QuizResponse reviewQuiz(UUID id, org.fsa_2026.company_fsa_captone_2026.dto.ContentReviewRequest request) {
+        Quiz quiz = quizRepository.findById(id)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Quiz"));
+
+        Quiz targetQuiz = quiz;
+        if (org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.APPROVED.equals(request.getStatus())) {
+            if (quiz.getParent() != null) {
+                targetQuiz = quiz.getParent();
+                targetQuiz.setLevel(quiz.getLevel());
+                targetQuiz.setTitle(quiz.getTitle());
+                targetQuiz.setDescription(quiz.getDescription());
+                targetQuiz.setInstructions(quiz.getInstructions());
+                targetQuiz.setPassingScore(quiz.getPassingScore());
+                targetQuiz.setTimeLimitMinutes(quiz.getTimeLimitMinutes());
+                targetQuiz.setQuestionCount(quiz.getQuestionCount());
+                
+                if (targetQuiz.getQuestions() != null) {
+                    targetQuiz.getQuestions().clear();
+                } else {
+                    targetQuiz.setQuestions(new ArrayList<>());
+                }
+                
+                if (quiz.getQuestions() != null) {
+                    final Quiz finalTarget = targetQuiz;
+                    List<QuizQuestion> newQs = quiz.getQuestions().stream()
+                        .map(q -> QuizQuestion.builder()
+                            .quiz(finalTarget)
+                            .skillType(q.getSkillType())
+                            .difficulty(q.getDifficulty())
+                            .questionOrder(q.getQuestionOrder())
+                            .points(q.getPoints())
+                            .contentData(q.getContentData())
+                            .build())
+                        .collect(Collectors.toList());
+                    targetQuiz.getQuestions().addAll(newQs);
+                }
+                
+                targetQuiz.setDraft(null);
+                quizRepository.delete(quiz);
+            } else {
+                targetQuiz.setStatus(request.getStatus());
+                targetQuiz.setRejectionReason(null);
+            }
+        } else if (org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.REJECTED.equals(request.getStatus())) {
+            targetQuiz.setStatus(request.getStatus());
+            targetQuiz.setRejectionReason(request.getRejectionReason());
+        } else {
+            targetQuiz.setStatus(request.getStatus());
+            targetQuiz.setRejectionReason(null);
+        }
+
+        targetQuiz = quizRepository.save(targetQuiz);
+
+        String contentSnapshot = "";
+        try {
+            contentSnapshot = objectMapper.writeValueAsString(QuizResponse.fromEntity(targetQuiz));
+        } catch (Exception e) {
+            log.error("Failed to serialize Quiz content snapshot", e);
+        }
+
+        UUID historyContentId = (quiz.getParent() != null) ? quiz.getParent().getId() : quiz.getId();
+        ContentApprovalHistory history = ContentApprovalHistory.builder()
+                .contentType("QUIZ")
+                .contentId(historyContentId)
+                .status(request.getStatus())
+                .comment(request.getComment() != null && !request.getComment().isBlank() ? request.getComment()
+                        : request.getRejectionReason())
+                .contentSnapshot(contentSnapshot)
+                .build();
+        contentApprovalHistoryRepository.save(history);
+
+        return QuizResponse.fromEntity(targetQuiz);
     }
 
     @Transactional(readOnly = true)

@@ -7,7 +7,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.fsa_2026.company_fsa_captone_2026.dto.*;
-import org.fsa_2026.company_fsa_captone_2026.entity.PlacementRule;
 import org.fsa_2026.company_fsa_captone_2026.service.EducatorService;
 import org.fsa_2026.company_fsa_captone_2026.service.ErrorTagService;
 import org.springframework.http.HttpStatus;
@@ -231,7 +230,7 @@ public class EducatorController {
 
         @GetMapping("/placement/rules")
         @Operation(summary = "Get Placement Rules", description = "List all student routing rules")
-        public ResponseEntity<ApiResponse<List<PlacementRule>>> getPlacementRules(
+        public ResponseEntity<ApiResponse<List<PlacementRuleResponse>>> getPlacementRules(
                         Authentication authentication) {
                 return ResponseEntity.ok(
                                 ApiResponse.success("Thành công", educatorService.getPlacementRules()));
@@ -239,7 +238,7 @@ public class EducatorController {
 
         @PostMapping("/placement/rules")
         @Operation(summary = "Update/Create Placement Rule", description = "Configure evaluation thresholds")
-        public ResponseEntity<ApiResponse<PlacementRule>> updatePlacementRule(
+        public ResponseEntity<ApiResponse<PlacementRuleResponse>> updatePlacementRule(
                         @Valid @RequestBody PlacementRuleRequest request,
                         Authentication authentication) {
                 return ResponseEntity.ok(

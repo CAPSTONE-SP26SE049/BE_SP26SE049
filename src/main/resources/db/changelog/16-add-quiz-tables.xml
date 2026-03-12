@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="16-add-quiz-tables" author="claude">
+        <!-- 1. create quiz table -->
+        <createTable tableName="quiz">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="level_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="title" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="instructions" type="TEXT"/>
+            <column name="passing_score" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="time_limit_minutes" type="INT"/>
+            <column name="question_count" type="INT"/>
+            <column name="status" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="parent_id" type="UUID"/>
+            <column name="draft_id" type="UUID"/>
+            <column name="rejection_reason" type="TEXT"/>
+
+            <!-- standard base entity columns -->
+            <column name="created_at" type="TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP"/>
+            <column name="deleted_at" type="TIMESTAMP"/>
+            <column name="created_by" type="VARCHAR(255)"/>
+            <column name="updated_by" type="VARCHAR(255)"/>
+        </createTable>
+
+        <addForeignKeyConstraint baseColumnNames="level_id"
+                                 baseTableName="quiz"
+                                 constraintName="fk_quiz_level"
+                                 referencedColumnNames="id"
+                                 referencedTableName="level"/>
+
+        <addForeignKeyConstraint baseColumnNames="parent_id"
+                                 baseTableName="quiz"
+                                 constraintName="fk_quiz_parent"
+                                 referencedColumnNames="id"
+                                 referencedTableName="quiz"/>
+
+        <!-- 2. create quiz_question table -->
+        <createTable tableName="quiz_question">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="quiz_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="skill_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="difficulty" type="VARCHAR(20)"/>
+            <column name="question_order" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="points" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content_data" type="JSONB">
+                <constraints nullable="false"/>
+            </column>
+
+            <!-- standard base entity columns -->
+            <column name="created_at" type="TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP"/>
+            <column name="deleted_at" type="TIMESTAMP"/>
+            <column name="created_by" type="VARCHAR(255)"/>
+            <column name="updated_by" type="VARCHAR(255)"/>
+        </createTable>
+
+        <addForeignKeyConstraint baseColumnNames="quiz_id"
+                                 baseTableName="quiz_question"
+                                 constraintName="fk_quiz_question_quiz"
+                                 referencedColumnNames="id"
+                                 referencedTableName="quiz"
+                                 onDelete="CASCADE"/>
+
+        <!-- 3. create quiz_attempt table -->
+        <createTable tableName="quiz_attempt">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="quiz_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="student_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="score" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="completed" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="started_at" type="TIMESTAMP"/>
+            <column name="completed_at" type="TIMESTAMP"/>
+            <column name="answers_snapshot" type="TEXT"/>
+            <column name="quiz_type" type="VARCHAR(20)"/>
+            <column name="time_taken_seconds" type="INT"/>
+
+            <!-- standard base entity columns -->
+            <column name="created_at" type="TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP"/>
+            <column name="deleted_at" type="TIMESTAMP"/>
+            <column name="created_by" type="VARCHAR(255)"/>
+            <column name="updated_by" type="VARCHAR(255)"/>
+        </createTable>
+
+        <addForeignKeyConstraint baseColumnNames="quiz_id"
+                                 baseTableName="quiz_attempt"
+                                 constraintName="fk_quiz_attempt_quiz"
+                                 referencedColumnNames="id"
+                                 referencedTableName="quiz"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint baseColumnNames="student_id"
+                                 baseTableName="quiz_attempt"
+                                 constraintName="fk_quiz_attempt_student"
+                                 referencedColumnNames="id"
+                                 referencedTableName="account"/>
+    </changeSet>
+
+</databaseChangeLog>

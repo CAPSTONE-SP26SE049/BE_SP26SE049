@@ -32,6 +32,7 @@ public class EducatorService {
         private final PlacementRuleRepository placementRuleRepository;
         private final ChallengeRepository challengeRepository;
         private final ErrorTagRepository errorTagRepository;
+        private final QuizRepository quizRepository;
         private final org.fsa_2026.company_fsa_captone_2026.repository.ContentApprovalHistoryRepository contentApprovalHistoryRepository;
         private final ObjectMapper objectMapper;
 
@@ -336,12 +337,14 @@ public class EducatorService {
         }
 
         @Transactional(readOnly = true)
-        public List<PlacementRule> getPlacementRules() {
-                return placementRuleRepository.findAll();
+        public List<PlacementRuleResponse> getPlacementRules() {
+                return placementRuleRepository.findAll().stream()
+                                .map(PlacementRuleResponse::fromEntity)
+                                .collect(Collectors.toList());
         }
 
         @Transactional
-        public PlacementRule updateOrCreatePlacementRule(PlacementRuleRequest request) {
+        public PlacementRuleResponse updateOrCreatePlacementRule(PlacementRuleRequest request) {
                 // Fetch related entities
                 ErrorTag errorTag = errorTagRepository.findById(request.getErrorTagId())
                                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy ErrorTag cấu hình"));
@@ -361,7 +364,7 @@ public class EducatorService {
                 rule.setCheckpoint(request.getCheckpoint());
                 rule.setPriority(request.getPriority());
 
-                return placementRuleRepository.save(rule);
+                return PlacementRuleResponse.fromEntity(placementRuleRepository.save(rule));
         }
 
         @Transactional(readOnly = true)
@@ -518,6 +521,134 @@ public class EducatorService {
                                                 : "Học viên")
                                 .topErrors(topErrors)
                                 .build();
+        }
+
+        @Transactional(readOnly = true)
+        public List<QuizResponse> getEducatorQuizzes(String educatorEmail) {
+                Account educator = getAccountByEmail(educatorEmail);
+                return quizRepository.findByCreatedByOrderByCreatedAtDesc(educator.getId().toString())
+                                .stream()
+                                .map(QuizResponse::fromEntity)
+                                .collect(Collectors.toList());
+        }
+
+        @Transactional(readOnly = true)
+        public QuizResponse getQuizById(String educatorEmail, UUID quizId) {
+                getAccountByEmail(educatorEmail);
+                Quiz quiz = quizRepository.findById(quizId)
+                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy bài kiểm tra"));
+                return QuizResponse.fromEntity(quiz);
+        }
+
+        @Transactional
+        public QuizResponse createQuiz(String educatorEmail, QuizCreateRequest request) {
+                Account educator = getAccountByEmail(educatorEmail);
+                Level level = levelRepository.findById(request.getLevelId())
+                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Level"));
+
+                Quiz quiz = Quiz.builder()
+                                .level(level)
+                                .title(request.getTitle())
+                                .description(request.getDescription())
+                                .instructions(request.getInstructions())
+                                .passingScore(request.getPassingScore())
+                                .timeLimitMinutes(request.getTimeLimitMinutes())
+                                .questionCount(request.getQuestions() != null ? request.getQuestions().size() : 0)
+                                .status(ContentStatus.PENDING)
+                                .build();
+                quiz.setCreatedBy(educator.getId().toString());
+
+                if (request.getQuestions() != null) {
+                        List<QuizQuestion> questions = request.getQuestions().stream()
+                                        .map(qReq -> QuizQuestion.builder()
+                                                        .quiz(quiz)
+                                                        .skillType(qReq.getSkillType())
+                                                        .difficulty(qReq.getDifficulty() != null ? org.fsa_2026.company_fsa_captone_2026.entity.enums.DifficultyLevel.valueOf(qReq.getDifficulty()) : null)
+                                                        .questionOrder(qReq.getQuestionOrder())
+                                                        .points(qReq.getPoints())
+                                                        .contentData(qReq.getContentData())
+                                                        .build())
+                                        .collect(Collectors.toList());
+                        quiz.setQuestions(questions);
+                }
+
+                Quiz savedQuiz = quizRepository.save(quiz);
+
+                QuizResponse response = QuizResponse.fromEntity(savedQuiz);
+                saveApprovalHistory("QUIZ", savedQuiz.getId(), educator, ContentStatus.PENDING,
+                                request.getComment() != null && !request.getComment().isBlank()
+                                                ? request.getComment()
+                                                : "Educator created quiz",
+                                response);
+                return response;
+        }
+
+        @Transactional
+        public QuizResponse updateQuiz(String educatorEmail, UUID quizId, QuizCreateRequest request) {
+                Account educator = getAccountByEmail(educatorEmail);
+                Quiz quiz = quizRepository.findById(quizId)
+                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy bài kiểm tra"));
+                Level level = levelRepository.findById(request.getLevelId())
+                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Level"));
+
+                Quiz targetQuiz = quiz;
+                boolean isNewDraft = false;
+
+                if (ContentStatus.APPROVED.equals(quiz.getStatus())) {
+                        targetQuiz = new Quiz();
+                        targetQuiz.setParent(quiz);
+                        targetQuiz.setStatus(ContentStatus.PENDING);
+                        isNewDraft = true;
+                } else {
+                        targetQuiz.setStatus(ContentStatus.PENDING);
+                        if (targetQuiz.getQuestions() != null) {
+                                targetQuiz.getQuestions().clear();
+                        } else {
+                                targetQuiz.setQuestions(new ArrayList<>());
+                        }
+                }
+
+                targetQuiz.setLevel(level);
+                targetQuiz.setTitle(request.getTitle());
+                targetQuiz.setDescription(request.getDescription());
+                targetQuiz.setInstructions(request.getInstructions());
+                targetQuiz.setPassingScore(request.getPassingScore());
+                targetQuiz.setTimeLimitMinutes(request.getTimeLimitMinutes());
+                targetQuiz.setQuestionCount(request.getQuestions() != null ? request.getQuestions().size() : 0);
+                targetQuiz.setUpdatedBy(educator.getId().toString());
+
+                if (isNewDraft && targetQuiz.getQuestions() == null) {
+                        targetQuiz.setQuestions(new ArrayList<>());
+                }
+
+                if (request.getQuestions() != null) {
+                    final Quiz finalTargetQuiz = targetQuiz;
+                    List<QuizQuestion> newQuestions = request.getQuestions().stream()
+                            .map(qReq -> QuizQuestion.builder()
+                                    .quiz(finalTargetQuiz)
+                                    .skillType(qReq.getSkillType())
+                                    .difficulty(qReq.getDifficulty() != null ? org.fsa_2026.company_fsa_captone_2026.entity.enums.DifficultyLevel.valueOf(qReq.getDifficulty()) : null)
+                                    .questionOrder(qReq.getQuestionOrder())
+                                    .points(qReq.getPoints())
+                                    .contentData(qReq.getContentData())
+                                    .build())
+                            .collect(Collectors.toList());
+                    targetQuiz.getQuestions().addAll(newQuestions);
+                }
+
+                targetQuiz = quizRepository.save(targetQuiz);
+                if (isNewDraft) {
+                        quiz.setDraft(targetQuiz);
+                        quizRepository.save(quiz);
+                }
+
+                QuizResponse response = QuizResponse.fromEntity(targetQuiz);
+                saveApprovalHistory("QUIZ", quiz.getId(), educator, ContentStatus.PENDING,
+                                request.getComment() != null && !request.getComment().isBlank()
+                                                ? request.getComment()
+                                                : "Educator updated quiz",
+                                response);
+                return response;
         }
 
         /**

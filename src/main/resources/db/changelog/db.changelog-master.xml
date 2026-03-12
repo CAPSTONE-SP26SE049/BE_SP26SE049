@@ -39,4 +39,7 @@
     <!-- FE-04: Seed 50+ Badges -->
     <include file="15-seed-badges.xml" relativeToChangelogFile="true"/>
 
+    <!-- Quizzes -->
+    <include file="16-add-quiz-tables.xml" relativeToChangelogFile="true"/>
+
 </databaseChangeLog>
