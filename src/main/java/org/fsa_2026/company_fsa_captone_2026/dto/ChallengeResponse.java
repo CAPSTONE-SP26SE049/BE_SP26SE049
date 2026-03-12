@@ -21,6 +21,8 @@ public class ChallengeResponse implements Serializable {
     private String id;
     private String levelId;
     private String type;
+    private String skillType;
+    private String difficulty;
     private String contentText;
     private String phoneticTranscriptionIpa;
     private String referenceAudioUrl;
@@ -35,7 +37,9 @@ public class ChallengeResponse implements Serializable {
         return ChallengeResponse.builder()
                 .id(challenge.getId().toString())
                 .levelId(challenge.getLevel() != null ? challenge.getLevel().getId().toString() : null)
-                .type(challenge.getType())
+                .type(challenge.getSkillType())
+                .skillType(challenge.getSkillType())
+                .difficulty(challenge.getDifficulty() != null ? challenge.getDifficulty().name() : null)
                 .contentText(challenge.getContentText())
                 .phoneticTranscriptionIpa(challenge.getPhoneticTranscriptionIpa())
                 .referenceAudioUrl(challenge.getReferenceAudioUrl())

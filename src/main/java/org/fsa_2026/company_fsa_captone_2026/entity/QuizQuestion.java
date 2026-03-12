@@ -7,10 +7,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.fsa_2026.company_fsa_captone_2026.entity.enums.DifficultyLevel;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-
-import java.util.Map;
 
 /**
  * Quiz Question Entity
@@ -42,7 +38,7 @@ public class QuizQuestion extends BaseEntity {
     @Column(name = "points", nullable = false)
     private Integer points;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "content_data", columnDefinition = "jsonb", nullable = false)
-    private Map<String, Object> contentData;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "challenge_id")
+    private Challenge challenge;
 }

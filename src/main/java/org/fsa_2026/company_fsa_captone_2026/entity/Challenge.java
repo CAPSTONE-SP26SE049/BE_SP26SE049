@@ -24,8 +24,16 @@ public class Challenge extends BaseEntity {
     @JoinColumn(name = "level_id", nullable = false)
     private Level level;
 
+    @Deprecated
     @Column(name = "type", nullable = false, length = 255)
     private String type;
+
+    @Column(name = "skill_type", length = 50)
+    private String skillType; // LISTENING, SPEAKING, READING, WRITING
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "difficulty", length = 20)
+    private org.fsa_2026.company_fsa_captone_2026.entity.enums.DifficultyLevel difficulty;
 
     @Column(name = "content_text", nullable = false, columnDefinition = "text")
     private String contentText;

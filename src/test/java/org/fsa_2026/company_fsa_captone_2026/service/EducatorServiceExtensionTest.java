@@ -21,7 +21,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -46,13 +45,16 @@ public class EducatorServiceExtensionTest {
     private AccountRepository accountRepository;
 
     @Mock
-    private LevelRepository levelRepository;
-
-    @Mock
     private QuizRepository quizRepository;
 
     @Mock
+    private LevelRepository levelRepository;
+
+    @Mock
     private org.fsa_2026.company_fsa_captone_2026.repository.ContentApprovalHistoryRepository contentApprovalHistoryRepository;
+
+    @Mock
+    private org.fsa_2026.company_fsa_captone_2026.repository.ChallengeRepository challengeRepository;
 
     @InjectMocks
     private EducatorService educatorService;
@@ -109,8 +111,14 @@ public class EducatorServiceExtensionTest {
         Level mockLevel = new Level();
         mockLevel.setId(levelId);
 
+        UUID challengeId = UUID.randomUUID();
+        org.fsa_2026.company_fsa_captone_2026.entity.Challenge mockChallenge = new org.fsa_2026.company_fsa_captone_2026.entity.Challenge();
+        mockChallenge.setId(challengeId);
+        mockChallenge.setContentText("Ba tôi nàm nông.");
+
         when(accountRepository.findByEmail(educatorEmail)).thenReturn(Optional.of(mockAccount));
         when(levelRepository.findById(levelId)).thenReturn(Optional.of(mockLevel));
+        when(challengeRepository.findById(challengeId)).thenReturn(Optional.of(mockChallenge));
 
         when(quizRepository.save(any(Quiz.class))).thenAnswer(invocation -> {
             Quiz q = invocation.getArgument(0);
@@ -129,7 +137,7 @@ public class EducatorServiceExtensionTest {
                 .difficulty("EASY")
                 .questionOrder(1)
                 .points(10)
-                .contentData(Map.of("passage", "Ba tôi nàm nông.", "targetErrorWord", "nàm"))
+                .challengeId(challengeId)
                 .build();
 
         QuizCreateRequest request = QuizCreateRequest.builder()

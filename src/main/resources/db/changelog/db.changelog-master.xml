@@ -42,4 +42,7 @@
     <!-- Quizzes -->
     <include file="16-add-quiz-tables.xml" relativeToChangelogFile="true"/>
 
+    <!-- Centralized Question Bank Standardization -->
+    <include file="17-standardize-challenge-quiz-centralization.xml" relativeToChangelogFile="true"/>
+
 </databaseChangeLog>

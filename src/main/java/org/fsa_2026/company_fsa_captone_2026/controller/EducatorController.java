@@ -245,4 +245,11 @@ public class EducatorController {
                                 ApiResponse.success("Cấu hình quy tắc thành công",
                                                 educatorService.updateOrCreatePlacementRule(request)));
         }
+
+        @GetMapping("/levels")
+        @Operation(summary = "Get Levels for Selection", description = "List all approved levels for quiz assignment")
+        public ResponseEntity<ApiResponse<List<LevelSelectionResponse>>> getLevelsForSelection() {
+                return ResponseEntity.ok(
+                                ApiResponse.success("Thành công", educatorService.getAllLevelsForSelection()));
+        }
 }

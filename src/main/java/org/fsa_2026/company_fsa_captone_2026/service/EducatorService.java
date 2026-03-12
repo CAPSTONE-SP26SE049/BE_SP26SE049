@@ -231,7 +231,8 @@ public class EducatorService {
 
                 Challenge challenge = new Challenge();
                 challenge.setLevel(level);
-                challenge.setType(request.getType());
+                challenge.setSkillType(request.getSkillType());
+                challenge.setDifficulty(request.getDifficulty());
                 challenge.setContentText(request.getContentText());
                 challenge.setPhoneticTranscriptionIpa(request.getPhoneticTranscriptionIpa());
                 challenge.setReferenceAudioUrl(request.getReferenceAudioUrl());
@@ -277,7 +278,8 @@ public class EducatorService {
                 }
 
                 targetChallenge.setLevel(level);
-                targetChallenge.setType(request.getType());
+                targetChallenge.setSkillType(request.getSkillType());
+                targetChallenge.setDifficulty(request.getDifficulty());
                 targetChallenge.setContentText(request.getContentText());
                 targetChallenge.setPhoneticTranscriptionIpa(request.getPhoneticTranscriptionIpa());
                 targetChallenge.setReferenceAudioUrl(request.getReferenceAudioUrl());
@@ -402,6 +404,14 @@ public class EducatorService {
                 return classroomRepository.findByEducatorId(educator.getId())
                                 .stream()
                                 .map(ClassroomResponse::fromEntity)
+                                .collect(Collectors.toList());
+        }
+
+        @Transactional(readOnly = true)
+        public List<LevelSelectionResponse> getAllLevelsForSelection() {
+                return levelRepository.findAll().stream()
+                                .filter(level -> ContentStatus.APPROVED.equals(level.getStatus()))
+                                .map(LevelSelectionResponse::fromEntity)
                                 .collect(Collectors.toList());
         }
 
@@ -560,14 +570,21 @@ public class EducatorService {
 
                 if (request.getQuestions() != null) {
                         List<QuizQuestion> questions = request.getQuestions().stream()
-                                        .map(qReq -> QuizQuestion.builder()
-                                                        .quiz(quiz)
-                                                        .skillType(qReq.getSkillType())
-                                                        .difficulty(qReq.getDifficulty() != null ? org.fsa_2026.company_fsa_captone_2026.entity.enums.DifficultyLevel.valueOf(qReq.getDifficulty()) : null)
-                                                        .questionOrder(qReq.getQuestionOrder())
-                                                        .points(qReq.getPoints())
-                                                        .contentData(qReq.getContentData())
-                                                        .build())
+                                        .map(qReq -> {
+                                                Challenge challenge = qReq.getChallengeId() != null
+                                                                ? challengeRepository.findById(qReq.getChallengeId()).orElse(null)
+                                                                : null;
+                                                return QuizQuestion.builder()
+                                                                .quiz(quiz)
+                                                                .skillType(qReq.getSkillType())
+                                                                .difficulty(qReq.getDifficulty() != null
+                                                                                ? org.fsa_2026.company_fsa_captone_2026.entity.enums.DifficultyLevel.valueOf(qReq.getDifficulty())
+                                                                                : null)
+                                                                .questionOrder(qReq.getQuestionOrder())
+                                                                .points(qReq.getPoints())
+                                                                .challenge(challenge)
+                                                                .build();
+                                        })
                                         .collect(Collectors.toList());
                         quiz.setQuestions(questions);
                 }
@@ -624,14 +641,21 @@ public class EducatorService {
                 if (request.getQuestions() != null) {
                     final Quiz finalTargetQuiz = targetQuiz;
                     List<QuizQuestion> newQuestions = request.getQuestions().stream()
-                            .map(qReq -> QuizQuestion.builder()
-                                    .quiz(finalTargetQuiz)
-                                    .skillType(qReq.getSkillType())
-                                    .difficulty(qReq.getDifficulty() != null ? org.fsa_2026.company_fsa_captone_2026.entity.enums.DifficultyLevel.valueOf(qReq.getDifficulty()) : null)
-                                    .questionOrder(qReq.getQuestionOrder())
-                                    .points(qReq.getPoints())
-                                    .contentData(qReq.getContentData())
-                                    .build())
+                            .map(qReq -> {
+                                Challenge challenge = qReq.getChallengeId() != null
+                                                ? challengeRepository.findById(qReq.getChallengeId()).orElse(null)
+                                                : null;
+                                return QuizQuestion.builder()
+                                                .quiz(finalTargetQuiz)
+                                                .skillType(qReq.getSkillType())
+                                                .difficulty(qReq.getDifficulty() != null
+                                                                ? org.fsa_2026.company_fsa_captone_2026.entity.enums.DifficultyLevel.valueOf(qReq.getDifficulty())
+                                                                : null)
+                                                .questionOrder(qReq.getQuestionOrder())
+                                                .points(qReq.getPoints())
+                                                .challenge(challenge)
+                                                .build();
+                            })
                             .collect(Collectors.toList());
                     targetQuiz.getQuestions().addAll(newQuestions);
                 }

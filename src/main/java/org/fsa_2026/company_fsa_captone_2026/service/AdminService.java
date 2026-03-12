@@ -177,7 +177,8 @@ public class AdminService {
 
         Challenge challenge = new Challenge();
         challenge.setLevel(level);
-        challenge.setType(request.getType());
+        challenge.setSkillType(request.getSkillType());
+        challenge.setDifficulty(request.getDifficulty());
         challenge.setContentText(request.getContentText());
         challenge.setPhoneticTranscriptionIpa(request.getPhoneticTranscriptionIpa());
         challenge.setReferenceAudioUrl(request.getReferenceAudioUrl());
@@ -199,7 +200,8 @@ public class AdminService {
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Level"));
 
         challenge.setLevel(level);
-        challenge.setType(request.getType());
+        challenge.setSkillType(request.getSkillType());
+        challenge.setDifficulty(request.getDifficulty());
         challenge.setContentText(request.getContentText());
         challenge.setPhoneticTranscriptionIpa(request.getPhoneticTranscriptionIpa());
         challenge.setReferenceAudioUrl(request.getReferenceAudioUrl());
@@ -410,7 +412,8 @@ public class AdminService {
             if (challenge.getParent() != null) {
                 targetChallenge = challenge.getParent();
                 targetChallenge.setLevel(challenge.getLevel());
-                targetChallenge.setType(challenge.getType());
+                targetChallenge.setSkillType(challenge.getSkillType());
+                targetChallenge.setDifficulty(challenge.getDifficulty());
                 targetChallenge.setContentText(challenge.getContentText());
                 targetChallenge.setPhoneticTranscriptionIpa(challenge.getPhoneticTranscriptionIpa());
                 targetChallenge.setReferenceAudioUrl(challenge.getReferenceAudioUrl());
@@ -502,7 +505,7 @@ public class AdminService {
                             .difficulty(q.getDifficulty())
                             .questionOrder(q.getQuestionOrder())
                             .points(q.getPoints())
-                            .contentData(q.getContentData())
+                            .challenge(q.getChallenge())
                             .build())
                         .collect(Collectors.toList());
                     targetQuiz.getQuestions().addAll(newQs);

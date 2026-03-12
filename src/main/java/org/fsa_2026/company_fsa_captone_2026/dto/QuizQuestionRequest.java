@@ -8,7 +8,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
-import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -27,6 +26,5 @@ public class QuizQuestionRequest implements Serializable {
     @NotNull(message = "Points are required")
     private Integer points;
 
-    @NotNull(message = "Content data cannot be null")
-    private Map<String, Object> contentData;
+    private java.util.UUID challengeId;
 }

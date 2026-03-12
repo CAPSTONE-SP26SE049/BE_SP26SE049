@@ -23,8 +23,13 @@ public class ChallengeCreateRequest implements Serializable {
     @NotNull(message = "Level ID không được để trống")
     private UUID levelId;
 
+    @Deprecated
     @NotBlank(message = "Loại thử thách không được để trống")
     private String type;
+
+    private String skillType; // LISTENING, SPEAKING, READING, WRITING
+
+    private org.fsa_2026.company_fsa_captone_2026.entity.enums.DifficultyLevel difficulty;
 
     @NotBlank(message = "Nội dung văn bản không được để trống")
     private String contentText;
