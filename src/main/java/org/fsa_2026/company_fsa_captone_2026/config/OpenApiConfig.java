@@ -40,16 +40,15 @@ public class OpenApiConfig {
                                                                                 .type(SecurityScheme.Type.HTTP)
                                                                                 .scheme("bearer")
                                                                                 .bearerFormat("JWT")
-                                                                                .description("Enter JWT token (Optional in development)")))
+                                                                                .description("Enter JWT token")))
+                                .addSecurityItem(new io.swagger.v3.oas.models.security.SecurityRequirement()
+                                                .addList("bearer-jwt"))
                                 .info(new Info()
                                                 .title(apiTitle)
-                                                .description(apiDescription
-                                                                + " - Development Mode: No Authentication Required for Swagger")
+                                                .description(apiDescription)
                                                 .version(apiVersion)
                                                 .contact(new Contact()
                                                                 .name(contactName)
                                                                 .email(contactEmail)));
-                // Removed addSecurityItem for development mode
-                // .addSecurityItem(new SecurityRequirement().addList("bearer-jwt"));
         }
 }

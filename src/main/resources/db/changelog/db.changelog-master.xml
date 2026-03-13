@@ -33,4 +33,10 @@
     <!-- Seed Error Tag Rules and Placement Rules -->
     <include file="db/changelog/13-seed-error-tag-rules.xml"/>
 
+    <!-- Challenge metadata JSONB -->
+    <include file="db/changelog/14-add-challenge-metadata.xml"/>
+
+    <!-- Classroom fields -->
+    <include file="db/changelog/15-add-classroom-fields.xml"/>
+
 </databaseChangeLog>

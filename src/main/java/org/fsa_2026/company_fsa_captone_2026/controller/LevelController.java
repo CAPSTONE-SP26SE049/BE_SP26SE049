@@ -1,6 +1,7 @@
 package org.fsa_2026.company_fsa_captone_2026.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,12 +22,13 @@ import java.util.List;
 @RequestMapping(Constants.API_PREFIX + "/levels")
 @RequiredArgsConstructor
 @Tag(name = "Level", description = "Game Level APIs")
+@SecurityRequirement(name = "bearer-jwt")
 public class LevelController {
 
     private final LevelService levelService;
 
     @GetMapping
-    @Operation(summary = "Get Levels by Dialect")
+    @Operation(summary = "Get Levels by Dialect", security = @SecurityRequirement(name = "bearer-jwt"))
     public ResponseEntity<ApiResponse<List<LevelResponse>>> getLevelsByDialect(
             @RequestParam String dialectId) {
 

@@ -13,6 +13,8 @@ public interface ClassroomMemberRepository extends JpaRepository<ClassroomMember
 
     List<ClassroomMember> findByClassroomId(UUID classroomId);
 
+    long countByClassroomId(UUID classroomId);
+
     boolean existsByClassroomIdAndStudentId(UUID classroomId, UUID studentId);
 
     void deleteByClassroomIdAndStudentId(UUID classroomId, UUID studentId);

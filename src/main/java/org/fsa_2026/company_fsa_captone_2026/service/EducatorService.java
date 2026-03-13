@@ -451,10 +451,19 @@ public class EducatorService {
         public ClassroomResponse createClassroom(String educatorEmail, ClassroomCreateRequest request) {
                 Account educator = getAccountByEmail(educatorEmail);
 
+                Dialect dialect = dialectRepository.findById(request.getDialectId())
+                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy dialect"));
+
                 Classroom classroom = Classroom.builder()
                                 .educator(educator)
                                 .name(request.getName())
                                 .code(generateClassCode())
+                                .description(request.getDescription())
+                                .dialect(dialect)
+                                .startDate(request.getStartDate())
+                                .endDate(request.getEndDate())
+                                .isActive(request.getIsActive() != null ? request.getIsActive() : true)
+                                .maxStudents(request.getMaxStudents() != null ? request.getMaxStudents() : 0)
                                 .build();
 
                 return ClassroomResponse.fromEntity(classroomRepository.save(classroom));
@@ -469,6 +478,32 @@ public class EducatorService {
 
                 if (request.getName() != null) {
                         classroom.setName(request.getName());
+                }
+
+                if (request.getDescription() != null) {
+                        classroom.setDescription(request.getDescription());
+                }
+
+                if (request.getDialectId() != null) {
+                        Dialect dialect = dialectRepository.findById(request.getDialectId())
+                                        .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy dialect"));
+                        classroom.setDialect(dialect);
+                }
+
+                if (request.getStartDate() != null) {
+                        classroom.setStartDate(request.getStartDate());
+                }
+
+                if (request.getEndDate() != null) {
+                        classroom.setEndDate(request.getEndDate());
+                }
+
+                if (request.getIsActive() != null) {
+                        classroom.setIsActive(request.getIsActive());
+                }
+
+                if (request.getMaxStudents() != null) {
+                        classroom.setMaxStudents(request.getMaxStudents());
                 }
 
                 return ClassroomResponse.fromEntity(classroomRepository.save(classroom));
@@ -508,6 +543,12 @@ public class EducatorService {
 
                 if (classroomMemberRepository.existsByClassroomIdAndStudentId(classroomId, student.getId())) {
                         throw new ApiException("BAD_REQUEST", "Học viên này đã có trong lớp");
+                }
+
+                long currentStudents = classroomMemberRepository.countByClassroomId(classroomId);
+                if (classroom.getMaxStudents() != null && classroom.getMaxStudents() > 0
+                                && currentStudents >= classroom.getMaxStudents()) {
+                        throw new ApiException("BAD_REQUEST", "Lớp học đã đạt số lượng học sinh tối đa");
                 }
 
                 ClassroomMember member = ClassroomMember.builder()

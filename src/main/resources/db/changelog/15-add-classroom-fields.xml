@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260312-add-classroom-fields" author="assistant">
+        <validCheckSum>9:19e54603303600c8e7dc8b9547e106f1</validCheckSum>
+        <addColumn tableName="classroom">
+            <column name="description" type="TEXT"/>
+            <column name="dialect_id" type="UUID"/>
+            <column name="start_date" type="TIMESTAMP"/>
+            <column name="end_date" type="TIMESTAMP"/>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <sql>
+            UPDATE classroom
+            SET dialect_id = (
+                SELECT id
+                FROM dialect
+                ORDER BY created_at NULLS LAST
+                LIMIT 1
+            )
+            WHERE dialect_id IS NULL;
+        </sql>
+
+        <addNotNullConstraint tableName="classroom" columnName="dialect_id" columnDataType="UUID"/>
+
+        <addForeignKeyConstraint
+                baseTableName="classroom"
+                baseColumnNames="dialect_id"
+                constraintName="fk_classroom_dialect"
+                referencedTableName="dialect"
+                referencedColumnNames="id"/>
+    </changeSet>
+
+    <changeSet id="20260312-add-classroom-max-students" author="assistant">
+        <addColumn tableName="classroom">
+            <column name="max_students" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

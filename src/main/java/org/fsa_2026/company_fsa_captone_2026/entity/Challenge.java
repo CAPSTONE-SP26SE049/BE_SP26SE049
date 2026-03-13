@@ -5,8 +5,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Challenge Entity
@@ -57,4 +60,8 @@ public class Challenge extends BaseEntity {
 
     @Column(name = "rejection_reason", columnDefinition = "text")
     private String rejectionReason;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "metadata", nullable = false, columnDefinition = "jsonb")
+    private Map<String, Object> metadata;
 }
