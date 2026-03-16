@@ -9,6 +9,7 @@ import java.io.Serializable;
 
 /**
  * Attempt Request DTO
+ * Đã cập nhật: bỏ quizAttemptId (QuizAttempt đã gộp vào StudySession)
  */
 @Data
 @NoArgsConstructor
@@ -19,5 +20,4 @@ public class AttemptRequest implements Serializable {
     private String sessionId;
     private String challengeId;
     private String audioUrl;
-
 }

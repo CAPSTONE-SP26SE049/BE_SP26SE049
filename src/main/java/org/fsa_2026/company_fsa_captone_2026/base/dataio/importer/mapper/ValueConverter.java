@@ -1,4 +1,4 @@
-package com.example.starter_project_2025.base.dataio.importer.mapper;
+package org.fsa_2026.company_fsa_captone_2026.base.dataio.importer.mapper;
 
 import org.springframework.stereotype.Component;
 

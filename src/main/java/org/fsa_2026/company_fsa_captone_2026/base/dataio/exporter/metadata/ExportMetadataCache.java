@@ -1,8 +1,8 @@
-package com.example.starter_project_2025.base.dataio.exporter.metadata;
+package org.fsa_2026.company_fsa_captone_2026.base.dataio.exporter.metadata;
 
-import com.example.starter_project_2025.base.dataio.exporter.annotation.ExportField;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
+import org.fsa_2026.company_fsa_captone_2026.base.dataio.exporter.annotation.ExportField;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Field;

@@ -6,11 +6,11 @@ import org.fsa_2026.company_fsa_captone_2026.common.JwtTokenProvider;
 import org.fsa_2026.company_fsa_captone_2026.dto.*;
 import org.fsa_2026.company_fsa_captone_2026.entity.Account;
 import org.fsa_2026.company_fsa_captone_2026.entity.RefreshToken;
-import org.fsa_2026.company_fsa_captone_2026.entity.UserProfile;
+
 import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
 import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.RefreshTokenRepository;
-import org.fsa_2026.company_fsa_captone_2026.repository.UserProfileRepository;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -32,7 +32,7 @@ import java.util.Map;
 public class AuthService {
 
     private final AccountRepository accountRepository;
-    private final UserProfileRepository userProfileRepository;
+
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
@@ -67,20 +67,13 @@ public class AuthService {
                 passwordEncoder.encode(request.getPassword()),
                 request.getPhone(),
                 request.getRegion());
-        // Set OTP ngay trước khi save lần đầu (tránh save 2 lần)
+        
         account.setEmailVerifyCode(verifyCode);
         account.setEmailVerifyExpiresAt(Instant.now().plusSeconds(900)); // 15 phút
+        account.setFullName(request.getFullName());
+        account.setAvatarUrl(generateDefaultAvatar(request.getFullName()));
 
         account = accountRepository.save(account);
-
-        // Create UserProfile
-        UserProfile userProfile = UserProfile.builder()
-                .account(account)
-                .fullName(request.getFullName())
-                .avatarUrl(generateDefaultAvatar(request.getFullName()))
-                .build();
-
-        userProfileRepository.save(userProfile);
 
         log.info("Đăng ký thành công: email={}, role={}", request.getEmail(), account.getRoleCode().name());
 
@@ -131,17 +124,10 @@ public class AuthService {
         // Set properties specifically for Admin
         account.setRoleCode(org.fsa_2026.company_fsa_captone_2026.entity.enums.RoleCode.ADMIN);
         account.setEmailVerified(true); // Always verified
+        account.setFullName(request.getFullName());
+        account.setAvatarUrl(generateDefaultAvatar(request.getFullName()));
 
         account = accountRepository.save(account);
-
-        // Create UserProfile
-        UserProfile userProfile = UserProfile.builder()
-                .account(account)
-                .fullName(request.getFullName())
-                .avatarUrl(generateDefaultAvatar(request.getFullName()))
-                .build();
-
-        userProfileRepository.save(userProfile);
 
         log.info("Khởi tạo Admin thành công: email={}", request.getEmail());
 
@@ -176,10 +162,6 @@ public class AuthService {
                     "Email chưa được xác thực. Vui lòng kiểm tra hộp thư để xác nhận email");
         }
 
-        // Load profile
-        UserProfile profile = userProfileRepository.findByAccountId(account.getId())
-                .orElse(null);
-
         // Generate tokens
         String accessToken = jwtTokenProvider.generateAccessToken(
                 account.getId(), account.getEmail(), account.getRoleCode().name());
@@ -206,10 +188,10 @@ public class AuthService {
                 .user(LoginResponse.UserInfo.builder()
                         .id(account.getId().toString())
                         .email(account.getEmail())
-                        .fullName(profile != null ? profile.getFullName() : null)
+                        .fullName(account.getFullName())
                         .role(account.getRoleCode().name())
                         .region(account.getRegion())
-                        .avatar(profile != null ? profile.getAvatarUrl() : null)
+                        .avatar(account.getAvatarUrl())
                         .build())
                 .build();
     }
@@ -275,20 +257,17 @@ public class AuthService {
         Account account = accountRepository.findByEmail(email)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy người dùng"));
 
-        UserProfile profile = userProfileRepository.findByAccountId(account.getId())
-                .orElse(null);
-
         return UserProfileResponse.builder()
                 .id(account.getId().toString())
                 .email(account.getEmail())
-                .fullName(profile != null ? profile.getFullName() : null)
+                .fullName(account.getFullName())
                 .phone(account.getPhone())
                 .region(account.getRegion())
                 .role(account.getRoleCode().name())
-                .avatar(profile != null ? profile.getAvatarUrl() : null)
-                .totalStars(profile != null ? profile.getTotalStars() : 0)
-                .currentStreakDays(profile != null ? profile.getCurrentStreakDays() : 0)
-                .totalExperience(profile != null ? profile.getTotalExperience() : 0)
+                .avatar(account.getAvatarUrl())
+                .totalStars(account.getTotalStars())
+                .currentStreakDays(account.getCurrentStreakDays())
+                .totalExperience(account.getTotalExperience())
                 .createdAt(account.getCreatedAt())
                 .build();
     }
@@ -356,9 +335,7 @@ public class AuthService {
         accountRepository.save(account);
 
         // Lấy tên người dùng
-        String fullName = userProfileRepository.findByAccountId(account.getId())
-                .map(UserProfile::getFullName)
-                .orElse("Người dùng");
+        String fullName = account.getFullName() != null ? account.getFullName() : "Người dùng";
 
         // Gửi email (async)
         try {
@@ -386,9 +363,7 @@ public class AuthService {
         accountRepository.save(account);
 
         // Lấy tên người dùng
-        String fullName = userProfileRepository.findByAccountId(account.getId())
-                .map(UserProfile::getFullName)
-                .orElse("Người dùng");
+        String fullName = account.getFullName() != null ? account.getFullName() : "Người dùng";
 
         // Gửi email (async) — wrap try-catch để đảm bảo lỗi SMTP không gây 500
         try {

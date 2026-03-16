@@ -4,10 +4,11 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.fsa_2026.company_fsa_captone_2026.common.base.ExcelColumn;
-import org.fsa_2026.company_fsa_captone_2026.entity.Dialect;
+import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.Serializable;
+import java.util.Map;
 
 /**
  * Dialect Response DTO
@@ -18,22 +19,30 @@ import java.io.Serializable;
 @Builder
 public class DialectResponse implements Serializable {
 
-    @ExcelColumn(value = "ID", order = 0)
     private String id;
-
-    @ExcelColumn(value = "Tên vùng miền", order = 1)
     private String name;
-
-    @ExcelColumn(value = "Mô tả", order = 2)
     private String description;
 
-    public static DialectResponse fromEntity(Dialect dialect) {
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
+    public static DialectResponse fromEntity(LearningUnit dialect) {
         if (dialect == null)
             return null;
+        
+        String description = "";
+        try {
+            if (dialect.getMetadataJson() != null) {
+                Map<String, Object> metadata = objectMapper.readValue(dialect.getMetadataJson(), Map.class);
+                description = (String) metadata.get("description");
+            }
+        } catch (Exception e) {
+            // Log or ignore
+        }
+
         return DialectResponse.builder()
                 .id(dialect.getId().toString())
                 .name(dialect.getName())
-                .description(dialect.getDescription())
+                .description(description)
                 .build();
     }
 }

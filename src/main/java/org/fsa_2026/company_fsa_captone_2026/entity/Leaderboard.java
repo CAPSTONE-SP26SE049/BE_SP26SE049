@@ -53,10 +53,7 @@ public class Leaderboard extends BaseEntity {
     @JoinColumn(name = "classroom_id", foreignKey = @ForeignKey(name = "fk_leaderboard_classroom"))
     private Classroom classroom;
 
-    /** Optional: dialect-scoped leaderboard */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "dialect_id", foreignKey = @ForeignKey(name = "fk_leaderboard_dialect"))
-    private Dialect dialect;
+
 
     /** Once finalized, the rankings are locked and no longer updated */
     @Column(name = "is_finalized", nullable = false)

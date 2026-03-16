@@ -1,6 +1,6 @@
-package com.example.starter_project_2025.base.dataio.importer.resolver;
+package org.fsa_2026.company_fsa_captone_2026.base.dataio.importer.resolver;
 
-import com.example.starter_project_2025.base.dataio.importer.annotation.ImportField;
+import org.fsa_2026.company_fsa_captone_2026.base.dataio.importer.annotation.ImportField;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;

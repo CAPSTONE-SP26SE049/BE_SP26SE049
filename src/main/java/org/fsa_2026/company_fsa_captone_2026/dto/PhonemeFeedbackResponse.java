@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.fsa_2026.company_fsa_captone_2026.entity.AttemptPhonemeFeedback;
+
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -25,16 +25,16 @@ public class PhonemeFeedbackResponse implements Serializable {
     private Integer startTimeMs;
     private Integer endTimeMs;
 
-    public static PhonemeFeedbackResponse fromEntity(AttemptPhonemeFeedback feedback) {
-        if (feedback == null)
+
+    public static PhonemeFeedbackResponse fromDetail(org.fsa_2026.company_fsa_captone_2026.entity.PhonemeFeedbackDetail detail) {
+        if (detail == null)
             return null;
         return PhonemeFeedbackResponse.builder()
-                .id(feedback.getId().toString())
-                .sequenceOrder(feedback.getSequenceOrder())
-                .phonemeIpa(feedback.getPhonemeIpa())
-                .score(feedback.getScore())
-                .startTimeMs(feedback.getStartTimeMs())
-                .endTimeMs(feedback.getEndTimeMs())
+                .sequenceOrder(detail.getSequenceOrder())
+                .phonemeIpa(detail.getPhonemeIpa())
+                .score(detail.getScore())
+                .startTimeMs(detail.getStartTimeMs())
+                .endTimeMs(detail.getEndTimeMs())
                 .build();
     }
 }

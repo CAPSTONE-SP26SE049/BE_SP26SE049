@@ -43,10 +43,7 @@ public class Tournament extends BaseEntity {
     @Builder.Default
     private String status = "UPCOMING";
 
-    /** Optional: dialect scope for the tournament */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "dialect_id", foreignKey = @ForeignKey(name = "fk_tournament_dialect"))
-    private Dialect dialect;
+
 
     /** Optional: region scope. Matches account.region */
     @Column(name = "region_code", length = 30)

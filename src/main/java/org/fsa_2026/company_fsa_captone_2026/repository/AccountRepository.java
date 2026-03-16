@@ -27,4 +27,8 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
      */
     @Query("SELECT a FROM Account a WHERE a.roleCode IN :roleCodes AND a.isActive = true")
     List<Account> findAllActiveByRoleCodeIn(List<RoleCode> roleCodes);
+
+    List<Account> findTop10ByIsActiveTrueOrderByTotalExperienceDesc();
+
+    List<Account> findTop10ByRegionIgnoreCaseAndIsActiveTrueOrderByTotalExperienceDesc(String region);
 }

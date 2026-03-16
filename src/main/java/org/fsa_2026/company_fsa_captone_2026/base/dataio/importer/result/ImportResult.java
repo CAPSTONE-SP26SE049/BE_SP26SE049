@@ -1,4 +1,4 @@
-package com.example.starter_project_2025.base.dataio.importer.result;
+package org.fsa_2026.company_fsa_captone_2026.base.dataio.importer.result;
 
 import lombok.AccessLevel;
 import lombok.Data;

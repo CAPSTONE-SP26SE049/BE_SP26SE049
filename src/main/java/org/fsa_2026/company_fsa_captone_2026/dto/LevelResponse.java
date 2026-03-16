@@ -4,9 +4,11 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.fsa_2026.company_fsa_captone_2026.entity.Level;
+import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.Serializable;
+import java.util.Map;
 
 /**
  * Level Response DTO
@@ -29,21 +31,48 @@ public class LevelResponse implements Serializable {
     private String status;
     private String rejectionReason;
 
-    public static LevelResponse fromEntity(Level level) {
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
+    public static LevelResponse fromEntity(LearningUnit level) {
         if (level == null)
             return null;
+
+        Integer levelOrder = null;
+        String description = "";
+        Integer minStarsRequired = 0;
+        Integer aiThreshold = null;
+        String audioUrl = "";
+        String status = "";
+        String rejectionReason = "";
+
+        try {
+            if (level.getMetadataJson() != null) {
+                Map<String, Object> metadata = objectMapper.readValue(level.getMetadataJson(), Map.class);
+                levelOrder = (Integer) metadata.get("level_order");
+                description = (String) metadata.get("description");
+                if (metadata.get("min_stars_required") != null) {
+                    minStarsRequired = (Integer) metadata.get("min_stars_required");
+                }
+                aiThreshold = (Integer) metadata.get("ai_threshold");
+                audioUrl = (String) metadata.get("audio_url");
+                status = (String) metadata.get("status");
+                rejectionReason = (String) metadata.get("rejection_reason");
+            }
+        } catch (Exception e) {
+            // Log
+        }
+
         return LevelResponse.builder()
                 .id(level.getId().toString())
-                .dialectId(level.getDialect() != null ? level.getDialect().getId().toString() : null)
-                .levelOrder(level.getLevelOrder())
+                .dialectId(level.getParent() != null ? level.getParent().getId().toString() : null)
+                .levelOrder(levelOrder)
                 .name(level.getName())
-                .description(level.getDescription())
-                .minStarsRequired(level.getMinStarsRequired())
-                .errorTag(ErrorTagResponse.fromEntity(level.getErrorTag()))
-                .aiThreshold(level.getAiThreshold())
-                .audioUrl(level.getAudioUrl())
-                .status(level.getStatus() != null ? level.getStatus().name() : null)
-                .rejectionReason(level.getRejectionReason())
+                .description(description)
+                .minStarsRequired(minStarsRequired)
+                .aiThreshold(aiThreshold)
+                .audioUrl(audioUrl)
+                .status(status)
+                .rejectionReason(rejectionReason)
                 .build();
     }
 }

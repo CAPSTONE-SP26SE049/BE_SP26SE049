@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="23-merge-badges-data" author="antigravity">
+        <!-- 1. Insert Badges as Achievements -->
+        <sql>
+            INSERT INTO achievement (id, code, name, description, category, icon_url, criteria_json, xp_reward, is_active, reward_type, created_at, updated_at)
+            SELECT 
+                id, 
+                REPLACE(LOWER(name), ' ', '_') as code, 
+                name, 
+                description, 
+                'GENERAL', 
+                icon_url, 
+                criteria_json, 
+                0, 
+                true, 
+                'BADGE', 
+                created_at, 
+                updated_at 
+            FROM badge;
+        </sql>
+
+        <!-- 2. Migrate Awarded Badges to Account Achievements -->
+        <sql>
+            INSERT INTO account_achievement (id, account_id, achievement_id, progress_value, status, created_at, unlocked_at, updated_at)
+            SELECT uuid_generate_v4(), account_id, badge_id, 1, 'UNLOCKED', earned_at, earned_at, earned_at FROM account_badge;
+        </sql>
+
+        <!-- 3. Cleanup -->
+        <dropTable tableName="account_badge"/>
+        <dropTable tableName="badge"/>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,6 +1,6 @@
-package com.example.starter_project_2025.system.common.error;
+package org.fsa_2026.company_fsa_captone_2026.common.error;
 
-import com.example.starter_project_2025.exception.BusinessValidationException;
+import org.fsa_2026.company_fsa_captone_2026.exception.BusinessValidationException;
 import lombok.experimental.UtilityClass;
 
 import java.util.ArrayList;

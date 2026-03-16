@@ -4,10 +4,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.fsa_2026.company_fsa_captone_2026.entity.Quiz;
+import org.fsa_2026.company_fsa_captone_2026.entity.ContentItem;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -30,23 +32,56 @@ public class QuizResponse implements Serializable {
     private String rejectionReason;
     private List<QuizQuestionResponse> questions;
 
-    public static QuizResponse fromEntity(Quiz entity) {
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
+    public static QuizResponse fromEntity(ContentItem entity) {
         if (entity == null) return null;
+
+        String description = "";
+        String instructions = "";
+        Integer passingScore = 0;
+        Integer timeLimitMinutes = 0;
+        String rejectionReason = "";
+
+        try {
+            if (entity.getMetadataJson() != null) {
+                Map<String, Object> metadata = objectMapper.readValue(entity.getMetadataJson(), Map.class);
+                description = (String) metadata.get("description");
+                instructions = (String) metadata.get("instructions");
+                passingScore = (Integer) metadata.get("passing_score");
+                timeLimitMinutes = (Integer) metadata.get("time_limit_minutes");
+                rejectionReason = (String) metadata.get("rejection_reason");
+            }
+        } catch (Exception e) { }
+
+        // Map questions from itemsJson
+        List<QuizQuestionResponse> questions = null;
+        try {
+            if (entity.getItemsJson() != null) {
+                List<Map<String, Object>> items = objectMapper.readValue(entity.getItemsJson(), List.class);
+                questions = items.stream().map(item -> {
+                    return QuizQuestionResponse.builder()
+                        .skillType((String) item.get("skill_type"))
+                        .difficulty((String) item.get("difficulty"))
+                        .questionOrder((Integer) item.get("question_order"))
+                        .points((Integer) item.get("points"))
+                        .challengeId((String) item.get("challenge_id"))
+                        .build();
+                }).collect(Collectors.toList());
+            }
+        } catch (Exception e) { }
+
         return QuizResponse.builder()
                 .id(entity.getId().toString())
-                .levelId(entity.getLevel() != null ? entity.getLevel().getId().toString() : null)
+                .levelId(entity.getLearningUnit() != null ? entity.getLearningUnit().getId().toString() : null)
                 .title(entity.getTitle())
-                .description(entity.getDescription())
-                .instructions(entity.getInstructions())
-                .passingScore(entity.getPassingScore())
-                .timeLimitMinutes(entity.getTimeLimitMinutes())
-                .questionCount(entity.getQuestionCount())
-                .status(entity.getStatus() != null ? entity.getStatus().name() : null)
-                .rejectionReason(entity.getRejectionReason())
-                .questions(entity.getQuestions() != null ? 
-                        entity.getQuestions().stream()
-                                .map(QuizQuestionResponse::fromEntity)
-                                .collect(Collectors.toList()) : null)
+                .description(description)
+                .instructions(instructions)
+                .passingScore(passingScore)
+                .timeLimitMinutes(timeLimitMinutes)
+                .status(entity.getStatus())
+                .rejectionReason(rejectionReason)
+                .questions(questions)
                 .build();
     }
 }

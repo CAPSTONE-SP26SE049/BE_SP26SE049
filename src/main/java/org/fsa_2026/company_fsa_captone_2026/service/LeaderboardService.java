@@ -3,7 +3,7 @@ package org.fsa_2026.company_fsa_captone_2026.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.fsa_2026.company_fsa_captone_2026.dto.LeaderboardEntryResponse;
-import org.fsa_2026.company_fsa_captone_2026.repository.UserProfileRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,11 +15,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class LeaderboardService {
 
-    private final UserProfileRepository userProfileRepository;
+    private final AccountRepository accountRepository;
 
     @Transactional(readOnly = true)
     public List<LeaderboardEntryResponse> getGlobalLeaderboard() {
-        return userProfileRepository.findTop10ByOrderByTotalExperienceDesc()
+        return accountRepository.findTop10ByIsActiveTrueOrderByTotalExperienceDesc()
                 .stream()
                 .map(LeaderboardEntryResponse::fromEntity)
                 .collect(Collectors.toList());
@@ -31,7 +31,7 @@ public class LeaderboardService {
             return getGlobalLeaderboard();
         }
 
-        return userProfileRepository.findTop10ByAccountRegionOrderByTotalExperienceDesc(region.toUpperCase())
+        return accountRepository.findTop10ByRegionIgnoreCaseAndIsActiveTrueOrderByTotalExperienceDesc(region.toUpperCase())
                 .stream()
                 .map(LeaderboardEntryResponse::fromEntity)
                 .collect(Collectors.toList());

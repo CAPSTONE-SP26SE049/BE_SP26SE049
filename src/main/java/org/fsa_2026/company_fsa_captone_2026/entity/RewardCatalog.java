@@ -2,22 +2,22 @@ package org.fsa_2026.company_fsa_captone_2026.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.fsa_2026.company_fsa_captone_2026.entity.enums.RewardType;
 
 /**
- * Achievement Entity
- * Represents a milestone/accomplishment that users can unlock.
+ * RewardCatalog Entity - Super Entity gộp Achievement + Badge
  *
- * Table: achievement
- * FE-04: Achievement and Badge System
+ * Table: reward_catalog
+ * Phân biệt loại phần thưởng qua field reward_type (ACHIEVEMENT / BADGE)
  */
 @Entity
-@Table(name = "achievement")
+@Table(name = "reward_catalog")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Achievement extends BaseEntity {
+public class RewardCatalog extends BaseEntity {
 
     @Column(name = "code", nullable = false, unique = true, length = 100)
     private String code;
@@ -29,8 +29,15 @@ public class Achievement extends BaseEntity {
     private String description;
 
     /**
-     * Category of achievement.
-     * Values: STREAK, SCORE, LEARNING, CHALLENGE, SOCIAL, SPECIAL, GENERAL
+     * Loại phần thưởng: ACHIEVEMENT hoặc BADGE
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reward_type", nullable = false, length = 20)
+    @Builder.Default
+    private RewardType rewardType = RewardType.ACHIEVEMENT;
+
+    /**
+     * Danh mục con: STREAK, SCORE, LEARNING, CHALLENGE, SOCIAL, SPECIAL, GENERAL
      */
     @Column(name = "category", nullable = false, length = 50)
     @Builder.Default
@@ -40,8 +47,8 @@ public class Achievement extends BaseEntity {
     private String iconUrl;
 
     /**
-     * Criteria JSON defining when this achievement is unlocked.
-     * Example: {"type": "streak_days", "threshold": 7}
+     * Tiêu chí JSON để mở khóa phần thưởng.
+     * Ví dụ: {"type": "streak_days", "threshold": 7}
      */
     @Column(name = "criteria_json", nullable = false, columnDefinition = "jsonb")
     private String criteriaJson;

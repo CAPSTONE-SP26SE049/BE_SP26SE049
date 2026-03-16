@@ -2,24 +2,31 @@ package org.fsa_2026.company_fsa_captone_2026.service;
 
 import lombok.RequiredArgsConstructor;
 import org.fsa_2026.company_fsa_captone_2026.dto.ErrorTagResponse;
-import org.fsa_2026.company_fsa_captone_2026.entity.ErrorTag;
+import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
 import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
-import org.fsa_2026.company_fsa_captone_2026.repository.ErrorTagRepository;
-import org.fsa_2026.company_fsa_captone_2026.repository.LevelRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.LearningUnitRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.PlacementRuleRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * ErrorTagService
+ * Sau gộp bảng: ErrorTag được lưu trong bảng learning_unit với type = "ERROR_TAG"
+ */
 @Service
 @RequiredArgsConstructor
 public class ErrorTagService {
-    private final ErrorTagRepository errorTagRepository;
+
+    private final LearningUnitRepository learningUnitRepository;
     private final PlacementRuleRepository placementRuleRepository;
-    private final LevelRepository levelRepository;
+    private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
     public List<ErrorTagResponse> getErrorTagsByDialect(UUID dialectId) {
@@ -27,62 +34,104 @@ public class ErrorTagService {
             return getAllErrorTags();
         }
         return placementRuleRepository.findByTargetDialectId(dialectId).stream()
-                .map(rule -> rule.getErrorTag())
+                .map(rule -> ErrorTagResponse.fromEntity(rule.getErrorTag()))
                 .distinct()
-                .map(ErrorTagResponse::fromEntity)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public List<ErrorTagResponse> getAllErrorTags() {
-        return errorTagRepository.findAllWithRegions().stream()
+        return learningUnitRepository.findByType("ERROR_TAG").stream()
                 .map(ErrorTagResponse::fromEntity)
                 .collect(Collectors.toList());
     }
 
     @Transactional
     public ErrorTagResponse createErrorTag(String tagCode, String name, String description) {
-        if (errorTagRepository.findByTagCode(tagCode).isPresent()) {
+        boolean exists = learningUnitRepository.findByType("ERROR_TAG").stream()
+                .anyMatch(u -> {
+                    try {
+                        if (u.getMetadataJson() != null) {
+                            Map<?, ?> meta = objectMapper.readValue(u.getMetadataJson(), Map.class);
+                            return tagCode.equals(meta.get("tag_code"));
+                        }
+                    } catch (Exception ignored) {}
+                    return false;
+                });
+
+        if (exists) {
             throw new ApiException("CONFLICT", "Mã lỗi này đã tồn tại (Tag Code already exists)");
         }
-        ErrorTag tag = ErrorTag.builder()
-                .tagCode(tagCode)
+
+        String metadataJson;
+        try {
+            Map<String, Object> metadata = Map.of(
+                    "tag_code", tagCode,
+                    "description", description != null ? description : ""
+            );
+            metadataJson = objectMapper.writeValueAsString(metadata);
+        } catch (Exception e) {
+            metadataJson = "{}";
+        }
+
+        LearningUnit tag = LearningUnit.builder()
                 .name(name)
-                .description(description)
+                .type("ERROR_TAG")
+                .metadataJson(metadataJson)
                 .build();
-        return ErrorTagResponse.fromEntity(errorTagRepository.save(tag));
+
+        return ErrorTagResponse.fromEntity(learningUnitRepository.save(tag));
     }
 
     @Transactional
     public ErrorTagResponse updateErrorTag(UUID id, String tagCode, String name, String description) {
-        ErrorTag tag = errorTagRepository.findById(id)
+        LearningUnit tag = learningUnitRepository.findById(id)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy mã lỗi"));
 
-        if (tagCode != null && !tagCode.equals(tag.getTagCode())) {
-            if (errorTagRepository.findByTagCode(tagCode).isPresent()) {
-                throw new ApiException("CONFLICT", "Mã lỗi mới đã tồn tại");
-            }
-            tag.setTagCode(tagCode);
+        if (!"ERROR_TAG".equals(tag.getType())) {
+            throw new ApiException("BAD_REQUEST", "ID không phải Error Tag");
         }
 
-        if (name != null)
-            tag.setName(name);
-        if (description != null)
-            tag.setDescription(description);
+        try {
+            Map<String, Object> metadata = tag.getMetadataJson() != null
+                    ? objectMapper.readValue(tag.getMetadataJson(), Map.class)
+                    : new java.util.HashMap<>();
 
-        return ErrorTagResponse.fromEntity(errorTagRepository.save(tag));
+            if (tagCode != null) {
+                metadata.put("tag_code", tagCode);
+            }
+            if (description != null) {
+                metadata.put("description", description);
+            }
+            tag.setMetadataJson(objectMapper.writeValueAsString(metadata));
+        } catch (Exception e) {
+            throw new ApiException("INTERNAL_ERROR", "Lỗi khi cập nhật metadata");
+        }
+
+        if (name != null) {
+            tag.setName(name);
+        }
+
+        return ErrorTagResponse.fromEntity(learningUnitRepository.save(tag));
     }
 
     @Transactional
     public void deleteErrorTag(UUID id) {
-        if (!errorTagRepository.existsById(id)) {
-            throw new ApiException("NOT_FOUND", "Không tìm thấy mã lỗi");
+        LearningUnit tag = learningUnitRepository.findById(id)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy mã lỗi"));
+
+        if (!"ERROR_TAG".equals(tag.getType())) {
+            throw new ApiException("BAD_REQUEST", "ID không phải Error Tag");
         }
 
-        if (levelRepository.existsByErrorTagId(id)) {
-            throw new ApiException("PRECONDITION_FAILED", "Không thể xóa mã lỗi đang được sử dụng trong các Level");
+        boolean usedInPlacementRule = !placementRuleRepository.findAll().stream()
+                .filter(r -> r.getErrorTag() != null && r.getErrorTag().getId().equals(id))
+                .collect(Collectors.toList()).isEmpty();
+
+        if (usedInPlacementRule) {
+            throw new ApiException("PRECONDITION_FAILED", "Không thể xóa mã lỗi đang được dùng trong Placement Rules");
         }
 
-        errorTagRepository.deleteById(id);
+        learningUnitRepository.deleteById(id);
     }
 }

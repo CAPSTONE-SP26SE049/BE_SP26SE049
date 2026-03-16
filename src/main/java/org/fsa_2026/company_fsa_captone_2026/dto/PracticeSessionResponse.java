@@ -4,13 +4,14 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.fsa_2026.company_fsa_captone_2026.entity.PracticeSession;
+import org.fsa_2026.company_fsa_captone_2026.entity.StudySession;
 
 import java.io.Serializable;
 import java.time.Instant;
 
 /**
  * PracticeSession Response DTO
+ * Đã cập nhật: dùng StudySession thay cho PracticeSession (đã gộp bảng)
  */
 @Data
 @NoArgsConstructor
@@ -20,15 +21,17 @@ public class PracticeSessionResponse implements Serializable {
 
     private String id;
     private String accountId;
+    private String sessionType;
     private Instant startedAt;
     private Instant endedAt;
 
-    public static PracticeSessionResponse fromEntity(PracticeSession session) {
+    public static PracticeSessionResponse fromEntity(StudySession session) {
         if (session == null)
             return null;
         return PracticeSessionResponse.builder()
                 .id(session.getId().toString())
                 .accountId(session.getAccount() != null ? session.getAccount().getId().toString() : null)
+                .sessionType(session.getSessionType())
                 .startedAt(session.getStartedAt())
                 .endedAt(session.getEndedAt())
                 .build();

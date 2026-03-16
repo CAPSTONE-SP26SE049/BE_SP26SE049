@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- 1. CREATE NEW TABLES -->
+    <changeSet id="25-create-new-content-tables" author="antigravity">
+        <!-- Table: learning_unit -->
+        <createTable tableName="learning_unit">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="parent_id" type="UUID"/>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="metadata_json" type="jsonb"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="learning_unit" baseColumnNames="parent_id"
+                                 constraintName="fk_unit_parent"
+                                 referencedTableName="learning_unit" referencedColumnNames="id"/>
+
+        <!-- Table: content_item -->
+        <createTable tableName="content_item">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="learning_unit_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="title" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="metadata_json" type="jsonb"/>
+            <column name="items_json" type="jsonb"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="content_item" baseColumnNames="learning_unit_id"
+                                 constraintName="fk_content_unit"
+                                 referencedTableName="learning_unit" referencedColumnNames="id"/>
+    </changeSet>
+
+    <!-- 2. MIGRATE DATA -->
+    <changeSet id="25-migrate-content-data" author="antigravity">
+        <sql>
+            -- 1. Migrate Dialect -> LearningUnit
+            INSERT INTO learning_unit (id, name, type, metadata_json, created_at, updated_at, created_by, updated_by)
+            SELECT id, name, 'DIALECT', jsonb_build_object('description', description), created_at, updated_at, created_by, updated_by
+            FROM dialect;
+
+            -- 2. Migrate Level -> LearningUnit
+            INSERT INTO learning_unit (id, parent_id, name, type, metadata_json, created_at, updated_at, created_by, updated_by)
+            SELECT id, dialect_id, name, 'LEVEL', jsonb_build_object(
+                'level_order', level_order,
+                'min_stars_required', min_stars_required,
+                'error_tag_id', error_tag_id,
+                'ai_threshold', ai_threshold,
+                'audio_url', audio_url,
+                'status', status,
+                'rejection_reason', rejection_reason
+            ), created_at, updated_at, created_by, updated_by
+            FROM level;
+
+            -- 3. Migrate Challenge -> ContentItem
+            INSERT INTO content_item (id, learning_unit_id, title, type, status, metadata_json, created_at, updated_at, created_by, updated_by)
+            SELECT id, level_id, 
+                   CASE 
+                       WHEN length(content_text) > 255 THEN substring(content_text from 1 for 252) || '...'
+                       ELSE content_text 
+                   END, 
+                   'PRONUNCIATION', status, jsonb_build_object(
+                'content_text', content_text,
+                'phonetic_transcription_ipa', phonetic_transcription_ipa,
+                'reference_audio_url', reference_audio_url,
+                'focus_phonemes', focus_phonemes,
+                'skill_type', skill_type,
+                'difficulty', difficulty,
+                'rejection_reason', rejection_reason
+            ), created_at, updated_at, created_by, updated_by
+            FROM challenge;
+
+            -- 4. Migrate Quiz -> ContentItem
+            INSERT INTO content_item (id, learning_unit_id, title, type, status, metadata_json, items_json, created_at, updated_at, created_by, updated_by)
+            SELECT q.id, q.level_id, q.title, 'QUIZ', q.status, jsonb_build_object(
+                'description', q.description,
+                'instructions', q.instructions,
+                'passing_score', q.passing_score,
+                'time_limit_minutes', q.time_limit_minutes,
+                'rejection_reason', q.rejection_reason
+            ), (
+                SELECT jsonb_agg(jsonb_build_object(
+                    'skill_type', q_q.skill_type,
+                    'difficulty', q_q.difficulty,
+                    'question_order', q_q.question_order,
+                    'points', q_q.points,
+                    'challenge_id', q_q.challenge_id
+                ))
+                FROM quiz_question q_q
+                WHERE q_q.quiz_id = q.id
+            ), q.created_at, q.updated_at, q.created_by, q.updated_by
+            FROM quiz q;
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

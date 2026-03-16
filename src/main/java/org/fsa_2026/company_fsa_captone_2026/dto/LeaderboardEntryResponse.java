@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.fsa_2026.company_fsa_captone_2026.entity.UserProfile;
+import org.fsa_2026.company_fsa_captone_2026.entity.Account;
 
 import java.io.Serializable;
 
@@ -25,17 +25,17 @@ public class LeaderboardEntryResponse implements Serializable {
     private Integer currentStreakDays;
     private String region;
 
-    public static LeaderboardEntryResponse fromEntity(UserProfile profile) {
-        if (profile == null)
+    public static LeaderboardEntryResponse fromEntity(Account account) {
+        if (account == null)
             return null;
         return LeaderboardEntryResponse.builder()
-                .accountId(profile.getAccount() != null ? profile.getAccount().getId().toString() : null)
-                .fullName(profile.getFullName())
-                .avatarUrl(profile.getAvatarUrl())
-                .totalExperience(profile.getTotalExperience())
-                .totalStars(profile.getTotalStars())
-                .currentStreakDays(profile.getCurrentStreakDays())
-                .region(profile.getAccount() != null ? profile.getAccount().getRegion() : null)
+                .accountId(account.getId() != null ? account.getId().toString() : null)
+                .fullName(account.getFullName())
+                .avatarUrl(account.getAvatarUrl())
+                .totalExperience(account.getTotalExperience())
+                .totalStars(account.getTotalStars())
+                .currentStreakDays(account.getCurrentStreakDays())
+                .region(account.getRegion())
                 .build();
     }
 }

@@ -1,3 +1,3 @@
-package com.example.starter_project_2025.base.crud.dto;
+package org.fsa_2026.company_fsa_captone_2026.base.crud.dto;
 
 public interface OnUpdate {}

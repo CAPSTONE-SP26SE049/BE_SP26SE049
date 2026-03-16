@@ -1,4 +1,4 @@
-package com.example.starter_project_2025.base.dataio.util;
+package org.fsa_2026.company_fsa_captone_2026.base.dataio.util;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;

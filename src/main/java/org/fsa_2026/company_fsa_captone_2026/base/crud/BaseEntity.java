@@ -1,4 +1,4 @@
-package com.example.starter_project_2025.base.crud;
+package org.fsa_2026.company_fsa_captone_2026.base.crud;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;

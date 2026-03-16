@@ -1,7 +1,7 @@
-package com.example.starter_project_2025.base.dataio.template.controller;
+package org.fsa_2026.company_fsa_captone_2026.base.dataio.template.controller;
 
-import com.example.starter_project_2025.base.dataio.template.registry.ImportEntityRegistry;
-import com.example.starter_project_2025.base.dataio.template.service.ImportTemplateService;
+import org.fsa_2026.company_fsa_captone_2026.base.dataio.template.registry.ImportEntityRegistry;
+import org.fsa_2026.company_fsa_captone_2026.base.dataio.template.service.ImportTemplateService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;

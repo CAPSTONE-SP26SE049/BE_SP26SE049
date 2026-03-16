@@ -1,6 +1,6 @@
-package com.example.starter_project_2025.base.dataio.importer.service;
+package org.fsa_2026.company_fsa_captone_2026.base.dataio.importer.service;
 
-import com.example.starter_project_2025.base.dataio.importer.result.ImportResult;
+import org.fsa_2026.company_fsa_captone_2026.base.dataio.importer.result.ImportResult;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.web.multipart.MultipartFile;
 

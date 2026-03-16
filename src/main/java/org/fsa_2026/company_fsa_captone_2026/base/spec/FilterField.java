@@ -1,6 +1,6 @@
-package com.example.starter_project_2025.base.spec;
+package org.fsa_2026.company_fsa_captone_2026.base.spec;
 
-import com.example.starter_project_2025.base.crud.dto.FilterOperator;
+import org.fsa_2026.company_fsa_captone_2026.base.crud.dto.FilterOperator;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

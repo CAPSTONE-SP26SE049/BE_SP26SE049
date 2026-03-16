@@ -1,4 +1,4 @@
-package com.example.starter_project_2025.base.dataio.common;
+package org.fsa_2026.company_fsa_captone_2026.base.dataio.common;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

@@ -2,31 +2,26 @@ package org.fsa_2026.company_fsa_captone_2026.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.Instant;
 
 /**
- * PracticeSession Entity (NEW - ISO Compliant)
- * Table: practice_session
- * Tracks user practice sessions for engagement analytics
+ * StudySession Entity - Super Entity for Practice Session and Quiz Attempt
  */
 @Entity
-@Table(name = "practice_session")
+@Table(name = "study_session")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PracticeSession {
-
-    @Id
-    @Column(name = "id", updatable = false, nullable = false)
-    @org.hibernate.annotations.UuidGenerator
-    private java.util.UUID id;
+public class StudySession extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id", nullable = false)
     private Account account;
+
+    @Column(name = "session_type", nullable = false, length = 50)
+    private String sessionType; // PRACTICE, QUIZ, DAILY
 
     @Column(name = "started_at", nullable = false)
     @Builder.Default
@@ -34,5 +29,7 @@ public class PracticeSession {
 
     @Column(name = "ended_at")
     private Instant endedAt;
-}
 
+    @Column(name = "summary_json", columnDefinition = "jsonb")
+    private String summaryJson;
+}

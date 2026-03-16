@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- 1. RENAME SOCIAL TABLES -->
+    <changeSet id="27-rename-social-tables" author="antigravity">
+        <renameTable oldTableName="achievement" newTableName="reward_catalog"/>
+        <renameTable oldTableName="account_achievement" newTableName="account_reward"/>
+    </changeSet>
+
+    <!-- 2. DROP OLD TABLES -->
+    <changeSet id="27-drop-old-tables" author="antigravity">
+        <!-- Dropping in order of dependencies just to be extra safe -->
+        
+        <!-- Activity Group -->
+        <dropTable tableName="attempt" cascadeConstraints="true"/>
+        <dropTable tableName="quiz_attempt" cascadeConstraints="true"/>
+        <dropTable tableName="practice_session" cascadeConstraints="true"/>
+        
+        <!-- Content Group -->
+        <dropTable tableName="quiz_question" cascadeConstraints="true"/>
+        <dropTable tableName="quiz" cascadeConstraints="true"/>
+        <dropTable tableName="challenge" cascadeConstraints="true"/>
+        <dropTable tableName="level" cascadeConstraints="true"/>
+        <dropTable tableName="dialect" cascadeConstraints="true"/>
+        
+        <!-- Note: error_tag is not explicitly used as a Super Entity yet, 
+             but if it's referenced, level is dropped, so it's safe to drop or keep.
+             The image says error_tag is part of Content group.
+             If it's absorbed into learning_unit metadata, we should drop it. -->
+        <dropTable tableName="error_tag" cascadeConstraints="true"/>
+    </changeSet>
+
+</databaseChangeLog>

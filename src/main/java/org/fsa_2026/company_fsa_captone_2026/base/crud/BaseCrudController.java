@@ -1,7 +1,7 @@
-package com.example.starter_project_2025.base.crud;
+package org.fsa_2026.company_fsa_captone_2026.base.crud;
 
-import com.example.starter_project_2025.base.crud.dto.OnCreate;
-import com.example.starter_project_2025.base.crud.dto.OnUpdate;
+import org.fsa_2026.company_fsa_captone_2026.base.crud.dto.OnCreate;
+import org.fsa_2026.company_fsa_captone_2026.base.crud.dto.OnUpdate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;

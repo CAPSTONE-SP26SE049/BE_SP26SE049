@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="24-merge-prediction-and-phoneme-feedback" author="antigravity">
+        <!-- 1. Add JSONB columns to Attempt -->
+        <addColumn tableName="attempt">
+            <column name="ai_insights_json" type="jsonb"/>
+            <column name="phoneme_feedback_json" type="jsonb"/>
+        </addColumn>
+
+        <!-- 2. Aggregate Prediction sub-items (Where applicable) -->
+        <sql>
+            UPDATE attempt a 
+            SET ai_insights_json = (
+                SELECT json_build_object(
+                    'confidence_score', p.confidence_score, 
+                    'prediction_result', p.prediction_result, 
+                    'model_version', p.model_version
+                )
+                FROM prediction p 
+                WHERE p.challenge_id = a.challenge_id AND p.user_id = a.account_id 
+                LIMIT 1
+            ) 
+            WHERE EXISTS (
+                SELECT 1 
+                FROM prediction p 
+                WHERE p.challenge_id = a.challenge_id AND p.user_id = a.account_id
+            );
+        </sql>
+
+        <!-- 3. Aggregate Phoneme Details into jsonb array -->
+        <sql>
+            UPDATE attempt a 
+            SET phoneme_feedback_json = (
+                SELECT json_agg(json_build_object(
+                    'phoneme_ipa', f.phoneme_ipa, 
+                    'score', f.score, 
+                    'sequence_order', f.sequence_order, 
+                    'start_time_ms', f.start_time_ms, 
+                    'end_time_ms', f.end_time_ms
+                ) ORDER BY f.sequence_order)
+                FROM attempt_phoneme_feedback f 
+                WHERE f.attempt_id = a.id
+            ) 
+            WHERE EXISTS (
+                SELECT 1 
+                FROM attempt_phoneme_feedback f 
+                WHERE f.attempt_id = a.id
+            );
+        </sql>
+
+        <!-- 4. Cleanup old tables -->
+        <dropTable tableName="prediction"/>
+        <dropTable tableName="attempt_phoneme_feedback"/>
+    </changeSet>
+
+</databaseChangeLog>

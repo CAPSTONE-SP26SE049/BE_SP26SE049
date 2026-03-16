@@ -1,6 +1,6 @@
-package com.example.starter_project_2025.base.dataio.template.registry;
+package org.fsa_2026.company_fsa_captone_2026.base.dataio.template.registry;
 
-import com.example.starter_project_2025.base.dataio.template.annotation.ImportEntity;
+import org.fsa_2026.company_fsa_captone_2026.base.dataio.template.annotation.ImportEntity;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import org.reflections.Reflections;

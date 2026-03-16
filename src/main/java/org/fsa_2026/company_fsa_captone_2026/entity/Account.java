@@ -38,13 +38,7 @@ public class Account extends BaseEntity {
 
     // Removed nativeLanguage and targetLanguage
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "native_dialect_id")
-    private Dialect nativeDialect;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "target_dialect_id")
-    private Dialect targetDialect;
 
     @Column(name = "is_active", nullable = false)
     @Builder.Default
@@ -67,8 +61,23 @@ public class Account extends BaseEntity {
     private Instant resetExpiresAt;
 
     // Relationships
-    @OneToOne(mappedBy = "account", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private UserProfile userProfile;
+    @Column(name = "full_name", length = 255)
+    private String fullName;
+
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
+    @Column(name = "total_stars", nullable = false)
+    @Builder.Default
+    private Integer totalStars = 0;
+
+    @Column(name = "current_streak_days", nullable = false)
+    @Builder.Default
+    private Integer currentStreakDays = 0;
+
+    @Column(name = "total_experience", nullable = false)
+    @Builder.Default
+    private Integer totalExperience = 0;
 
     /**
      * Factory: tạo Account mới với role USER cho đăng ký thường

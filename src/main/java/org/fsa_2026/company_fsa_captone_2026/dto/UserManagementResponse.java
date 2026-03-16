@@ -28,14 +28,13 @@ public class UserManagementResponse {
         return UserManagementResponse.builder()
                 .id(account.getId())
                 .email(account.getEmail())
-                .fullName(account.getUserProfile() != null ? account.getUserProfile().getFullName() : null)
+                .fullName(account.getFullName())
                 .roleCode(account.getRoleCode() != null ? account.getRoleCode().name() : null)
                 .isActive(account.getIsActive())
                 .emailVerified(account.getEmailVerified())
                 .createdAt(account.getCreatedAt())
-                .totalStars(account.getUserProfile() != null ? account.getUserProfile().getTotalStars() : 0)
-                .currentStreakDays(
-                        account.getUserProfile() != null ? account.getUserProfile().getCurrentStreakDays() : 0)
+                .totalStars(account.getTotalStars() != null ? account.getTotalStars() : 0)
+                .currentStreakDays(account.getCurrentStreakDays() != null ? account.getCurrentStreakDays() : 0)
                 .build();
     }
 }

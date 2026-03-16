@@ -1,6 +1,6 @@
-package com.example.starter_project_2025.base.spec;
+package org.fsa_2026.company_fsa_captone_2026.base.spec;
 
-import com.example.starter_project_2025.base.crud.dto.FilterOperator;
+import org.fsa_2026.company_fsa_captone_2026.base.crud.dto.FilterOperator;
 import jakarta.persistence.criteria.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;

@@ -1,6 +1,6 @@
-package com.example.starter_project_2025.base.dataio.exporter.resolver;
+package org.fsa_2026.company_fsa_captone_2026.base.dataio.exporter.resolver;
 
-import com.example.starter_project_2025.base.dataio.exporter.metadata.ExportFieldMeta;
+import org.fsa_2026.company_fsa_captone_2026.base.dataio.exporter.metadata.ExportFieldMeta;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Field;

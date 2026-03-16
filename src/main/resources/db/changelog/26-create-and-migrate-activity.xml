@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- 1. CREATE NEW TABLES -->
+    <changeSet id="26-create-new-activity-tables" author="antigravity">
+        <!-- Table: study_session -->
+        <createTable tableName="study_session">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="account_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="session_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="started_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ended_at" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="summary_json" type="jsonb"/>
+            <!-- Common Auditing Fields -->
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="study_session" baseColumnNames="account_id"
+                                 constraintName="fk_session_account"
+                                 referencedTableName="account" referencedColumnNames="id"/>
+
+        <!-- Table: session_detail -->
+        <createTable tableName="session_detail">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="session_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content_item_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_passed" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="score_overall" type="DECIMAL(5,2)"/>
+            <column name="attempt_metadata_json" type="jsonb"/>
+            <!-- Common Auditing Fields -->
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="session_detail" baseColumnNames="session_id"
+                                 constraintName="fk_detail_session"
+                                 referencedTableName="study_session" referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint baseTableName="session_detail" baseColumnNames="content_item_id"
+                                 constraintName="fk_detail_content"
+                                 referencedTableName="content_item" referencedColumnNames="id"/>
+    </changeSet>
+
+    <!-- 2. MIGRATE DATA -->
+    <changeSet id="26-migrate-activity-data" author="antigravity">
+        <sql>
+            -- 1. Migrate PracticeSession -> StudySession (PRACTICE)
+            INSERT INTO study_session (id, account_id, session_type, started_at, ended_at, created_at, updated_at)
+            SELECT id, account_id, 'PRACTICE', started_at, ended_at, started_at, started_at
+            FROM practice_session;
+
+            -- 2. Migrate QuizAttempt -> StudySession (QUIZ)
+            -- Reusing QuizAttempt ID as StudySession ID
+            INSERT INTO study_session (id, account_id, session_type, started_at, ended_at, summary_json, created_at, updated_at, created_by, updated_by)
+            SELECT id, student_id, 'QUIZ', started_at, completed_at, jsonb_build_object(
+                'score', score,
+                'completed', completed,
+                'quiz_type', quiz_type,
+                'time_taken_seconds', time_taken_seconds
+            ), created_at, updated_at, created_by, updated_by
+            FROM quiz_attempt;
+
+            -- 3. Migrate Attempt -> SessionDetail
+            -- Handles both Practice and Quiz attempts by coalescing session_id and quiz_attempt_id
+            INSERT INTO session_detail (id, session_id, content_item_id, is_passed, score_overall, attempt_metadata_json, created_at, updated_at)
+            SELECT id, COALESCE(session_id, quiz_attempt_id), challenge_id, is_passed, score_overall, jsonb_build_object(
+                'content_snapshot_json', content_snapshot_json,
+                'ai_insights_json', ai_insights_json,
+                'phoneme_feedback_json', phoneme_feedback_json,
+                'audio_url', audio_url,
+                'latency_ms', latency_ms
+            ), created_at, created_at
+            FROM attempt;
+
+            -- 4. Special handling for Quiz answers if contained in QuizAttempt
+            -- If QuizAttempt has answersSnapshot, create a detail for the Quiz content_item
+            INSERT INTO session_detail (id, session_id, content_item_id, is_passed, score_overall, attempt_metadata_json, created_at, updated_at, created_by, updated_by)
+            SELECT gen_random_uuid(), id, quiz_id, completed, CAST(score AS DECIMAL(5,2)), jsonb_build_object(
+                'answers_snapshot', answers_snapshot
+            ), created_at, updated_at, created_by, updated_by
+            FROM quiz_attempt
+            WHERE answers_snapshot IS NOT NULL;
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

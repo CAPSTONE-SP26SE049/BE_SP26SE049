@@ -1,5 +1,7 @@
 package org.fsa_2026.company_fsa_captone_2026.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.fsa_2026.company_fsa_captone_2026.dto.*;
@@ -13,710 +15,693 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class EducatorService {
 
-        private final ClassroomRepository classroomRepository;
-        private final ClassroomMemberRepository classroomMemberRepository;
-        private final AccountRepository accountRepository;
-        private final AttemptRepository attemptRepository;
-        private final AttemptPhonemeFeedbackRepository phonemeFeedbackRepository;
-        private final DialectRepository dialectRepository;
-        private final LevelRepository levelRepository;
-        private final EducatorFeedbackRepository educatorFeedbackRepository;
-        private final PlacementRuleRepository placementRuleRepository;
-        private final ChallengeRepository challengeRepository;
-        private final ErrorTagRepository errorTagRepository;
-        private final QuizRepository quizRepository;
-        private final org.fsa_2026.company_fsa_captone_2026.repository.ContentApprovalHistoryRepository contentApprovalHistoryRepository;
-        private final ObjectMapper objectMapper;
+    private final ClassroomRepository classroomRepository;
+    private final ClassroomMemberRepository classroomMemberRepository;
+    private final AccountRepository accountRepository;
+    private final SessionDetailRepository sessionDetailRepository;
+    private final LearningUnitRepository learningUnitRepository;
+    private final ContentItemRepository contentItemRepository;
+    private final EducatorFeedbackRepository educatorFeedbackRepository;
+    private final PlacementRuleRepository placementRuleRepository;
+    private final ContentApprovalHistoryRepository contentApprovalHistoryRepository;
+    private final ObjectMapper objectMapper;
 
-        @Transactional(readOnly = true)
-        public ClassroomPerformanceResponse getClassroomPerformance(String educatorEmail, UUID classroomId) {
-                Classroom classroom = classroomRepository.findById(classroomId)
-                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy lớp học"));
-                validateEducatorOwnership(educatorEmail, classroom);
+    // ─── Classroom Performance ───────────────────────────────────────────────
 
-                List<Attempt> attempts = attemptRepository.findByClassroomId(classroomId);
+    @Transactional(readOnly = true)
+    public ClassroomPerformanceResponse getClassroomPerformance(String educatorEmail, UUID classroomId) {
+        Classroom classroom = classroomRepository.findById(classroomId)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy lớp học"));
+        validateEducatorOwnership(educatorEmail, classroom);
 
-                if (attempts.isEmpty()) {
-                        return ClassroomPerformanceResponse.builder()
-                                        .classroomId(classroomId.toString())
-                                        .classroomName(classroom.getName())
-                                        .averageScore(BigDecimal.ZERO)
-                                        .completionRate(BigDecimal.ZERO)
-                                        .commonErrors(Collections.emptyList())
-                                        .build();
-                }
+        List<SessionDetail> details = getSessionDetailsForClassroom(classroomId);
 
-                BigDecimal avgScore = BigDecimal.valueOf(attempts.stream()
-                                .mapToDouble(a -> a.getScoreOverall().doubleValue())
-                                .average()
-                                .orElse(0.0));
-
-                long passedCount = attempts.stream().filter(Attempt::getIsPassed).count();
-                BigDecimal completionRate = BigDecimal.valueOf((double) passedCount / attempts.size() * 100);
-
-                // Analyze common errors from phoneme feedback
-                List<ClassroomPerformanceResponse.CommonErrorResponse> commonErrors = getCommonErrors(attempts);
-
-                return ClassroomPerformanceResponse.builder()
-                                .classroomId(classroomId.toString())
-                                .classroomName(classroom.getName())
-                                .averageScore(avgScore)
-                                .completionRate(completionRate)
-                                .commonErrors(commonErrors)
-                                .build();
+        if (details.isEmpty()) {
+            return ClassroomPerformanceResponse.builder()
+                    .classroomId(classroomId.toString())
+                    .classroomName(classroom.getName())
+                    .averageScore(BigDecimal.ZERO)
+                    .completionRate(BigDecimal.ZERO)
+                    .commonErrors(Collections.emptyList())
+                    .build();
         }
 
-        private List<ClassroomPerformanceResponse.CommonErrorResponse> getCommonErrors(List<Attempt> attempts) {
-                List<UUID> attemptIds = attempts.stream().map(Attempt::getId).collect(Collectors.toList());
-                List<AttemptPhonemeFeedback> allFeedback = phonemeFeedbackRepository.findByAttemptIdIn(attemptIds);
+        BigDecimal avgScore = BigDecimal.valueOf(details.stream()
+                .filter(d -> d.getScoreOverall() != null)
+                .mapToDouble(d -> d.getScoreOverall().doubleValue())
+                .average()
+                .orElse(0.0));
 
-                Map<String, List<AttemptPhonemeFeedback>> groupedByPhoneme = allFeedback.stream()
-                                .collect(Collectors.groupingBy(AttemptPhonemeFeedback::getPhonemeIpa));
+        long passedCount = details.stream().filter(d -> Boolean.TRUE.equals(d.getIsPassed())).count();
+        BigDecimal completionRate = BigDecimal.valueOf((double) passedCount / details.size() * 100);
 
-                return groupedByPhoneme.entrySet().stream()
-                                .map(entry -> {
-                                        String phoneme = entry.getKey();
-                                        List<AttemptPhonemeFeedback> feedbackList = entry.getValue();
-                                        long count = feedbackList.size();
-                                        double avgError = feedbackList.stream()
-                                                        .mapToDouble(f -> f.getScore().doubleValue())
-                                                        .average()
-                                                        .orElse(0.0);
+        return ClassroomPerformanceResponse.builder()
+                .classroomId(classroomId.toString())
+                .classroomName(classroom.getName())
+                .averageScore(avgScore)
+                .completionRate(completionRate)
+                .commonErrors(getCommonErrors(details))
+                .build();
+    }
 
-                                        return ClassroomPerformanceResponse.CommonErrorResponse.builder()
-                                                        .phoneme(phoneme)
-                                                        .occurrenceCount(count)
-                                                        .averageErrorScore(BigDecimal.valueOf(avgError))
-                                                        .build();
-                                })
-                                .sorted(Comparator.comparing(
-                                                ClassroomPerformanceResponse.CommonErrorResponse::getAverageErrorScore))
-                                .limit(5)
-                                .collect(Collectors.toList());
+    private List<SessionDetail> getSessionDetailsForClassroom(UUID classroomId) {
+        return classroomMemberRepository.findByClassroomId(classroomId).stream()
+                .flatMap(m -> sessionDetailRepository
+                        .findByAccountIdOrderByCreatedAtDesc(m.getStudent().getId()).stream())
+                .collect(Collectors.toList());
+    }
+
+    private List<ClassroomPerformanceResponse.CommonErrorResponse> getCommonErrors(List<SessionDetail> details) {
+        List<PhonemeFeedbackDetail> allFeedback = details.stream()
+                .filter(sd -> sd.getAttemptMetadataJson() != null)
+                .flatMap(sd -> {
+                    try {
+                        Map<String, Object> meta = objectMapper.readValue(
+                                sd.getAttemptMetadataJson(), new TypeReference<Map<String, Object>>() {});
+                        Object phonemeRaw = meta.get("phoneme_feedback_json");
+                        if (phonemeRaw == null) return Stream.empty();
+                        String phonemeJson = objectMapper.writeValueAsString(phonemeRaw);
+                        return objectMapper.readValue(phonemeJson,
+                                new TypeReference<List<PhonemeFeedbackDetail>>() {}).stream();
+                    } catch (Exception e) {
+                        log.error("Error deserializing phoneme feedback for session_detail {}", sd.getId(), e);
+                        return Stream.empty();
+                    }
+                })
+                .collect(Collectors.toList());
+
+        Map<String, List<PhonemeFeedbackDetail>> groupedByPhoneme = allFeedback.stream()
+                .collect(Collectors.groupingBy(PhonemeFeedbackDetail::getPhonemeIpa));
+
+        return groupedByPhoneme.entrySet().stream()
+                .map(entry -> {
+                    List<PhonemeFeedbackDetail> feedbackList = entry.getValue();
+                    double avgError = feedbackList.stream()
+                            .mapToDouble(f -> f.getScore().doubleValue())
+                            .average()
+                            .orElse(0.0);
+                    return ClassroomPerformanceResponse.CommonErrorResponse.builder()
+                            .phoneme(entry.getKey())
+                            .occurrenceCount((long) feedbackList.size())
+                            .averageErrorScore(BigDecimal.valueOf(avgError))
+                            .build();
+                })
+                .sorted(Comparator.comparing(r -> r.getAverageErrorScore()))
+                .limit(5)
+                .collect(Collectors.toList());
+    }
+
+    // ─── Curriculum / Level ──────────────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public List<LevelResponse> getCurriculumByRegion(String region) {
+        LearningUnit dialect = learningUnitRepository
+                .findByTypeAndNameIgnoreCase("DIALECT", region)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy vùng miền: " + region));
+
+        return learningUnitRepository
+                .findByParentIdAndType(dialect.getId(), "LEVEL").stream()
+                .map(LevelResponse::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public LevelResponse createLevel(String educatorEmail, LevelCreateRequest request) {
+        Account educator = getAccountByEmail(educatorEmail);
+
+        learningUnitRepository.findById(request.getDialectId())
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Dialect"));
+
+        LearningUnit dialect = learningUnitRepository.findById(request.getDialectId())
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Dialect"));
+
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        metadata.put("level_order", request.getLevelOrder());
+        metadata.put("description", request.getDescription() != null ? request.getDescription() : "");
+        metadata.put("min_stars_required", request.getMinStarsRequired() != null ? request.getMinStarsRequired() : 0);
+        metadata.put("status", "PENDING");
+        metadata.put("rejection_reason", "");
+        if (request.getErrorTagId() != null) {
+            metadata.put("error_tag_id", request.getErrorTagId().toString());
         }
 
-        @Transactional(readOnly = true)
-        public List<LevelResponse> getCurriculumByRegion(String region) {
-                Dialect dialect = dialectRepository.findByNameIgnoreCase(region)
-                                .orElseThrow(() -> new ApiException("NOT_FOUND",
-                                                "Không tìm thấy vùng miền: " + region));
+        LearningUnit level;
+        try {
+            level = LearningUnit.builder()
+                    .parent(dialect)
+                    .name(request.getName())
+                    .type("LEVEL")
+                    .metadataJson(objectMapper.writeValueAsString(metadata))
+                    .build();
+        } catch (Exception e) {
+            throw new ApiException("INTERNAL_ERROR", "Không thể tạo Level");
+        }
+        level.setCreatedBy(educator.getId().toString());
+        level = learningUnitRepository.save(level);
 
-                return levelRepository.findByDialectIdOrderByLevelOrderAsc(dialect.getId()).stream()
-                                .map(LevelResponse::fromEntity)
-                                .collect(Collectors.toList());
+        LevelResponse response = LevelResponse.fromEntity(level);
+        saveApprovalHistory("LEVEL", level.getId(), educator, ContentStatus.PENDING,
+                request.getComment() != null && !request.getComment().isBlank()
+                        ? request.getComment() : "Educator created level",
+                response);
+        return response;
+    }
+
+    @Transactional
+    public LevelResponse updateLevel(String educatorEmail, UUID levelId, LevelUpdateRequest request) {
+        Account educator = getAccountByEmail(educatorEmail);
+        LearningUnit level = learningUnitRepository.findById(levelId)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy cấp độ"));
+
+        try {
+            Map<String, Object> metadata = level.getMetadataJson() != null
+                    ? new LinkedHashMap<>(objectMapper.readValue(level.getMetadataJson(), new TypeReference<Map<String, Object>>() {}))
+                    : new LinkedHashMap<>();
+
+            if (request.getName() != null) level.setName(request.getName());
+            if (request.getAiThreshold() != null) metadata.put("ai_threshold", request.getAiThreshold());
+            if (request.getErrorTagId() != null) metadata.put("error_tag_id", request.getErrorTagId().toString());
+            metadata.put("status", "PENDING");
+
+            level.setMetadataJson(objectMapper.writeValueAsString(metadata));
+        } catch (Exception e) {
+            throw new ApiException("INTERNAL_ERROR", "Không thể cập nhật Level");
         }
 
-        @Transactional
-        public LevelResponse createLevel(String educatorEmail, LevelCreateRequest request) {
-                Account educator = getAccountByEmail(educatorEmail);
-                Dialect dialect = dialectRepository.findById(request.getDialectId())
-                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Dialect"));
+        level.setUpdatedBy(educator.getId().toString());
+        level = learningUnitRepository.save(level);
 
-                org.fsa_2026.company_fsa_captone_2026.entity.ErrorTag errorTag = null;
-                if (request.getErrorTagId() != null) {
-                        errorTag = errorTagRepository.findById(request.getErrorTagId())
-                                        .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Error Tag"));
-                }
+        LevelResponse response = LevelResponse.fromEntity(level);
+        saveApprovalHistory("LEVEL", level.getId(), educator, ContentStatus.PENDING,
+                request.getComment() != null && !request.getComment().isBlank()
+                        ? request.getComment() : "Educator updated level",
+                response);
+        return response;
+    }
 
-                Level level = Level.builder()
-                                .dialect(dialect)
-                                .levelOrder(request.getLevelOrder())
-                                .name(request.getName())
-                                .description(request.getDescription())
-                                .minStarsRequired(request.getMinStarsRequired() != null ? request.getMinStarsRequired()
-                                                : 0)
-                                .status(org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.PENDING)
-                                .errorTag(errorTag)
-                                .build();
-                level = levelRepository.save(level);
+    @Transactional
+    public void deleteLevel(String educatorEmail, UUID levelId) {
+        getAccountByEmail(educatorEmail);
 
-                LevelResponse response = LevelResponse.fromEntity(level);
-                saveApprovalHistory("LEVEL", level.getId(), educator, ContentStatus.PENDING,
-                                request.getComment() != null && !request.getComment().isBlank()
-                                                ? request.getComment()
-                                                : "Educator created level",
-                                response);
+        LearningUnit level = learningUnitRepository.findById(levelId)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy cấp độ"));
 
-                return response;
+        List<ContentItem> contentItems = contentItemRepository.findByLearningUnitId(levelId);
+        if (!contentItems.isEmpty()) {
+            contentItemRepository.deleteAll(contentItems);
+        }
+        learningUnitRepository.delete(level);
+    }
+
+    @Transactional
+    public void uploadLevelAudio(UUID levelId, String audioUrl) {
+        LearningUnit level = learningUnitRepository.findById(levelId)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy cấp độ"));
+        try {
+            Map<String, Object> metadata = level.getMetadataJson() != null
+                    ? new LinkedHashMap<>(objectMapper.readValue(level.getMetadataJson(), new TypeReference<Map<String, Object>>() {}))
+                    : new LinkedHashMap<>();
+            metadata.put("audio_url", audioUrl);
+            level.setMetadataJson(objectMapper.writeValueAsString(metadata));
+        } catch (Exception e) {
+            throw new ApiException("INTERNAL_ERROR", "Không thể cập nhật audio URL");
+        }
+        learningUnitRepository.save(level);
+    }
+
+    @Transactional(readOnly = true)
+    public List<LevelSelectionResponse> getAllLevelsForSelection() {
+        return learningUnitRepository.findByType("LEVEL").stream()
+                .filter(unit -> {
+                    try {
+                        if (unit.getMetadataJson() == null) return false;
+                        Map<String, Object> meta = objectMapper.readValue(
+                                unit.getMetadataJson(), new TypeReference<Map<String, Object>>() {});
+                        return "APPROVED".equals(meta.get("status"));
+                    } catch (Exception e) {
+                        return false;
+                    }
+                })
+                .map(LevelSelectionResponse::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    // ─── Challenge / ContentItem (PRONUNCIATION) ─────────────────────────────
+
+    @Transactional
+    public ChallengeResponse createChallenge(String educatorEmail, ChallengeCreateRequest request) {
+        Account educator = getAccountByEmail(educatorEmail);
+        LearningUnit level = learningUnitRepository.findById(request.getLevelId())
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Level"));
+
+        Map<String, Object> metadata = buildChallengeMetadata(request);
+
+        String title = request.getContentText() != null && request.getContentText().length() > 255
+                ? request.getContentText().substring(0, 252) + "..."
+                : request.getContentText();
+
+        ContentItem challenge;
+        try {
+            challenge = ContentItem.builder()
+                    .learningUnit(level)
+                    .title(title)
+                    .type("PRONUNCIATION")
+                    .status("PENDING")
+                    .metadataJson(objectMapper.writeValueAsString(metadata))
+                    .build();
+        } catch (Exception e) {
+            throw new ApiException("INTERNAL_ERROR", "Không thể tạo Challenge");
+        }
+        challenge.setCreatedBy(educator.getId().toString());
+        challenge = contentItemRepository.save(challenge);
+
+        ChallengeResponse response = ChallengeResponse.fromEntity(challenge);
+        saveApprovalHistory("CHALLENGE", challenge.getId(), educator, ContentStatus.PENDING,
+                request.getComment() != null && !request.getComment().isBlank()
+                        ? request.getComment() : "Educator created challenge",
+                response);
+        return response;
+    }
+
+    @Transactional
+    public ChallengeResponse updateChallenge(String educatorEmail, UUID challengeId,
+            ChallengeCreateRequest request) {
+        Account educator = getAccountByEmail(educatorEmail);
+        ContentItem challenge = contentItemRepository.findById(challengeId)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Challenge"));
+
+        LearningUnit level = learningUnitRepository.findById(request.getLevelId())
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Level"));
+
+        Map<String, Object> metadata = buildChallengeMetadata(request);
+
+        String title = request.getContentText() != null && request.getContentText().length() > 255
+                ? request.getContentText().substring(0, 252) + "..."
+                : request.getContentText();
+
+        try {
+            challenge.setLearningUnit(level);
+            challenge.setTitle(title);
+            challenge.setStatus("PENDING");
+            challenge.setMetadataJson(objectMapper.writeValueAsString(metadata));
+        } catch (Exception e) {
+            throw new ApiException("INTERNAL_ERROR", "Không thể cập nhật Challenge");
+        }
+        challenge.setUpdatedBy(educator.getId().toString());
+        challenge = contentItemRepository.save(challenge);
+
+        ChallengeResponse response = ChallengeResponse.fromEntity(challenge);
+        saveApprovalHistory("CHALLENGE", challenge.getId(), educator, ContentStatus.PENDING,
+                request.getComment() != null && !request.getComment().isBlank()
+                        ? request.getComment() : "Educator updated challenge",
+                response);
+        return response;
+    }
+
+    @Transactional
+    public void deleteChallenge(String educatorEmail, UUID id) {
+        getAccountByEmail(educatorEmail);
+        if (!contentItemRepository.existsById(id)) {
+            throw new ApiException("NOT_FOUND", "Không tìm thấy Challenge");
+        }
+        contentItemRepository.deleteById(id);
+    }
+
+    private Map<String, Object> buildChallengeMetadata(ChallengeCreateRequest request) {
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        metadata.put("content_text", request.getContentText());
+        metadata.put("phonetic_transcription_ipa", request.getPhoneticTranscriptionIpa());
+        metadata.put("reference_audio_url", request.getReferenceAudioUrl());
+        metadata.put("focus_phonemes", request.getFocusPhonemes());
+        metadata.put("skill_type", request.getSkillType());
+        metadata.put("difficulty", request.getDifficulty() != null ? request.getDifficulty().name() : null);
+        metadata.put("rejection_reason", "");
+        return metadata;
+    }
+
+    // ─── Quiz / ContentItem (QUIZ) ────────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public List<QuizResponse> getEducatorQuizzes(String educatorEmail) {
+        Account educator = getAccountByEmail(educatorEmail);
+        return contentItemRepository
+                .findByTypeAndCreatedByOrderByCreatedAtDesc("QUIZ", educator.getId().toString())
+                .stream()
+                .map(QuizResponse::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public QuizResponse getQuizById(String educatorEmail, UUID quizId) {
+        getAccountByEmail(educatorEmail);
+        ContentItem quiz = contentItemRepository.findById(quizId)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy bài kiểm tra"));
+        return QuizResponse.fromEntity(quiz);
+    }
+
+    @Transactional
+    public QuizResponse createQuiz(String educatorEmail, QuizCreateRequest request) {
+        Account educator = getAccountByEmail(educatorEmail);
+        LearningUnit level = learningUnitRepository.findById(request.getLevelId())
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Level"));
+
+        ContentItem quiz;
+        try {
+            quiz = ContentItem.builder()
+                    .learningUnit(level)
+                    .title(request.getTitle())
+                    .type("QUIZ")
+                    .status("PENDING")
+                    .metadataJson(objectMapper.writeValueAsString(buildQuizMetadata(request)))
+                    .itemsJson(objectMapper.writeValueAsString(buildQuestionsJson(request.getQuestions())))
+                    .build();
+        } catch (Exception e) {
+            throw new ApiException("INTERNAL_ERROR", "Không thể tạo Quiz");
+        }
+        quiz.setCreatedBy(educator.getId().toString());
+        quiz = contentItemRepository.save(quiz);
+
+        QuizResponse response = QuizResponse.fromEntity(quiz);
+        saveApprovalHistory("QUIZ", quiz.getId(), educator, ContentStatus.PENDING,
+                request.getComment() != null && !request.getComment().isBlank()
+                        ? request.getComment() : "Educator created quiz",
+                response);
+        return response;
+    }
+
+    @Transactional
+    public QuizResponse updateQuiz(String educatorEmail, UUID quizId, QuizCreateRequest request) {
+        Account educator = getAccountByEmail(educatorEmail);
+        ContentItem quiz = contentItemRepository.findById(quizId)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy bài kiểm tra"));
+        LearningUnit level = learningUnitRepository.findById(request.getLevelId())
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Level"));
+
+        try {
+            quiz.setLearningUnit(level);
+            quiz.setTitle(request.getTitle());
+            quiz.setStatus("PENDING");
+            quiz.setMetadataJson(objectMapper.writeValueAsString(buildQuizMetadata(request)));
+            quiz.setItemsJson(objectMapper.writeValueAsString(buildQuestionsJson(request.getQuestions())));
+        } catch (Exception e) {
+            throw new ApiException("INTERNAL_ERROR", "Không thể cập nhật Quiz");
+        }
+        quiz.setUpdatedBy(educator.getId().toString());
+        quiz = contentItemRepository.save(quiz);
+
+        QuizResponse response = QuizResponse.fromEntity(quiz);
+        saveApprovalHistory("QUIZ", quiz.getId(), educator, ContentStatus.PENDING,
+                request.getComment() != null && !request.getComment().isBlank()
+                        ? request.getComment() : "Educator updated quiz",
+                response);
+        return response;
+    }
+
+    private Map<String, Object> buildQuizMetadata(QuizCreateRequest request) {
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        metadata.put("description", request.getDescription());
+        metadata.put("instructions", request.getInstructions());
+        metadata.put("passing_score", request.getPassingScore());
+        metadata.put("time_limit_minutes", request.getTimeLimitMinutes());
+        metadata.put("rejection_reason", "");
+        return metadata;
+    }
+
+    private List<Map<String, Object>> buildQuestionsJson(List<QuizQuestionRequest> questions) {
+        if (questions == null) return Collections.emptyList();
+        return questions.stream()
+                .map(q -> {
+                    Map<String, Object> qMap = new LinkedHashMap<>();
+                    qMap.put("skill_type", q.getSkillType());
+                    qMap.put("difficulty", q.getDifficulty());
+                    qMap.put("question_order", q.getQuestionOrder());
+                    qMap.put("points", q.getPoints());
+                    qMap.put("challenge_id", q.getChallengeId() != null ? q.getChallengeId().toString() : null);
+                    return qMap;
+                })
+                .collect(Collectors.toList());
+    }
+
+    // ─── Feedback ────────────────────────────────────────────────────────────
+
+    @Transactional
+    public void submitFeedback(String educatorEmail, UUID studentId, FeedbackCreateRequest request) {
+        Account educator = getAccountByEmail(educatorEmail);
+        SessionDetail sessionDetail = sessionDetailRepository.findById(request.getAttemptId())
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy lượt luyện tập"));
+
+        EducatorFeedback feedback = EducatorFeedback.builder()
+                .educator(educator)
+                .sessionDetail(sessionDetail)
+                .comment(request.getComment())
+                .priority(request.getPriority())
+                .build();
+
+        educatorFeedbackRepository.save(feedback);
+    }
+
+    // ─── Placement Rules ──────────────────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public List<PlacementRuleResponse> getPlacementRules() {
+        return placementRuleRepository.findAll().stream()
+                .map(PlacementRuleResponse::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public PlacementRuleResponse updateOrCreatePlacementRule(PlacementRuleRequest request) {
+        LearningUnit errorTag = learningUnitRepository.findById(request.getErrorTagId())
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy ErrorTag cấu hình"));
+        LearningUnit dialect = learningUnitRepository.findById(request.getDialectId())
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Dialect cấu hình"));
+
+        UUID errorTagId = request.getErrorTagId();
+        UUID dialectId = request.getDialectId();
+
+        PlacementRule rule = placementRuleRepository.findAll().stream()
+                .filter(r -> r.getErrorTag().getId().equals(errorTagId)
+                        && r.getTargetDialect().getId().equals(dialectId))
+                .findFirst()
+                .orElse(new PlacementRule());
+
+        rule.setErrorTag(errorTag);
+        rule.setThreshold(request.getThreshold());
+        rule.setTargetDialect(dialect);
+        rule.setCheckpoint(request.getCheckpoint());
+        rule.setPriority(request.getPriority());
+
+        return PlacementRuleResponse.fromEntity(placementRuleRepository.save(rule));
+    }
+
+    // ─── Dashboard ───────────────────────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public EducatorDashboardSummaryResponse getDashboardSummary(String educatorEmail) {
+        Account educator = getAccountByEmail(educatorEmail);
+        List<Classroom> classrooms = classroomRepository.findByEducatorId(educator.getId());
+
+        long totalStudents = classrooms.stream()
+                .flatMap(c -> classroomMemberRepository.findByClassroomId(c.getId()).stream())
+                .map(m -> m.getStudent().getId())
+                .distinct()
+                .count();
+
+        List<SessionDetail> classroomDetails = classrooms.stream()
+                .flatMap(c -> getSessionDetailsForClassroom(c.getId()).stream())
+                .collect(Collectors.toList());
+
+        long totalAttempts = classroomDetails.size();
+        double avgScore = classroomDetails.stream()
+                .filter(d -> d.getScoreOverall() != null)
+                .mapToDouble(d -> d.getScoreOverall().doubleValue())
+                .average()
+                .orElse(0.0);
+
+        return EducatorDashboardSummaryResponse.builder()
+                .activeClassrooms(classrooms.size())
+                .totalStudents(totalStudents)
+                .totalAttempts(totalAttempts)
+                .averageClassScore(avgScore)
+                .build();
+    }
+
+    // ─── Student Analytics ───────────────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public StudentAnalyticsResponse getStudentAnalytics(String educatorEmail, UUID studentId) {
+        Account student = accountRepository.findById(studentId)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy học viên"));
+
+        List<SessionDetail> details = sessionDetailRepository.findByAccountIdOrderByCreatedAtDesc(studentId);
+
+        List<PhonemeFeedbackDetail> feedbackList = details.stream()
+                .filter(sd -> sd.getAttemptMetadataJson() != null)
+                .flatMap(sd -> {
+                    try {
+                        Map<String, Object> meta = objectMapper.readValue(
+                                sd.getAttemptMetadataJson(), new TypeReference<Map<String, Object>>() {});
+                        Object phonemeRaw = meta.get("phoneme_feedback_json");
+                        if (phonemeRaw == null) return Stream.empty();
+                        String phonemeJson = objectMapper.writeValueAsString(phonemeRaw);
+                        return objectMapper.readValue(phonemeJson,
+                                new TypeReference<List<PhonemeFeedbackDetail>>() {}).stream();
+                    } catch (Exception e) {
+                        log.error("Error deserializing phoneme feedback for session_detail {}", sd.getId(), e);
+                        return Stream.empty();
+                    }
+                })
+                .collect(Collectors.toList());
+
+        Map<String, List<PhonemeFeedbackDetail>> groupedByPhoneme = feedbackList.stream()
+                .collect(Collectors.groupingBy(PhonemeFeedbackDetail::getPhonemeIpa));
+
+        List<StudentAnalyticsResponse.ErrorMetric> topErrors = groupedByPhoneme.entrySet().stream()
+                .map(entry -> {
+                    List<PhonemeFeedbackDetail> fb = entry.getValue();
+                    double avgScore = fb.stream()
+                            .mapToDouble(f -> f.getScore().doubleValue())
+                            .average()
+                            .orElse(0.0);
+                    return new StudentAnalyticsResponse.ErrorMetric(entry.getKey(), avgScore, fb.size());
+                })
+                .sorted(Comparator.comparing(StudentAnalyticsResponse.ErrorMetric::getAccuracy).reversed())
+                .limit(5)
+                .collect(Collectors.toList());
+
+        return StudentAnalyticsResponse.builder()
+                .studentId(studentId)
+                .fullName(student.getFullName() != null ? student.getFullName() : "Học viên")
+                .topErrors(topErrors)
+                .build();
+    }
+
+    // ─── Classrooms ──────────────────────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public List<ClassroomResponse> getClassrooms(String educatorEmail) {
+        Account educator = getAccountByEmail(educatorEmail);
+        return classroomRepository.findByEducatorId(educator.getId()).stream()
+                .map(ClassroomResponse::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public ClassroomResponse createClassroom(String educatorEmail, ClassroomCreateRequest request) {
+        Account educator = getAccountByEmail(educatorEmail);
+        Classroom classroom = Classroom.builder()
+                .educator(educator)
+                .name(request.getName())
+                .code(generateClassCode())
+                .build();
+        return ClassroomResponse.fromEntity(classroomRepository.save(classroom));
+    }
+
+    @Transactional
+    public ClassroomResponse updateClassroom(String educatorEmail, UUID id, ClassroomCreateRequest request) {
+        Classroom classroom = classroomRepository.findById(id)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy lớp học"));
+        validateEducatorOwnership(educatorEmail, classroom);
+        if (request.getName() != null) classroom.setName(request.getName());
+        return ClassroomResponse.fromEntity(classroomRepository.save(classroom));
+    }
+
+    @Transactional
+    public void deleteClassroom(String educatorEmail, UUID id) {
+        Classroom classroom = classroomRepository.findById(id)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy lớp học"));
+        validateEducatorOwnership(educatorEmail, classroom);
+        classroomRepository.delete(classroom);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserManagementResponse> getClassroomStudents(String educatorEmail, UUID classroomId) {
+        Classroom classroom = classroomRepository.findById(classroomId)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy lớp học"));
+        validateEducatorOwnership(educatorEmail, classroom);
+        return classroomMemberRepository.findByClassroomId(classroomId).stream()
+                .map(member -> UserManagementResponse.fromEntity(member.getStudent()))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void addStudentToClassroom(String educatorEmail, UUID classroomId, AddStudentRequest request) {
+        Classroom classroom = classroomRepository.findById(classroomId)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy lớp học"));
+        validateEducatorOwnership(educatorEmail, classroom);
+
+        Account student = accountRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy học viên với email này"));
+
+        if (classroomMemberRepository.existsByClassroomIdAndStudentId(classroomId, student.getId())) {
+            throw new ApiException("BAD_REQUEST", "Học viên này đã có trong lớp");
         }
 
-        @Transactional
-        public LevelResponse updateLevel(String educatorEmail, UUID levelId, LevelUpdateRequest request) {
-                Account educator = getAccountByEmail(educatorEmail);
-                Level level = levelRepository.findById(levelId)
-                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy cấp độ"));
+        ClassroomMember member = ClassroomMember.builder()
+                .classroom(classroom)
+                .student(student)
+                .build();
+        classroomMemberRepository.save(member);
+    }
 
-                Level targetLevel = level;
-                boolean isNewDraft = false;
+    @Transactional
+    public void removeStudentFromClassroom(String educatorEmail, UUID classroomId, UUID studentId) {
+        Classroom classroom = classroomRepository.findById(classroomId)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy lớp học"));
+        validateEducatorOwnership(educatorEmail, classroom);
+        classroomMemberRepository.deleteByClassroomIdAndStudentId(classroomId, studentId);
+    }
 
-                if (org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.APPROVED
-                                .equals(level.getStatus())) {
-                        targetLevel = new Level();
-                        targetLevel.setParent(level);
-                        targetLevel.setStatus(org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.PENDING);
+    // ─── Approval History ────────────────────────────────────────────────────
 
-                        targetLevel.setDialect(level.getDialect());
-                        targetLevel.setLevelOrder(level.getLevelOrder());
-                        targetLevel.setName(level.getName());
-                        targetLevel.setDescription(level.getDescription());
-                        targetLevel.setMinStarsRequired(level.getMinStarsRequired());
-                        targetLevel.setErrorTag(level.getErrorTag());
-                        targetLevel.setAiThreshold(level.getAiThreshold());
-                        targetLevel.setAudioUrl(level.getAudioUrl());
-                        isNewDraft = true;
-                } else {
-                        targetLevel.setStatus(org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.PENDING);
-                }
+    @Transactional(readOnly = true)
+    public List<ContentApprovalHistoryResponse> getContentApprovalHistory(UUID contentId) {
+        return contentApprovalHistoryRepository.findByContentIdOrderByCreatedAtDesc(contentId).stream()
+                .map(ContentApprovalHistoryResponse::fromEntity)
+                .collect(Collectors.toList());
+    }
 
-                targetLevel.setUpdatedBy(educator.getId().toString());
+    // ─── Helpers ─────────────────────────────────────────────────────────────
 
-                if (request.getName() != null)
-                        targetLevel.setName(request.getName());
-                if (request.getAiThreshold() != null)
-                        targetLevel.setAiThreshold(request.getAiThreshold());
-
-                if (request.getErrorTagId() != null) {
-                        org.fsa_2026.company_fsa_captone_2026.entity.ErrorTag errorTag = errorTagRepository
-                                        .findById(request.getErrorTagId())
-                                        .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Error Tag"));
-                        targetLevel.setErrorTag(errorTag);
-                }
-
-                targetLevel = levelRepository.save(targetLevel);
-                if (isNewDraft) {
-                        level.setDraft(targetLevel);
-                        levelRepository.save(level);
-                }
-
-                LevelResponse response = LevelResponse.fromEntity(targetLevel);
-                saveApprovalHistory("LEVEL", level.getId(), educator, ContentStatus.PENDING,
-                                request.getComment() != null && !request.getComment().isBlank()
-                                                ? request.getComment()
-                                                : "Educator updated level",
-                                response);
-
-                return response;
+    private void saveApprovalHistory(String contentType, UUID contentId, Account educator,
+            ContentStatus status, String comment, Object responseDTO) {
+        String contentSnapshot = "";
+        try {
+            contentSnapshot = objectMapper.writeValueAsString(responseDTO);
+        } catch (Exception e) {
+            log.error("Failed to serialize {} content snapshot", contentType, e);
         }
 
-        @Transactional
-        public void deleteLevel(String educatorEmail, UUID levelId) {
-                // Assert educator exists
-                getAccountByEmail(educatorEmail);
+        ContentApprovalHistory history = ContentApprovalHistory.builder()
+                .contentType(contentType)
+                .contentId(contentId)
+                .status(status)
+                .comment(comment)
+                .contentSnapshot(contentSnapshot)
+                .build();
+        history.setCreatedBy(educator.getId().toString());
+        contentApprovalHistoryRepository.save(history);
+    }
 
-                Level level = levelRepository.findById(levelId)
-                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy cấp độ"));
+    private Account getAccountByEmail(String email) {
+        return accountRepository.findByEmail(email)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy tài khoản"));
+    }
 
-                // Cascade delete associated challenges to avoid orphan records
-                List<Challenge> challenges = challengeRepository.findByLevelId(levelId);
-                if (!challenges.isEmpty()) {
-                        challengeRepository.deleteAll(challenges);
-                }
-
-                levelRepository.delete(level);
+    private void validateEducatorOwnership(String educatorEmail, Classroom classroom) {
+        if (!classroom.getEducator().getEmail().equals(educatorEmail)) {
+            throw new ApiException("FORBIDDEN", "Bạn không có quyền quản lý lớp học này");
         }
-
-        @Transactional
-        public ChallengeResponse createChallenge(String educatorEmail, ChallengeCreateRequest request) {
-                Account educator = getAccountByEmail(educatorEmail);
-                Level level = levelRepository.findById(request.getLevelId())
-                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Level"));
-
-                Challenge challenge = new Challenge();
-                challenge.setLevel(level);
-                challenge.setSkillType(request.getSkillType());
-                challenge.setDifficulty(request.getDifficulty());
-                challenge.setContentText(request.getContentText());
-                challenge.setPhoneticTranscriptionIpa(request.getPhoneticTranscriptionIpa());
-                challenge.setReferenceAudioUrl(request.getReferenceAudioUrl());
-                challenge.setFocusPhonemes(request.getFocusPhonemes());
-                challenge.setStatus(org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.PENDING);
-                challenge.setCreatedBy(educator.getId().toString());
-
-                challenge = challengeRepository.save(challenge);
-                ChallengeResponse response = ChallengeResponse.fromEntity(challenge);
-
-                saveApprovalHistory("CHALLENGE", challenge.getId(), educator, ContentStatus.PENDING,
-                                request.getComment() != null && !request.getComment().isBlank()
-                                                ? request.getComment()
-                                                : "Educator created challenge",
-                                response);
-
-                return response;
-        }
-
-        @Transactional
-        public ChallengeResponse updateChallenge(String educatorEmail, UUID challengeId,
-                        ChallengeCreateRequest request) {
-                Account educator = getAccountByEmail(educatorEmail);
-                Challenge challenge = challengeRepository.findById(challengeId)
-                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Challenge"));
-
-                Level level = levelRepository.findById(request.getLevelId())
-                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Level"));
-
-                Challenge targetChallenge = challenge;
-                boolean isNewDraft = false;
-
-                if (org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.APPROVED
-                                .equals(challenge.getStatus())) {
-                        targetChallenge = new Challenge();
-                        targetChallenge.setParent(challenge);
-                        targetChallenge.setStatus(
-                                        org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.PENDING);
-                        isNewDraft = true;
-                } else {
-                        targetChallenge.setStatus(
-                                        org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.PENDING);
-                }
-
-                targetChallenge.setLevel(level);
-                targetChallenge.setSkillType(request.getSkillType());
-                targetChallenge.setDifficulty(request.getDifficulty());
-                targetChallenge.setContentText(request.getContentText());
-                targetChallenge.setPhoneticTranscriptionIpa(request.getPhoneticTranscriptionIpa());
-                targetChallenge.setReferenceAudioUrl(request.getReferenceAudioUrl());
-                targetChallenge.setFocusPhonemes(request.getFocusPhonemes());
-                targetChallenge.setUpdatedBy(educator.getId().toString());
-
-                targetChallenge = challengeRepository.save(targetChallenge);
-                if (isNewDraft) {
-                        challenge.setDraft(targetChallenge);
-                        challengeRepository.save(challenge);
-                }
-
-                ChallengeResponse response = ChallengeResponse.fromEntity(targetChallenge);
-                saveApprovalHistory("CHALLENGE", challenge.getId(), educator, ContentStatus.PENDING,
-                                request.getComment() != null && !request.getComment().isBlank()
-                                                ? request.getComment()
-                                                : "Educator updated challenge",
-                                response);
-
-                return response;
-        }
-
-        @Transactional
-        public void deleteChallenge(String educatorEmail, UUID id) {
-                // Assert educator exists
-                getAccountByEmail(educatorEmail);
-
-                if (!challengeRepository.existsById(id)) {
-                        throw new ApiException("NOT_FOUND", "Không tìm thấy Challenge");
-                }
-                challengeRepository.deleteById(id);
-        }
-
-        @Transactional
-        public void uploadLevelAudio(UUID levelId, String audioUrl) {
-                Level level = levelRepository.findById(levelId)
-                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy cấp độ"));
-
-                level.setAudioUrl(audioUrl);
-                levelRepository.save(level);
-        }
-
-        @Transactional
-        public void submitFeedback(String educatorEmail, UUID studentId, FeedbackCreateRequest request) {
-                Account educator = getAccountByEmail(educatorEmail);
-                Attempt attempt = attemptRepository.findById(request.getAttemptId())
-                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy lượt luyện tập"));
-
-                EducatorFeedback feedback = EducatorFeedback.builder()
-                                .educator(educator)
-                                .attempt(attempt)
-                                .comment(request.getComment())
-                                .priority(request.getPriority())
-                                .build();
-
-                educatorFeedbackRepository.save(feedback);
-        }
-
-        @Transactional(readOnly = true)
-        public List<PlacementRuleResponse> getPlacementRules() {
-                return placementRuleRepository.findAll().stream()
-                                .map(PlacementRuleResponse::fromEntity)
-                                .collect(Collectors.toList());
-        }
-
-        @Transactional
-        public PlacementRuleResponse updateOrCreatePlacementRule(PlacementRuleRequest request) {
-                // Fetch related entities
-                ErrorTag errorTag = errorTagRepository.findById(request.getErrorTagId())
-                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy ErrorTag cấu hình"));
-                Dialect dialect = dialectRepository.findById(request.getDialectId())
-                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Dialect cấu hình"));
-
-                List<PlacementRule> existing = placementRuleRepository.findAll();
-                PlacementRule rule = existing.stream()
-                                .filter(r -> r.getErrorTag().getId().equals(request.getErrorTagId())
-                                                && r.getTargetDialect().getId().equals(request.getDialectId()))
-                                .findFirst()
-                                .orElse(new PlacementRule());
-
-                rule.setErrorTag(errorTag);
-                rule.setThreshold(request.getThreshold());
-                rule.setTargetDialect(dialect);
-                rule.setCheckpoint(request.getCheckpoint());
-                rule.setPriority(request.getPriority());
-
-                return PlacementRuleResponse.fromEntity(placementRuleRepository.save(rule));
-        }
-
-        @Transactional(readOnly = true)
-        public EducatorDashboardSummaryResponse getDashboardSummary(String educatorEmail) {
-                Account educator = getAccountByEmail(educatorEmail);
-                List<Classroom> classrooms = classroomRepository.findByEducatorId(educator.getId());
-
-                long totalStudents = classrooms.stream()
-                                .flatMap(c -> classroomMemberRepository.findByClassroomId(c.getId()).stream())
-                                .map(m -> m.getStudent().getId())
-                                .distinct()
-                                .count();
-
-                List<Attempt> classroomAttempts = classrooms.stream()
-                                .flatMap(c -> attemptRepository.findByClassroomId(c.getId()).stream())
-                                .collect(Collectors.toList());
-
-                long totalAttempts = classroomAttempts.size();
-                double avgScore = classroomAttempts.stream()
-                                .mapToDouble(a -> a.getScoreOverall().doubleValue())
-                                .average()
-                                .orElse(0.0);
-
-                return EducatorDashboardSummaryResponse.builder()
-                                .activeClassrooms(classrooms.size())
-                                .totalStudents(totalStudents)
-                                .totalAttempts(totalAttempts)
-                                .averageClassScore(avgScore)
-                                .build();
-        }
-
-        @Transactional(readOnly = true)
-        public List<ClassroomResponse> getClassrooms(String educatorEmail) {
-                Account educator = getAccountByEmail(educatorEmail);
-                return classroomRepository.findByEducatorId(educator.getId())
-                                .stream()
-                                .map(ClassroomResponse::fromEntity)
-                                .collect(Collectors.toList());
-        }
-
-        @Transactional(readOnly = true)
-        public List<LevelSelectionResponse> getAllLevelsForSelection() {
-                return levelRepository.findAll().stream()
-                                .filter(level -> ContentStatus.APPROVED.equals(level.getStatus()))
-                                .map(LevelSelectionResponse::fromEntity)
-                                .collect(Collectors.toList());
-        }
-
-        @Transactional
-        public ClassroomResponse createClassroom(String educatorEmail, ClassroomCreateRequest request) {
-                Account educator = getAccountByEmail(educatorEmail);
-
-                Classroom classroom = Classroom.builder()
-                                .educator(educator)
-                                .name(request.getName())
-                                .code(generateClassCode())
-                                .build();
-
-                return ClassroomResponse.fromEntity(classroomRepository.save(classroom));
-        }
-
-        @Transactional
-        public ClassroomResponse updateClassroom(String educatorEmail, UUID id, ClassroomCreateRequest request) {
-                Classroom classroom = classroomRepository.findById(id)
-                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy lớp học"));
-
-                validateEducatorOwnership(educatorEmail, classroom);
-
-                if (request.getName() != null) {
-                        classroom.setName(request.getName());
-                }
-
-                return ClassroomResponse.fromEntity(classroomRepository.save(classroom));
-        }
-
-        @Transactional
-        public void deleteClassroom(String educatorEmail, UUID id) {
-                Classroom classroom = classroomRepository.findById(id)
-                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy lớp học"));
-
-                validateEducatorOwnership(educatorEmail, classroom);
-                classroomRepository.delete(classroom);
-        }
-
-        @Transactional(readOnly = true)
-        public List<UserManagementResponse> getClassroomStudents(String educatorEmail, UUID classroomId) {
-                Classroom classroom = classroomRepository.findById(classroomId)
-                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy lớp học"));
-
-                validateEducatorOwnership(educatorEmail, classroom);
-
-                return classroomMemberRepository.findByClassroomId(classroomId).stream()
-                                .map(member -> UserManagementResponse.fromEntity(member.getStudent()))
-                                .collect(Collectors.toList());
-        }
-
-        @Transactional
-        public void addStudentToClassroom(String educatorEmail, UUID classroomId, AddStudentRequest request) {
-                Classroom classroom = classroomRepository.findById(classroomId)
-                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy lớp học"));
-
-                validateEducatorOwnership(educatorEmail, classroom);
-
-                Account student = accountRepository.findByEmail(request.getEmail())
-                                .orElseThrow(() -> new ApiException("NOT_FOUND",
-                                                "Không tìm thấy học viên với email này"));
-
-                if (classroomMemberRepository.existsByClassroomIdAndStudentId(classroomId, student.getId())) {
-                        throw new ApiException("BAD_REQUEST", "Học viên này đã có trong lớp");
-                }
-
-                ClassroomMember member = ClassroomMember.builder()
-                                .classroom(classroom)
-                                .student(student)
-                                .build();
-
-                classroomMemberRepository.save(member);
-        }
-
-        @Transactional
-        public void removeStudentFromClassroom(String educatorEmail, UUID classroomId, UUID studentId) {
-                Classroom classroom = classroomRepository.findById(classroomId)
-                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy lớp học"));
-
-                validateEducatorOwnership(educatorEmail, classroom);
-
-                classroomMemberRepository.deleteByClassroomIdAndStudentId(classroomId, studentId);
-        }
-
-        @Transactional(readOnly = true)
-        public StudentAnalyticsResponse getStudentAnalytics(String educatorEmail, UUID studentId) {
-                Account student = accountRepository.findById(studentId)
-                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy học viên"));
-
-                // Lấy tất cả feedback về phát âm của học viên này
-                List<AttemptPhonemeFeedback> feedbackList = phonemeFeedbackRepository.findByStudentId(studentId);
-
-                // Group by Phoneme IPA và tính điểm trung bình
-                Map<String, List<AttemptPhonemeFeedback>> groupedByPhoneme = feedbackList.stream()
-                                .collect(Collectors.groupingBy(AttemptPhonemeFeedback::getPhonemeIpa));
-
-                List<StudentAnalyticsResponse.ErrorMetric> topErrors = groupedByPhoneme.entrySet().stream()
-                                .map(entry -> {
-                                        String phoneme = entry.getKey();
-                                        List<AttemptPhonemeFeedback> feedback = entry.getValue();
-                                        double avgScore = feedback.stream()
-                                                        .mapToDouble(f -> f.getScore().doubleValue())
-                                                        .average()
-                                                        .orElse(0.0);
-                                        return new StudentAnalyticsResponse.ErrorMetric(phoneme, avgScore,
-                                                        feedback.size());
-                                })
-                                // Sắp xếp theo mức độ lỗi giảm dần (điểm càng cao càng lỗi nhiều)
-                                .sorted(Comparator.comparing(StudentAnalyticsResponse.ErrorMetric::getAccuracy)
-                                                .reversed())
-                                .limit(5)
-                                .collect(Collectors.toList());
-
-                return StudentAnalyticsResponse.builder()
-                                .studentId(studentId)
-                                .fullName(student.getUserProfile() != null ? student.getUserProfile().getFullName()
-                                                : "Học viên")
-                                .topErrors(topErrors)
-                                .build();
-        }
-
-        @Transactional(readOnly = true)
-        public List<QuizResponse> getEducatorQuizzes(String educatorEmail) {
-                Account educator = getAccountByEmail(educatorEmail);
-                return quizRepository.findByCreatedByOrderByCreatedAtDesc(educator.getId().toString())
-                                .stream()
-                                .map(QuizResponse::fromEntity)
-                                .collect(Collectors.toList());
-        }
-
-        @Transactional(readOnly = true)
-        public QuizResponse getQuizById(String educatorEmail, UUID quizId) {
-                getAccountByEmail(educatorEmail);
-                Quiz quiz = quizRepository.findById(quizId)
-                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy bài kiểm tra"));
-                return QuizResponse.fromEntity(quiz);
-        }
-
-        @Transactional
-        public QuizResponse createQuiz(String educatorEmail, QuizCreateRequest request) {
-                Account educator = getAccountByEmail(educatorEmail);
-                Level level = levelRepository.findById(request.getLevelId())
-                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Level"));
-
-                Quiz quiz = Quiz.builder()
-                                .level(level)
-                                .title(request.getTitle())
-                                .description(request.getDescription())
-                                .instructions(request.getInstructions())
-                                .passingScore(request.getPassingScore())
-                                .timeLimitMinutes(request.getTimeLimitMinutes())
-                                .questionCount(request.getQuestions() != null ? request.getQuestions().size() : 0)
-                                .status(ContentStatus.PENDING)
-                                .build();
-                quiz.setCreatedBy(educator.getId().toString());
-
-                if (request.getQuestions() != null) {
-                        List<QuizQuestion> questions = request.getQuestions().stream()
-                                        .map(qReq -> {
-                                                Challenge challenge = qReq.getChallengeId() != null
-                                                                ? challengeRepository.findById(qReq.getChallengeId()).orElse(null)
-                                                                : null;
-                                                return QuizQuestion.builder()
-                                                                .quiz(quiz)
-                                                                .skillType(qReq.getSkillType())
-                                                                .difficulty(qReq.getDifficulty() != null
-                                                                                ? org.fsa_2026.company_fsa_captone_2026.entity.enums.DifficultyLevel.valueOf(qReq.getDifficulty())
-                                                                                : null)
-                                                                .questionOrder(qReq.getQuestionOrder())
-                                                                .points(qReq.getPoints())
-                                                                .challenge(challenge)
-                                                                .build();
-                                        })
-                                        .collect(Collectors.toList());
-                        quiz.setQuestions(questions);
-                }
-
-                Quiz savedQuiz = quizRepository.save(quiz);
-
-                QuizResponse response = QuizResponse.fromEntity(savedQuiz);
-                saveApprovalHistory("QUIZ", savedQuiz.getId(), educator, ContentStatus.PENDING,
-                                request.getComment() != null && !request.getComment().isBlank()
-                                                ? request.getComment()
-                                                : "Educator created quiz",
-                                response);
-                return response;
-        }
-
-        @Transactional
-        public QuizResponse updateQuiz(String educatorEmail, UUID quizId, QuizCreateRequest request) {
-                Account educator = getAccountByEmail(educatorEmail);
-                Quiz quiz = quizRepository.findById(quizId)
-                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy bài kiểm tra"));
-                Level level = levelRepository.findById(request.getLevelId())
-                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Level"));
-
-                Quiz targetQuiz = quiz;
-                boolean isNewDraft = false;
-
-                if (ContentStatus.APPROVED.equals(quiz.getStatus())) {
-                        targetQuiz = new Quiz();
-                        targetQuiz.setParent(quiz);
-                        targetQuiz.setStatus(ContentStatus.PENDING);
-                        isNewDraft = true;
-                } else {
-                        targetQuiz.setStatus(ContentStatus.PENDING);
-                        if (targetQuiz.getQuestions() != null) {
-                                targetQuiz.getQuestions().clear();
-                        } else {
-                                targetQuiz.setQuestions(new ArrayList<>());
-                        }
-                }
-
-                targetQuiz.setLevel(level);
-                targetQuiz.setTitle(request.getTitle());
-                targetQuiz.setDescription(request.getDescription());
-                targetQuiz.setInstructions(request.getInstructions());
-                targetQuiz.setPassingScore(request.getPassingScore());
-                targetQuiz.setTimeLimitMinutes(request.getTimeLimitMinutes());
-                targetQuiz.setQuestionCount(request.getQuestions() != null ? request.getQuestions().size() : 0);
-                targetQuiz.setUpdatedBy(educator.getId().toString());
-
-                if (isNewDraft && targetQuiz.getQuestions() == null) {
-                        targetQuiz.setQuestions(new ArrayList<>());
-                }
-
-                if (request.getQuestions() != null) {
-                    final Quiz finalTargetQuiz = targetQuiz;
-                    List<QuizQuestion> newQuestions = request.getQuestions().stream()
-                            .map(qReq -> {
-                                Challenge challenge = qReq.getChallengeId() != null
-                                                ? challengeRepository.findById(qReq.getChallengeId()).orElse(null)
-                                                : null;
-                                return QuizQuestion.builder()
-                                                .quiz(finalTargetQuiz)
-                                                .skillType(qReq.getSkillType())
-                                                .difficulty(qReq.getDifficulty() != null
-                                                                ? org.fsa_2026.company_fsa_captone_2026.entity.enums.DifficultyLevel.valueOf(qReq.getDifficulty())
-                                                                : null)
-                                                .questionOrder(qReq.getQuestionOrder())
-                                                .points(qReq.getPoints())
-                                                .challenge(challenge)
-                                                .build();
-                            })
-                            .collect(Collectors.toList());
-                    targetQuiz.getQuestions().addAll(newQuestions);
-                }
-
-                targetQuiz = quizRepository.save(targetQuiz);
-                if (isNewDraft) {
-                        quiz.setDraft(targetQuiz);
-                        quizRepository.save(quiz);
-                }
-
-                QuizResponse response = QuizResponse.fromEntity(targetQuiz);
-                saveApprovalHistory("QUIZ", quiz.getId(), educator, ContentStatus.PENDING,
-                                request.getComment() != null && !request.getComment().isBlank()
-                                                ? request.getComment()
-                                                : "Educator updated quiz",
-                                response);
-                return response;
-        }
-
-        /**
-         * Helper để lưu lịch sử phê duyệt nội dung
-         */
-        private void saveApprovalHistory(String contentType, UUID contentId, Account educator, ContentStatus status,
-                        String comment, Object responseDTO) {
-                String contentSnapshot = "";
-                try {
-                        contentSnapshot = objectMapper.writeValueAsString(responseDTO);
-                } catch (Exception e) {
-                        log.error("Failed to serialize {} content snapshot", contentType, e);
-                }
-
-                ContentApprovalHistory history = ContentApprovalHistory.builder()
-                                .contentType(contentType)
-                                .contentId(contentId)
-                                .status(status)
-                                .comment(comment)
-                                .contentSnapshot(contentSnapshot)
-                                .build();
-                history.setCreatedBy(educator.getId().toString());
-                contentApprovalHistoryRepository.save(history);
-        }
-
-        @Transactional(readOnly = true)
-        public List<ContentApprovalHistoryResponse> getContentApprovalHistory(UUID contentId) {
-                return contentApprovalHistoryRepository.findByContentIdOrderByCreatedAtDesc(contentId).stream()
-                                .map(ContentApprovalHistoryResponse::fromEntity)
-                                .collect(Collectors.toList());
-        }
-
-        private Account getAccountByEmail(String email) {
-                return accountRepository.findByEmail(email)
-                                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy tài khoản"));
-        }
-
-        private void validateEducatorOwnership(String educatorEmail, Classroom classroom) {
-                if (!classroom.getEducator().getEmail().equals(educatorEmail)) {
-                        throw new ApiException("FORBIDDEN", "Bạn không có quyền quản lý lớp học này");
-                }
-        }
-
-        private String generateClassCode() {
-                return UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        }
+    }
+
+    private String generateClassCode() {
+        return UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    }
 }

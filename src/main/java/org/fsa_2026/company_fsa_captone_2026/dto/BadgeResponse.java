@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.fsa_2026.company_fsa_captone_2026.entity.Badge;
+import org.fsa_2026.company_fsa_captone_2026.entity.RewardCatalog;
 
 import java.io.Serializable;
 import java.util.Map;
@@ -25,7 +25,19 @@ public class BadgeResponse implements Serializable {
     private String iconUrl;
     private Map<String, Object> criteria;
 
-    public static BadgeResponse fromEntity(Badge badge) {
+    private static final com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> parseCriteria(String json) {
+        if (json == null || json.isEmpty()) return null;
+        try {
+            return objectMapper.readValue(json, Map.class);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public static BadgeResponse fromEntity(RewardCatalog badge) {
         if (badge == null)
             return null;
         return BadgeResponse.builder()
@@ -34,7 +46,7 @@ public class BadgeResponse implements Serializable {
                 .name(badge.getName())
                 .description(badge.getDescription())
                 .iconUrl(badge.getIconUrl())
-                .criteria(badge.getCriteriaJson())
+                .criteria(parseCriteria(badge.getCriteriaJson()))
                 .build();
     }
 }

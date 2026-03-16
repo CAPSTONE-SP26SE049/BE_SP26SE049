@@ -45,4 +45,33 @@
     <!-- Centralized Question Bank Standardization -->
     <include file="17-standardize-challenge-quiz-centralization.xml" relativeToChangelogFile="true"/>
 
+    <!-- Consolidate User Profile into Account -->
+    <include file="18-consolidate-user-profile.xml" relativeToChangelogFile="true"/>
+
+    <!-- Fix missing reward_type in achievement table -->
+    <include file="19-add-reward-type-to-achievement.xml" relativeToChangelogFile="true"/>
+
+    <!-- Fix missing content_snapshot_json in attempt table -->
+    <include file="20-add-content-snapshot-to-attempt.xml" relativeToChangelogFile="true"/>
+
+    <!-- Fix missing quiz_attempt_id in attempt table -->
+    <include file="21-add-quiz-attempt-to-attempt.xml" relativeToChangelogFile="true"/>
+
+    <!-- Make session_id nullable in attempt table -->
+    <include file="22-make-attempt-session-nullable.xml" relativeToChangelogFile="true"/>
+
+    <!-- Finalise Badge Migration (Database) -->
+    <include file="23-merge-badges-data.xml" relativeToChangelogFile="true"/>
+
+    <!-- Merge Prediction & Phoneme Feedback to Attempt (Phase 3) -->
+    <include file="24-merge-prediction-and-phoneme-feedback.xml" relativeToChangelogFile="true"/>
+
+    <!-- Phase 1: Super Entity Merges -->
+    <include file="25-create-and-migrate-content.xml" relativeToChangelogFile="true"/>
+    <include file="26-create-and-migrate-activity.xml" relativeToChangelogFile="true"/>
+    <include file="27-cleanup-and-rename.xml" relativeToChangelogFile="true"/>
+
+    <!-- Finalize merged schema: fix account_reward FK, seed error_tags, restore placement_rule FKs, add indexes -->
+    <include file="28-finalize-merged-schema.xml" relativeToChangelogFile="true"/>
+
 </databaseChangeLog>

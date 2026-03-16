@@ -26,16 +26,13 @@ import java.util.stream.Collectors;
 public class AdminService {
 
     private final AccountRepository accountRepository;
-    private final UserProfileRepository userProfileRepository;
-    private final ChallengeRepository challengeRepository;
-    private final LevelRepository levelRepository;
-    private final DialectRepository dialectRepository;
-    private final AttemptRepository attemptRepository;
+    private final LearningUnitRepository learningUnitRepository;
+    private final ContentItemRepository contentItemRepository;
+    private final StudySessionRepository studySessionRepository;
+    private final SessionDetailRepository sessionDetailRepository;
     private final ContentApprovalHistoryRepository contentApprovalHistoryRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
-    private final ErrorTagRepository errorTagRepository;
-    private final QuizRepository quizRepository;
     private final DailyAnalyticsRepository dailyAnalyticsRepository;
     private final ObjectMapper objectMapper;
 
@@ -70,17 +67,10 @@ public class AdminService {
         // Set properties specifically for Educator
         account.setRoleCode(RoleCode.EDUCATOR);
         account.setEmailVerified(true); // Always verified since admin created it
+        account.setFullName(request.getFullName());
+        account.setAvatarUrl(generateDefaultAvatar(request.getFullName()));
 
         account = accountRepository.save(account);
-
-        // Create UserProfile
-        UserProfile userProfile = UserProfile.builder()
-                .account(account)
-                .fullName(request.getFullName())
-                .avatarUrl(generateDefaultAvatar(request.getFullName()))
-                .build();
-
-        userProfileRepository.save(userProfile);
 
         log.info("Admin created Educator account successfully: email={}", request.getEmail());
 
@@ -142,17 +132,11 @@ public class AdminService {
         if (request.getPhone() != null) {
             account.setPhone(request.getPhone());
         }
-        if (request.getRegion() != null) {
-            account.setRegion(request.getRegion().toUpperCase());
+        if (request.getFullName() != null) {
+            account.setFullName(request.getFullName());
         }
 
         account = accountRepository.save(account);
-
-        UserProfile profile = account.getUserProfile();
-        if (profile != null && request.getFullName() != null) {
-            profile.setFullName(request.getFullName());
-            userProfileRepository.save(profile);
-        }
 
         return UserManagementResponse.fromEntity(account);
     }
@@ -162,7 +146,7 @@ public class AdminService {
     // ==========================================
     @Transactional(readOnly = true)
     public List<ChallengeResponse> getAllChallenges() {
-        return challengeRepository.findAll().stream()
+        return contentItemRepository.findByType("PRONUNCIATION").stream()
                 .map(ChallengeResponse::fromEntity)
                 .collect(Collectors.toList());
     }
@@ -172,19 +156,31 @@ public class AdminService {
      */
     @Transactional
     public ChallengeResponse createChallenge(ChallengeCreateRequest request) {
-        Level level = levelRepository.findById(request.getLevelId())
+        LearningUnit level = learningUnitRepository.findById(request.getLevelId())
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Level"));
 
-        Challenge challenge = new Challenge();
-        challenge.setLevel(level);
-        challenge.setSkillType(request.getSkillType());
-        challenge.setDifficulty(request.getDifficulty());
-        challenge.setContentText(request.getContentText());
-        challenge.setPhoneticTranscriptionIpa(request.getPhoneticTranscriptionIpa());
-        challenge.setReferenceAudioUrl(request.getReferenceAudioUrl());
-        challenge.setFocusPhonemes(request.getFocusPhonemes());
+        ContentItem challenge = new ContentItem();
+        challenge.setLearningUnit(level);
+        challenge.setType("PRONUNCIATION");
+        challenge.setStatus("APPROVED");
+        challenge.setTitle(request.getContentText());
 
-        challenge = challengeRepository.save(challenge);
+        try {
+            Map<String, Object> metadata = new java.util.HashMap<>();
+            metadata.put("skill_type", request.getSkillType());
+            if (request.getDifficulty() != null) {
+                metadata.put("difficulty", request.getDifficulty().name());
+            }
+            metadata.put("content_text", request.getContentText());
+            metadata.put("phonetic_transcription_ipa", request.getPhoneticTranscriptionIpa());
+            metadata.put("reference_audio_url", request.getReferenceAudioUrl());
+            metadata.put("focus_phonemes", request.getFocusPhonemes());
+            challenge.setMetadataJson(objectMapper.writeValueAsString(metadata));
+        } catch (Exception e) {
+            log.error("Failed to serialize Challenge metadata", e);
+        }
+
+        challenge = contentItemRepository.save(challenge);
         return ChallengeResponse.fromEntity(challenge);
     }
 
@@ -193,21 +189,31 @@ public class AdminService {
      */
     @Transactional
     public ChallengeResponse updateChallenge(UUID id, ChallengeCreateRequest request) {
-        Challenge challenge = challengeRepository.findById(id)
+        ContentItem challenge = contentItemRepository.findById(id)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Challenge"));
 
-        Level level = levelRepository.findById(request.getLevelId())
+        LearningUnit level = learningUnitRepository.findById(request.getLevelId())
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Level"));
 
-        challenge.setLevel(level);
-        challenge.setSkillType(request.getSkillType());
-        challenge.setDifficulty(request.getDifficulty());
-        challenge.setContentText(request.getContentText());
-        challenge.setPhoneticTranscriptionIpa(request.getPhoneticTranscriptionIpa());
-        challenge.setReferenceAudioUrl(request.getReferenceAudioUrl());
-        challenge.setFocusPhonemes(request.getFocusPhonemes());
+        challenge.setLearningUnit(level);
+        challenge.setTitle(request.getContentText());
 
-        challenge = challengeRepository.save(challenge);
+        try {
+            Map<String, Object> metadata = new java.util.HashMap<>();
+            metadata.put("skill_type", request.getSkillType());
+            if (request.getDifficulty() != null) {
+                metadata.put("difficulty", request.getDifficulty().name());
+            }
+            metadata.put("content_text", request.getContentText());
+            metadata.put("phonetic_transcription_ipa", request.getPhoneticTranscriptionIpa());
+            metadata.put("reference_audio_url", request.getReferenceAudioUrl());
+            metadata.put("focus_phonemes", request.getFocusPhonemes());
+            challenge.setMetadataJson(objectMapper.writeValueAsString(metadata));
+        } catch (Exception e) {
+            log.error("Failed to update Challenge metadata", e);
+        }
+
+        challenge = contentItemRepository.save(challenge);
         return ChallengeResponse.fromEntity(challenge);
     }
 
@@ -223,37 +229,56 @@ public class AdminService {
 
     @Transactional(readOnly = true)
     public ChallengeResponse getChallengeById(UUID id) {
-        Challenge challenge = challengeRepository.findById(id)
+        ContentItem challenge = contentItemRepository.findById(id)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Challenge"));
         return ChallengeResponse.fromEntity(challenge);
     }
 
     @Transactional
     public DialectResponse createDialect(DialectCreateRequest request) {
-        Dialect dialect = Dialect.builder()
+        LearningUnit dialect = LearningUnit.builder()
                 .name(request.getName())
-                .description(request.getDescription())
+                .type("DIALECT")
                 .build();
-        return DialectResponse.fromEntity(dialectRepository.save(dialect));
+        
+        try {
+            Map<String, Object> metadata = new java.util.HashMap<>();
+            metadata.put("description", request.getDescription());
+            dialect.setMetadataJson(objectMapper.writeValueAsString(metadata));
+        } catch (Exception e) {
+            log.error("Failed to serialize Dialect metadata", e);
+        }
+
+        return DialectResponse.fromEntity(learningUnitRepository.save(dialect));
     }
 
     @Transactional
     public DialectResponse updateDialect(UUID id, DialectCreateRequest request) {
-        Dialect dialect = dialectRepository.findById(id)
+        LearningUnit dialect = learningUnitRepository.findById(id)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Dialect"));
 
         dialect.setName(request.getName());
-        dialect.setDescription(request.getDescription());
+        
+        try {
+            Map<String, Object> metadata = new java.util.HashMap<>();
+            if (dialect.getMetadataJson() != null) {
+                metadata = objectMapper.readValue(dialect.getMetadataJson(), Map.class);
+            }
+            metadata.put("description", request.getDescription());
+            dialect.setMetadataJson(objectMapper.writeValueAsString(metadata));
+        } catch (Exception e) {
+            log.error("Failed to update Dialect metadata", e);
+        }
 
-        return DialectResponse.fromEntity(dialectRepository.save(dialect));
+        return DialectResponse.fromEntity(learningUnitRepository.save(dialect));
     }
 
     @Transactional
     public void deleteDialect(UUID id) {
-        if (!dialectRepository.existsById(id)) {
+        if (!learningUnitRepository.existsById(id)) {
             throw new ApiException("NOT_FOUND", "Không tìm thấy Dialect");
         }
-        dialectRepository.deleteById(id);
+        learningUnitRepository.deleteById(id);
     }
 
     // ==========================================
@@ -262,135 +287,136 @@ public class AdminService {
 
     @Transactional(readOnly = true)
     public List<LevelResponse> getAllLevels() {
-        return levelRepository.findAll().stream()
+        return learningUnitRepository.findAll().stream()
+                .filter(unit -> "LEVEL".equals(unit.getType()))
                 .map(LevelResponse::fromEntity)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public LevelResponse getLevelById(UUID id) {
-        Level level = levelRepository.findById(id)
+        LearningUnit level = learningUnitRepository.findById(id)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Level"));
         return LevelResponse.fromEntity(level);
     }
 
     @Transactional
     public LevelResponse createLevel(LevelCreateRequest request) {
-        Dialect dialect = dialectRepository.findById(request.getDialectId())
+        LearningUnit dialect = learningUnitRepository.findById(request.getDialectId())
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Dialect"));
 
-        org.fsa_2026.company_fsa_captone_2026.entity.ErrorTag errorTag = null;
-        if (request.getErrorTagId() != null) {
-            errorTag = errorTagRepository.findById(request.getErrorTagId())
-                    .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Error Tag"));
-        }
-
-        Level level = Level.builder()
-                .dialect(dialect)
-                .levelOrder(request.getLevelOrder())
+        LearningUnit level = LearningUnit.builder()
+                .parent(dialect)
                 .name(request.getName())
-                .description(request.getDescription())
-                .minStarsRequired(request.getMinStarsRequired() != null ? request.getMinStarsRequired() : 0)
-                .errorTag(errorTag)
+                .type("LEVEL")
                 .build();
 
-        return LevelResponse.fromEntity(levelRepository.save(level));
+        try {
+            Map<String, Object> metadata = new java.util.HashMap<>();
+            metadata.put("level_order", request.getLevelOrder());
+            metadata.put("description", request.getDescription());
+            metadata.put("min_stars_required", request.getMinStarsRequired() != null ? request.getMinStarsRequired() : 0);
+            if (request.getErrorTagId() != null) {
+                metadata.put("error_tag_id", request.getErrorTagId().toString());
+            }
+            level.setMetadataJson(objectMapper.writeValueAsString(metadata));
+        } catch (Exception e) {
+            log.error("Failed to serialize Level metadata", e);
+        }
+
+        return LevelResponse.fromEntity(learningUnitRepository.save(level));
     }
 
     @Transactional
     public LevelResponse updateLevel(UUID id, LevelCreateRequest request) {
-        Level level = levelRepository.findById(id)
+        LearningUnit level = learningUnitRepository.findById(id)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Level"));
 
-        if (!level.getDialect().getId().equals(request.getDialectId())) {
-            Dialect dialect = dialectRepository.findById(request.getDialectId())
+        if (level.getParent() == null || !level.getParent().getId().equals(request.getDialectId())) {
+            LearningUnit dialect = learningUnitRepository.findById(request.getDialectId())
                     .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Dialect"));
-            level.setDialect(dialect);
+            level.setParent(dialect);
         }
 
-        level.setLevelOrder(request.getLevelOrder());
         level.setName(request.getName());
-        level.setDescription(request.getDescription());
-        if (request.getMinStarsRequired() != null) {
-            level.setMinStarsRequired(request.getMinStarsRequired());
+
+        try {
+            Map<String, Object> metadata = new java.util.HashMap<>();
+            if (level.getMetadataJson() != null) {
+                metadata = objectMapper.readValue(level.getMetadataJson(), Map.class);
+            }
+            metadata.put("level_order", request.getLevelOrder());
+            metadata.put("description", request.getDescription());
+            if (request.getMinStarsRequired() != null) {
+                metadata.put("min_stars_required", request.getMinStarsRequired());
+            }
+            if (request.getErrorTagId() != null) {
+                metadata.put("error_tag_id", request.getErrorTagId().toString());
+            }
+            level.setMetadataJson(objectMapper.writeValueAsString(metadata));
+        } catch (Exception e) {
+            log.error("Failed to update Level metadata", e);
         }
 
-        if (request.getErrorTagId() != null) {
-            org.fsa_2026.company_fsa_captone_2026.entity.ErrorTag errorTag = errorTagRepository
-                    .findById(request.getErrorTagId())
-                    .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Error Tag"));
-            level.setErrorTag(errorTag);
-        } else {
-            level.setErrorTag(null);
-        }
-
-        return LevelResponse.fromEntity(levelRepository.save(level));
+        return LevelResponse.fromEntity(learningUnitRepository.save(level));
     }
 
     @Transactional(readOnly = true)
     public List<LevelResponse> getPendingLevels() {
-        return levelRepository.findAll().stream()
-                .filter(level -> org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.PENDING
-                        .equals(level.getStatus()))
+        return learningUnitRepository.findByType("LEVEL").stream()
+                .filter(unit -> {
+                    try {
+                        if (unit.getMetadataJson() != null) {
+                            Map<String, Object> metadata = objectMapper.readValue(unit.getMetadataJson(), Map.class);
+                            return "PENDING".equals(metadata.get("status"));
+                        }
+                    } catch (Exception e) { }
+                    return false;
+                })
                 .map(LevelResponse::fromEntity)
                 .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
+        @Transactional(readOnly = true)
     public List<ChallengeResponse> getPendingChallenges() {
-        return challengeRepository.findAll().stream()
-                .filter(challenge -> org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.PENDING
-                        .equals(challenge.getStatus()))
+        return contentItemRepository.findAll().stream()
+                .filter(item -> "PRONUNCIATION".equals(item.getType()) && "PENDING".equals(item.getStatus()))
                 .map(ChallengeResponse::fromEntity)
                 .collect(Collectors.toList());
     }
 
-    @Transactional
+        @Transactional
     public LevelResponse reviewLevel(UUID id, org.fsa_2026.company_fsa_captone_2026.dto.ContentReviewRequest request) {
-        Level level = levelRepository.findById(id)
+        LearningUnit level = learningUnitRepository.findById(id)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Level"));
 
-        Level targetLevel = level;
-        if (org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.APPROVED.equals(request.getStatus())) {
-            if (level.getParent() != null) {
-                targetLevel = level.getParent();
-                targetLevel.setDialect(level.getDialect());
-                targetLevel.setLevelOrder(level.getLevelOrder());
-                targetLevel.setName(level.getName());
-                targetLevel.setDescription(level.getDescription());
-                targetLevel.setMinStarsRequired(level.getMinStarsRequired());
-                targetLevel.setErrorTag(level.getErrorTag());
-                targetLevel.setAiThreshold(level.getAiThreshold());
-                targetLevel.setAudioUrl(level.getAudioUrl());
-                targetLevel.setDraft(null);
-
-                levelRepository.delete(level);
-            } else {
-                targetLevel.setStatus(request.getStatus());
-                targetLevel.setRejectionReason(null);
+        try {
+            java.util.Map<String, Object> metadata = new java.util.HashMap<>();
+            if (level.getMetadataJson() != null) {
+                metadata = objectMapper.readValue(level.getMetadataJson(), java.util.Map.class);
             }
-        } else if (org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.REJECTED
-                .equals(request.getStatus())) {
-            targetLevel.setStatus(request.getStatus());
-            targetLevel.setRejectionReason(request.getRejectionReason());
-        } else {
-            targetLevel.setStatus(request.getStatus());
-            targetLevel.setRejectionReason(null);
+            metadata.put("status", request.getStatus().name());
+            if (org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.REJECTED.equals(request.getStatus())) {
+                metadata.put("rejection_reason", request.getRejectionReason());
+            } else {
+                metadata.remove("rejection_reason");
+            }
+            level.setMetadataJson(objectMapper.writeValueAsString(metadata));
+        } catch (Exception e) {
+            log.error("Failed to update Level status", e);
         }
 
-        targetLevel = levelRepository.save(targetLevel);
+        level = learningUnitRepository.save(level);
 
+        // Record history
         String contentSnapshot = "";
         try {
-            contentSnapshot = objectMapper.writeValueAsString(LevelResponse.fromEntity(targetLevel));
-        } catch (Exception e) {
-            log.error("Failed to serialize Level content snapshot", e);
-        }
+            contentSnapshot = objectMapper.writeValueAsString(LevelResponse.fromEntity(level));
+        } catch (Exception e) { }
 
-        UUID historyContentId = (level.getParent() != null) ? level.getParent().getId() : level.getId();
         ContentApprovalHistory history = ContentApprovalHistory.builder()
                 .contentType("LEVEL")
-                .contentId(historyContentId)
+                .contentId(level.getId())
                 .status(request.getStatus())
                 .comment(request.getComment() != null && !request.getComment().isBlank() ? request.getComment()
                         : request.getRejectionReason())
@@ -398,55 +424,38 @@ public class AdminService {
                 .build();
         contentApprovalHistoryRepository.save(history);
 
-        return LevelResponse.fromEntity(targetLevel);
+        return LevelResponse.fromEntity(level);
     }
 
-    @Transactional
-    public ChallengeResponse reviewChallenge(UUID id,
-            org.fsa_2026.company_fsa_captone_2026.dto.ContentReviewRequest request) {
-        Challenge challenge = challengeRepository.findById(id)
+        @Transactional
+    public ChallengeResponse reviewChallenge(UUID id, org.fsa_2026.company_fsa_captone_2026.dto.ContentReviewRequest request) {
+        ContentItem challenge = contentItemRepository.findById(id)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Challenge"));
 
-        Challenge targetChallenge = challenge;
-        if (org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.APPROVED.equals(request.getStatus())) {
-            if (challenge.getParent() != null) {
-                targetChallenge = challenge.getParent();
-                targetChallenge.setLevel(challenge.getLevel());
-                targetChallenge.setSkillType(challenge.getSkillType());
-                targetChallenge.setDifficulty(challenge.getDifficulty());
-                targetChallenge.setContentText(challenge.getContentText());
-                targetChallenge.setPhoneticTranscriptionIpa(challenge.getPhoneticTranscriptionIpa());
-                targetChallenge.setReferenceAudioUrl(challenge.getReferenceAudioUrl());
-                targetChallenge.setFocusPhonemes(challenge.getFocusPhonemes());
-                targetChallenge.setDraft(null);
+        challenge.setStatus(request.getStatus().name());
 
-                challengeRepository.delete(challenge);
-            } else {
-                targetChallenge.setStatus(request.getStatus());
-                targetChallenge.setRejectionReason(null);
-            }
-        } else if (org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.REJECTED
-                .equals(request.getStatus())) {
-            targetChallenge.setStatus(request.getStatus());
-            targetChallenge.setRejectionReason(request.getRejectionReason());
-        } else {
-            targetChallenge.setStatus(request.getStatus());
-            targetChallenge.setRejectionReason(null);
+        if (org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.REJECTED.name().equals(request.getStatus().name())) {
+            try {
+                java.util.Map<String, Object> metadata = new java.util.HashMap<>();
+                if (challenge.getMetadataJson() != null) {
+                    metadata = objectMapper.readValue(challenge.getMetadataJson(), java.util.Map.class);
+                }
+                metadata.put("rejection_reason", request.getRejectionReason());
+                challenge.setMetadataJson(objectMapper.writeValueAsString(metadata));
+            } catch (Exception e) { }
         }
 
-        targetChallenge = challengeRepository.save(targetChallenge);
+        challenge = contentItemRepository.save(challenge);
 
+        // Record history
         String contentSnapshot = "";
         try {
-            contentSnapshot = objectMapper.writeValueAsString(ChallengeResponse.fromEntity(targetChallenge));
-        } catch (Exception e) {
-            log.error("Failed to serialize Challenge content snapshot", e);
-        }
+            contentSnapshot = objectMapper.writeValueAsString(ChallengeResponse.fromEntity(challenge));
+        } catch (Exception e) { }
 
-        UUID historyContentId = (challenge.getParent() != null) ? challenge.getParent().getId() : challenge.getId();
         ContentApprovalHistory history = ContentApprovalHistory.builder()
                 .contentType("CHALLENGE")
-                .contentId(historyContentId)
+                .contentId(challenge.getId())
                 .status(request.getStatus())
                 .comment(request.getComment() != null && !request.getComment().isBlank() ? request.getComment()
                         : request.getRejectionReason())
@@ -454,90 +463,53 @@ public class AdminService {
                 .build();
         contentApprovalHistoryRepository.save(history);
 
-        return ChallengeResponse.fromEntity(targetChallenge);
+        return ChallengeResponse.fromEntity(challenge);
     }
 
-    @Transactional(readOnly = true)
+        @Transactional(readOnly = true)
     public List<QuizResponse> getPendingQuizzes() {
-        return quizRepository.findAll().stream()
-                .filter(quiz -> org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.PENDING
-                        .equals(quiz.getStatus()))
+        return contentItemRepository.findAll().stream()
+                .filter(item -> "QUIZ".equals(item.getType()) && "PENDING".equals(item.getStatus()))
                 .map(QuizResponse::fromEntity)
                 .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
+        @Transactional(readOnly = true)
     public QuizResponse getQuizById(UUID id) {
-        Quiz quiz = quizRepository.findById(id)
+        ContentItem quiz = contentItemRepository.findById(id)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Quiz"));
         return QuizResponse.fromEntity(quiz);
     }
 
-    @Transactional
+        @Transactional
     public QuizResponse reviewQuiz(UUID id, org.fsa_2026.company_fsa_captone_2026.dto.ContentReviewRequest request) {
-        Quiz quiz = quizRepository.findById(id)
+        ContentItem quiz = contentItemRepository.findById(id)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Quiz"));
 
-        Quiz targetQuiz = quiz;
-        if (org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.APPROVED.equals(request.getStatus())) {
-            if (quiz.getParent() != null) {
-                targetQuiz = quiz.getParent();
-                targetQuiz.setLevel(quiz.getLevel());
-                targetQuiz.setTitle(quiz.getTitle());
-                targetQuiz.setDescription(quiz.getDescription());
-                targetQuiz.setInstructions(quiz.getInstructions());
-                targetQuiz.setPassingScore(quiz.getPassingScore());
-                targetQuiz.setTimeLimitMinutes(quiz.getTimeLimitMinutes());
-                targetQuiz.setQuestionCount(quiz.getQuestionCount());
-                
-                if (targetQuiz.getQuestions() != null) {
-                    targetQuiz.getQuestions().clear();
-                } else {
-                    targetQuiz.setQuestions(new ArrayList<>());
+        quiz.setStatus(request.getStatus().name());
+
+        if (org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.REJECTED.name().equals(request.getStatus().name())) {
+            try {
+                java.util.Map<String, Object> metadata = new java.util.HashMap<>();
+                if (quiz.getMetadataJson() != null) {
+                    metadata = objectMapper.readValue(quiz.getMetadataJson(), java.util.Map.class);
                 }
-                
-                if (quiz.getQuestions() != null) {
-                    final Quiz finalTarget = targetQuiz;
-                    List<QuizQuestion> newQs = quiz.getQuestions().stream()
-                        .map(q -> QuizQuestion.builder()
-                            .quiz(finalTarget)
-                            .skillType(q.getSkillType())
-                            .difficulty(q.getDifficulty())
-                            .questionOrder(q.getQuestionOrder())
-                            .points(q.getPoints())
-                            .challenge(q.getChallenge())
-                            .build())
-                        .collect(Collectors.toList());
-                    targetQuiz.getQuestions().addAll(newQs);
-                }
-                
-                targetQuiz.setDraft(null);
-                quizRepository.delete(quiz);
-            } else {
-                targetQuiz.setStatus(request.getStatus());
-                targetQuiz.setRejectionReason(null);
-            }
-        } else if (org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.REJECTED.equals(request.getStatus())) {
-            targetQuiz.setStatus(request.getStatus());
-            targetQuiz.setRejectionReason(request.getRejectionReason());
-        } else {
-            targetQuiz.setStatus(request.getStatus());
-            targetQuiz.setRejectionReason(null);
+                metadata.put("rejection_reason", request.getRejectionReason());
+                quiz.setMetadataJson(objectMapper.writeValueAsString(metadata));
+            } catch (Exception e) { }
         }
 
-        targetQuiz = quizRepository.save(targetQuiz);
+        quiz = contentItemRepository.save(quiz);
 
+        // Record history
         String contentSnapshot = "";
         try {
-            contentSnapshot = objectMapper.writeValueAsString(QuizResponse.fromEntity(targetQuiz));
-        } catch (Exception e) {
-            log.error("Failed to serialize Quiz content snapshot", e);
-        }
+            contentSnapshot = objectMapper.writeValueAsString(QuizResponse.fromEntity(quiz));
+        } catch (Exception e) { }
 
-        UUID historyContentId = (quiz.getParent() != null) ? quiz.getParent().getId() : quiz.getId();
         ContentApprovalHistory history = ContentApprovalHistory.builder()
                 .contentType("QUIZ")
-                .contentId(historyContentId)
+                .contentId(quiz.getId())
                 .status(request.getStatus())
                 .comment(request.getComment() != null && !request.getComment().isBlank() ? request.getComment()
                         : request.getRejectionReason())
@@ -545,7 +517,7 @@ public class AdminService {
                 .build();
         contentApprovalHistoryRepository.save(history);
 
-        return QuizResponse.fromEntity(targetQuiz);
+        return QuizResponse.fromEntity(quiz);
     }
 
     @Transactional(readOnly = true)
@@ -555,18 +527,18 @@ public class AdminService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional
+        @Transactional
     public void deleteLevel(UUID id) {
-        if (!levelRepository.existsById(id)) {
+        if (!learningUnitRepository.existsById(id)) {
             throw new ApiException("NOT_FOUND", "Không tìm thấy Level");
         }
-        levelRepository.deleteById(id);
+        learningUnitRepository.deleteById(id);
     }
 
     /**
      * Get Analytics Overview from DB using DailyAnalytics table to cache data
      */
-    @Transactional
+        @Transactional
     public AnalyticsOverviewResponse getAnalyticsOverview() {
         LocalDate today = LocalDate.now();
         Optional<DailyAnalytics> analyticsOpt = dailyAnalyticsRepository.findByRecordDate(today);
@@ -575,15 +547,14 @@ public class AdminService {
         if (analyticsOpt.isPresent()) {
             analytics = analyticsOpt.get(); // Trả về data đã gom trong ngày để tránh query lớn
         } else {
-            // Chỉ query nặng 1 lần đầu tiên trong ngày
             long totalUsers = accountRepository.count();
-            long totalAttempts = attemptRepository.count();
+            // TODO: Update analytics with proper JSONB aggregation for scores if needed
+            long totalAttempts = studySessionRepository.count();
 
-            Double avgScore = attemptRepository.findAverageScore();
-            double averageScore = avgScore != null ? Math.round(avgScore.doubleValue() * 10.0) / 10.0 : 0.0;
+            double averageScore = 0.0; // Placeholder due to schema change
 
             java.time.Instant sevenDaysAgo = java.time.Instant.now().minus(7, java.time.temporal.ChronoUnit.DAYS);
-            long activeUsers7Days = attemptRepository.countDistinctAccountByCreatedAtAfter(sevenDaysAgo);
+            long activeUsers7Days = studySessionRepository.countDistinctAccountByStartedAtAfter(sevenDaysAgo);
 
             analytics = new DailyAnalytics();
             analytics.setRecordDate(today);
@@ -592,7 +563,6 @@ public class AdminService {
             analytics.setAverageScore(averageScore);
             analytics.setActiveUsers(activeUsers7Days);
 
-            // Lưu lại vào bảng để gom dữ liệu
             analytics = dailyAnalyticsRepository.save(analytics);
         }
 

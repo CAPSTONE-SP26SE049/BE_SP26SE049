@@ -5,10 +5,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.fsa_2026.company_fsa_captone_2026.dto.AccountBadgeResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.BadgeResponse;
 import org.fsa_2026.company_fsa_captone_2026.entity.Account;
+import org.fsa_2026.company_fsa_captone_2026.entity.enums.RewardType;
 import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
-import org.fsa_2026.company_fsa_captone_2026.repository.AccountBadgeRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
-import org.fsa_2026.company_fsa_captone_2026.repository.BadgeRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.AccountRewardRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.RewardCatalogRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,13 +21,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class BadgeService {
 
-    private final BadgeRepository badgeRepository;
-    private final AccountBadgeRepository accountBadgeRepository;
+    private final RewardCatalogRepository rewardCatalogRepository;
+    private final AccountRewardRepository accountRewardRepository;
     private final AccountRepository accountRepository;
 
     @Transactional(readOnly = true)
     public List<BadgeResponse> getAllBadges() {
-        return badgeRepository.findAll()
+        return rewardCatalogRepository.findByRewardTypeAndIsActiveTrue(RewardType.BADGE)
                 .stream()
                 .map(BadgeResponse::fromEntity)
                 .collect(Collectors.toList());
@@ -37,7 +38,7 @@ public class BadgeService {
         Account account = accountRepository.findByEmail(email)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Người dùng không tồn tại"));
 
-        return accountBadgeRepository.findByAccountId(account.getId())
+        return accountRewardRepository.findByAccountIdAndRewardType(account.getId(), RewardType.BADGE)
                 .stream()
                 .map(AccountBadgeResponse::fromEntity)
                 .collect(Collectors.toList());

@@ -1,9 +1,9 @@
-package com.example.starter_project_2025.base.crud;
+package org.fsa_2026.company_fsa_captone_2026.base.crud;
 
-import com.example.starter_project_2025.base.crud.dto.CrudDto;
-import com.example.starter_project_2025.base.spec.AutoSpecBuilder;
-import com.example.starter_project_2025.exception.BadRequestException;
-import com.example.starter_project_2025.exception.ResourceNotFoundException;
+import org.fsa_2026.company_fsa_captone_2026.base.crud.dto.CrudDto;
+import org.fsa_2026.company_fsa_captone_2026.base.spec.AutoSpecBuilder;
+import org.fsa_2026.company_fsa_captone_2026.exception.BadRequestException;
+import org.fsa_2026.company_fsa_captone_2026.exception.ResourceNotFoundException;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,7 +90,7 @@ public abstract class BaseCrudServiceImpl<
 
     protected Page<D> getAllEntity(Pageable pageable,String search, F filter) {
 
-        Specification<E> spec = Specification.where(null);
+        Specification<E> spec = Specification.where((Specification<E>) null);
 
         Specification<E> filterSpec = autoSpecBuilder.build(filter);
         Specification<E> searchSpec = buildSearchSpec(search);

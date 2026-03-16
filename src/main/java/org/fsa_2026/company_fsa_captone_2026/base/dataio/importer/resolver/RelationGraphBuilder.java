@@ -1,7 +1,7 @@
-package com.example.starter_project_2025.base.dataio.importer.resolver;
+package org.fsa_2026.company_fsa_captone_2026.base.dataio.importer.resolver;
 
-import com.example.starter_project_2025.base.dataio.importer.annotation.ImportField;
-import com.example.starter_project_2025.base.dataio.importer.parser.RelationPathParser;
+import org.fsa_2026.company_fsa_captone_2026.base.dataio.importer.annotation.ImportField;
+import org.fsa_2026.company_fsa_captone_2026.base.dataio.importer.parser.RelationPathParser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

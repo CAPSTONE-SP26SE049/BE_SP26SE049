@@ -19,7 +19,7 @@ public class EducatorFeedback extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "attempt_id", nullable = false)
-    private Attempt attempt;
+    private SessionDetail sessionDetail;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "educator_id", nullable = false)

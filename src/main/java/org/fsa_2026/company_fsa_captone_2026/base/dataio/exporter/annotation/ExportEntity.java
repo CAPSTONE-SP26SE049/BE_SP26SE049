@@ -1,4 +1,4 @@
-package com.example.starter_project_2025.base.dataio.exporter.annotation;
+package org.fsa_2026.company_fsa_captone_2026.base.dataio.exporter.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

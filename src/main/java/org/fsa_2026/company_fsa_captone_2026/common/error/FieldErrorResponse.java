@@ -1,4 +1,4 @@
-package com.example.starter_project_2025.system.common.error;
+package org.fsa_2026.company_fsa_captone_2026.common.error;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;

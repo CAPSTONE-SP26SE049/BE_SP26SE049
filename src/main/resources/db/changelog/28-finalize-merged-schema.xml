@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- =========================================================
+         Migration 28 – Finalize Merged Schema
+         Covers:
+           1. Social Group  : rename achievement_id → reward_catalog_id
+           2. Content Group : seed error_tag records into learning_unit
+           3. PlacementRule : restore FK constraints to learning_unit
+           4. Indexes       : add performance indexes for new super-tables
+         ========================================================= -->
+
+    <!-- ─────────────────────────────────────────────────────────
+         1. SOCIAL GROUP – Fix account_reward column & FK
+         ──────────────────────────────────────────────────────── -->
+
+    <!-- Drop the old FK before renaming the column it is on.
+         The constraint was created in migration 14 as fk_acct_achievement_achievement.
+         After renameTable (migration 27) it still exists but the column name is wrong. -->
+    <changeSet id="28-drop-old-achievement-fk" author="antigravity">
+        <dropForeignKeyConstraint
+                baseTableName="account_reward"
+                constraintName="fk_acct_achievement_achievement"/>
+    </changeSet>
+
+    <!-- Rename the column so it matches the new entity field name -->
+    <changeSet id="28-rename-achievement-id-to-reward-catalog-id" author="antigravity">
+        <renameColumn
+                tableName="account_reward"
+                oldColumnName="achievement_id"
+                newColumnName="reward_catalog_id"
+                columnDataType="UUID"/>
+    </changeSet>
+
+    <!-- Re-add FK with the new name -->
+    <changeSet id="28-add-account-reward-fk" author="antigravity">
+        <addForeignKeyConstraint
+                baseTableName="account_reward"
+                baseColumnNames="reward_catalog_id"
+                constraintName="fk_account_reward_catalog"
+                referencedTableName="reward_catalog"
+                referencedColumnNames="id"/>
+    </changeSet>
+
+    <!-- ─────────────────────────────────────────────────────────
+         2. CONTENT GROUP – Seed known error_tag records into
+            learning_unit so placement_rule FKs can be restored.
+            Migration 27 dropped the error_tag table before this
+            migration could run, so we re-insert the known records
+            using the exact same UUIDs that were used as seeds in
+            migrations 08 and 13.
+         ──────────────────────────────────────────────────────── -->
+    <changeSet id="28-seed-error-tags-into-learning-unit" author="antigravity">
+        <sql>
+            -- Migration-08 error tags (uuid_generate_v4() was used so IDs were random;
+            -- we assign stable fixed UUIDs here for referential integrity going forward).
+            INSERT INTO learning_unit (id, name, type, metadata_json, created_at, updated_at)
+            VALUES
+                ('00000000-0000-0000-0003-000000000001',
+                 'Ngọng L - N', 'ERROR_TAG',
+                 '{"tag_code":"L_N","description":"Lỗi phát âm nhầm lẫn giữa L và N phổ biến ở miền Bắc"}',
+                 NOW(), NOW()),
+
+                ('00000000-0000-0000-0003-000000000002',
+                 'Ngọng S - X', 'ERROR_TAG',
+                 '{"tag_code":"S_X","description":"Lỗi phát âm chưa phân biệt âm cuốn lưỡi S và X"}',
+                 NOW(), NOW()),
+
+                ('00000000-0000-0000-0003-000000000003',
+                 'Ngọng CH - TR', 'ERROR_TAG',
+                 '{"tag_code":"CH_TR","description":"Lỗi phát âm nhầm lẫn giữa CH và TR"}',
+                 NOW(), NOW()),
+
+                -- Migration-13 error tags (had fixed UUIDs – preserve them exactly)
+                ('00000000-0000-0000-0002-000000000001',
+                 'Lẫn lộn V - D', 'ERROR_TAG',
+                 '{"tag_code":"V_D_CONFUSION","description":"Lỗi phát âm nhầm lẫn giữa V và D phổ biến ở miền Nam và Trung"}',
+                 NOW(), NOW()),
+
+                ('00000000-0000-0000-0002-000000000002',
+                 'Sai thanh hỏi/ngã', 'ERROR_TAG',
+                 '{"tag_code":"TONE_INTERROGATIVE","description":"Lỗi phát âm không phân biệt rõ thanh hỏi và thanh ngã"}',
+                 NOW(), NOW())
+
+            ON CONFLICT (id) DO NOTHING;
+        </sql>
+    </changeSet>
+
+    <!-- ─────────────────────────────────────────────────────────
+         3. PLACEMENT_RULE – Restore FK constraints
+            Both dialect_id and error_tag_id FK constraints were
+            dropped when migration 27 did cascadeConstraints drops
+            of the dialect and error_tag tables.
+         ──────────────────────────────────────────────────────── -->
+
+    <!-- Remove rows referencing dialects or error_tags that were
+         not successfully migrated into learning_unit. -->
+    <changeSet id="28-cleanup-orphaned-placement-rules" author="antigravity">
+        <sql>
+            DELETE FROM placement_rule
+            WHERE dialect_id NOT IN (
+                SELECT id FROM learning_unit WHERE type = 'DIALECT'
+            );
+
+            DELETE FROM placement_rule
+            WHERE error_tag_id NOT IN (
+                SELECT id FROM learning_unit WHERE type = 'ERROR_TAG'
+            );
+        </sql>
+    </changeSet>
+
+    <changeSet id="28-add-placement-rule-fks" author="antigravity">
+        <addForeignKeyConstraint
+                baseTableName="placement_rule"
+                baseColumnNames="dialect_id"
+                constraintName="fk_placement_rule_dialect"
+                referencedTableName="learning_unit"
+                referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint
+                baseTableName="placement_rule"
+                baseColumnNames="error_tag_id"
+                constraintName="fk_placement_rule_error_tag"
+                referencedTableName="learning_unit"
+                referencedColumnNames="id"/>
+    </changeSet>
+
+    <!-- ─────────────────────────────────────────────────────────
+         4. EDUCATOR_FEEDBACK – Restore FK after attempt table drop
+            The old FK fk_educator_feedback_attempt was cascade-dropped
+            when migration 27 dropped the attempt table.
+            Now point attempt_id → session_detail.id
+         ──────────────────────────────────────────────────────── -->
+    <changeSet id="28-add-educator-feedback-fk" author="antigravity">
+        <addForeignKeyConstraint
+                baseTableName="educator_feedback"
+                baseColumnNames="attempt_id"
+                constraintName="fk_educator_feedback_session_detail"
+                referencedTableName="session_detail"
+                referencedColumnNames="id"/>
+    </changeSet>
+
+    <!-- ─────────────────────────────────────────────────────────
+         5. INDEXES – Performance indexes for all merged tables
+         ──────────────────────────────────────────────────────── -->
+    <changeSet id="28-add-performance-indexes" author="antigravity">
+
+        <!-- learning_unit -->
+        <createIndex indexName="idx_learning_unit_type" tableName="learning_unit">
+            <column name="type"/>
+        </createIndex>
+        <createIndex indexName="idx_learning_unit_parent_id" tableName="learning_unit">
+            <column name="parent_id"/>
+        </createIndex>
+
+        <!-- content_item -->
+        <createIndex indexName="idx_content_item_learning_unit_id" tableName="content_item">
+            <column name="learning_unit_id"/>
+        </createIndex>
+        <createIndex indexName="idx_content_item_type" tableName="content_item">
+            <column name="type"/>
+        </createIndex>
+        <createIndex indexName="idx_content_item_status" tableName="content_item">
+            <column name="status"/>
+        </createIndex>
+        <createIndex indexName="idx_content_item_type_status" tableName="content_item">
+            <column name="type"/>
+            <column name="status"/>
+        </createIndex>
+
+        <!-- study_session -->
+        <createIndex indexName="idx_study_session_account_id" tableName="study_session">
+            <column name="account_id"/>
+        </createIndex>
+        <createIndex indexName="idx_study_session_session_type" tableName="study_session">
+            <column name="session_type"/>
+        </createIndex>
+        <createIndex indexName="idx_study_session_started_at" tableName="study_session">
+            <column name="started_at"/>
+        </createIndex>
+        <createIndex indexName="idx_study_session_account_type" tableName="study_session">
+            <column name="account_id"/>
+            <column name="session_type"/>
+        </createIndex>
+
+        <!-- session_detail -->
+        <createIndex indexName="idx_session_detail_session_id" tableName="session_detail">
+            <column name="session_id"/>
+        </createIndex>
+        <createIndex indexName="idx_session_detail_content_item_id" tableName="session_detail">
+            <column name="content_item_id"/>
+        </createIndex>
+        <createIndex indexName="idx_session_detail_created_at" tableName="session_detail">
+            <column name="created_at"/>
+        </createIndex>
+
+        <!-- reward_catalog -->
+        <createIndex indexName="idx_reward_catalog_reward_type" tableName="reward_catalog">
+            <column name="reward_type"/>
+        </createIndex>
+        <createIndex indexName="idx_reward_catalog_is_active" tableName="reward_catalog">
+            <column name="is_active"/>
+        </createIndex>
+
+        <!-- account_reward -->
+        <createIndex indexName="idx_account_reward_account_id" tableName="account_reward">
+            <column name="account_id"/>
+        </createIndex>
+        <createIndex indexName="idx_account_reward_status" tableName="account_reward">
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

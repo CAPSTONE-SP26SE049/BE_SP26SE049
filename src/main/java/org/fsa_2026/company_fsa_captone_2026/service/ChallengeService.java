@@ -3,7 +3,7 @@ package org.fsa_2026.company_fsa_captone_2026.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeResponse;
-import org.fsa_2026.company_fsa_captone_2026.repository.ChallengeRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.ContentItemRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,14 +16,14 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ChallengeService {
 
-    private final ChallengeRepository challengeRepository;
+    private final ContentItemRepository contentItemRepository;
 
     @Transactional(readOnly = true)
     public List<ChallengeResponse> getChallengesByLevel(String levelId) {
-        return challengeRepository.findByLevelId(UUID.fromString(levelId))
+        return contentItemRepository
+                .findByLearningUnitIdAndType(UUID.fromString(levelId), "PRONUNCIATION")
                 .stream()
-                .filter(challenge -> org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.APPROVED
-                        .equals(challenge.getStatus()))
+                .filter(item -> "APPROVED".equals(item.getStatus()))
                 .map(ChallengeResponse::fromEntity)
                 .collect(Collectors.toList());
     }
