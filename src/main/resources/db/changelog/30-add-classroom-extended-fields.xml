@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- =========================================================
+         Migration 30 – Add Classroom Extended Fields
+         Adds fields: description, start_date, end_date, max_students, 
+         dialect_id, is_active to classroom table
+         ========================================================= -->
+
+    <!-- Add description column -->
+    <changeSet id="30-add-classroom-description" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <not><columnExists tableName="classroom" columnName="description"/></not>
+        </preConditions>
+        <addColumn tableName="classroom">
+            <column name="description" type="VARCHAR(1000)"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- Add start_date column -->
+    <changeSet id="30-add-classroom-start-date" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <not><columnExists tableName="classroom" columnName="start_date"/></not>
+        </preConditions>
+        <addColumn tableName="classroom">
+            <column name="start_date" type="TIMESTAMP"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- Add end_date column -->
+    <changeSet id="30-add-classroom-end-date" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <not><columnExists tableName="classroom" columnName="end_date"/></not>
+        </preConditions>
+        <addColumn tableName="classroom">
+            <column name="end_date" type="TIMESTAMP"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- Add current_students column (previous column was renamed to current_students in migration 29) -->
+    <changeSet id="30-add-classroom-current-students" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <not><columnExists tableName="classroom" columnName="current_students"/></not>
+        </preConditions>
+        <addColumn tableName="classroom">
+            <column name="current_students" type="INTEGER"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- Add dialect_id column with FK to learning_unit -->
+    <changeSet id="30-add-classroom-dialect-id" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <not><columnExists tableName="classroom" columnName="dialect_id"/></not>
+        </preConditions>
+        <addColumn tableName="classroom">
+            <column name="dialect_id" type="UUID"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="30-add-classroom-dialect-fk" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <not><foreignKeyConstraintExists foreignKeyName="fk_classroom_dialect"/></not>
+        </preConditions>
+        <addForeignKeyConstraint
+                baseTableName="classroom"
+                baseColumnNames="dialect_id"
+                constraintName="fk_classroom_dialect"
+                referencedTableName="learning_unit"
+                referencedColumnNames="id"/>
+    </changeSet>
+
+    <!-- Add is_active column with default value -->
+    <changeSet id="30-add-classroom-is-active" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <not><columnExists tableName="classroom" columnName="is_active"/></not>
+        </preConditions>
+        <addColumn tableName="classroom">
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.time.Instant;
 
 @Data
 @Builder
@@ -14,6 +15,13 @@ import java.io.Serializable;
 @AllArgsConstructor
 public class ClassroomCreateRequest implements Serializable {
 
-    @NotBlank(message = "Tên lớp học không được để trống")
+    @NotBlank(message = "Classroom name is required")
     private String name;
+
+    private String description;
+    private Instant startDate;
+    private Instant endDate;
+    private Integer currentStudents;
+    private String dialectId;
+    private Boolean isActive;
 }
