@@ -6,13 +6,13 @@ import org.fsa_2026.company_fsa_captone_2026.dto.QuizCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.QuizQuestionRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.QuizResponse;
 import org.fsa_2026.company_fsa_captone_2026.entity.Account;
-import org.fsa_2026.company_fsa_captone_2026.entity.Level;
+import org.fsa_2026.company_fsa_captone_2026.entity.ContentItem;
+import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
 import org.fsa_2026.company_fsa_captone_2026.entity.PlacementRule;
-import org.fsa_2026.company_fsa_captone_2026.entity.Quiz;
 import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
-import org.fsa_2026.company_fsa_captone_2026.repository.LevelRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.ContentItemRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.LearningUnitRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.PlacementRuleRepository;
-import org.fsa_2026.company_fsa_captone_2026.repository.QuizRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -36,33 +36,24 @@ public class EducatorServiceExtensionTest {
     private PlacementRuleRepository placementRuleRepository;
 
     @Mock
-    private org.fsa_2026.company_fsa_captone_2026.repository.ErrorTagRepository errorTagRepository;
+    private LearningUnitRepository learningUnitRepository;
 
     @Mock
-    private org.fsa_2026.company_fsa_captone_2026.repository.DialectRepository dialectRepository;
+    private ContentItemRepository contentItemRepository;
 
     @Mock
     private AccountRepository accountRepository;
 
     @Mock
-    private QuizRepository quizRepository;
-
-    @Mock
-    private LevelRepository levelRepository;
-
-    @Mock
     private org.fsa_2026.company_fsa_captone_2026.repository.ContentApprovalHistoryRepository contentApprovalHistoryRepository;
-
-    @Mock
-    private org.fsa_2026.company_fsa_captone_2026.repository.ChallengeRepository challengeRepository;
 
     @InjectMocks
     private EducatorService educatorService;
 
     @Test
     public void testUpdateOrCreatePlacementRule() {
-        java.util.UUID errorTagId = java.util.UUID.randomUUID();
-        java.util.UUID dialectId = java.util.UUID.randomUUID();
+        UUID errorTagId = UUID.randomUUID();
+        UUID dialectId = UUID.randomUUID();
 
         PlacementRuleRequest request = PlacementRuleRequest.builder()
                 .errorTagId(errorTagId)
@@ -72,21 +63,23 @@ public class EducatorServiceExtensionTest {
                 .priority(1)
                 .build();
 
-        org.fsa_2026.company_fsa_captone_2026.entity.ErrorTag mockErrorTag = new org.fsa_2026.company_fsa_captone_2026.entity.ErrorTag();
+        LearningUnit mockErrorTag = new LearningUnit();
         mockErrorTag.setId(errorTagId);
-        mockErrorTag.setTagCode("L_N");
+        mockErrorTag.setType("ERROR_TAG");
+        mockErrorTag.setName("L_N");
 
-        org.fsa_2026.company_fsa_captone_2026.entity.Dialect mockDialect = new org.fsa_2026.company_fsa_captone_2026.entity.Dialect();
+        LearningUnit mockDialect = new LearningUnit();
         mockDialect.setId(dialectId);
+        mockDialect.setType("DIALECT");
         mockDialect.setName("Northern");
 
-        when(errorTagRepository.findById(errorTagId)).thenReturn(java.util.Optional.of(mockErrorTag));
-        when(dialectRepository.findById(dialectId)).thenReturn(java.util.Optional.of(mockDialect));
+        when(learningUnitRepository.findById(errorTagId)).thenReturn(Optional.of(mockErrorTag));
+        when(learningUnitRepository.findById(dialectId)).thenReturn(Optional.of(mockDialect));
         when(placementRuleRepository.findAll()).thenReturn(new ArrayList<>());
         when(placementRuleRepository.save(any(PlacementRule.class)))
                 .thenAnswer(invocation -> {
                     PlacementRule rule = invocation.getArgument(0);
-                    if (rule.getId() == null) rule.setId(java.util.UUID.randomUUID());
+                    if (rule.getId() == null) rule.setId(UUID.randomUUID());
                     return rule;
                 });
 
@@ -108,26 +101,26 @@ public class EducatorServiceExtensionTest {
         mockAccount.setId(UUID.randomUUID());
         mockAccount.setEmail(educatorEmail);
 
-        Level mockLevel = new Level();
+        LearningUnit mockLevel = new LearningUnit();
         mockLevel.setId(levelId);
+        mockLevel.setType("LEVEL");
+        mockLevel.setName("Level 1");
 
         UUID challengeId = UUID.randomUUID();
-        org.fsa_2026.company_fsa_captone_2026.entity.Challenge mockChallenge = new org.fsa_2026.company_fsa_captone_2026.entity.Challenge();
+        ContentItem mockChallenge = new ContentItem();
         mockChallenge.setId(challengeId);
-        mockChallenge.setContentText("Ba tôi nàm nông.");
+        mockChallenge.setLearningUnit(mockLevel);
+        mockChallenge.setTitle("Ba tôi nàm nông.");
+        mockChallenge.setType("PRONUNCIATION");
+        mockChallenge.setStatus("PENDING");
 
         when(accountRepository.findByEmail(educatorEmail)).thenReturn(Optional.of(mockAccount));
-        when(levelRepository.findById(levelId)).thenReturn(Optional.of(mockLevel));
-        when(challengeRepository.findById(challengeId)).thenReturn(Optional.of(mockChallenge));
+        when(learningUnitRepository.findById(levelId)).thenReturn(Optional.of(mockLevel));
+        when(contentItemRepository.findById(challengeId)).thenReturn(Optional.of(mockChallenge));
 
-        when(quizRepository.save(any(Quiz.class))).thenAnswer(invocation -> {
-            Quiz q = invocation.getArgument(0);
+        when(contentItemRepository.save(any(ContentItem.class))).thenAnswer(invocation -> {
+            ContentItem q = invocation.getArgument(0);
             if (q.getId() == null) q.setId(UUID.randomUUID());
-            if (q.getQuestions() != null) {
-                for (org.fsa_2026.company_fsa_captone_2026.entity.QuizQuestion qt : q.getQuestions()) {
-                    if (qt.getId() == null) qt.setId(UUID.randomUUID());
-                }
-            }
             return q;
         });
 
@@ -167,30 +160,28 @@ public class EducatorServiceExtensionTest {
         String educatorEmail = "educator@test.com";
 
         // Existing approved quiz
-        Quiz existingQuiz = new Quiz();
+        ContentItem existingQuiz = new ContentItem();
         existingQuiz.setId(quizId);
-        existingQuiz.setStatus(org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.APPROVED);
+        existingQuiz.setType("QUIZ");
+        existingQuiz.setStatus("APPROVED");
         existingQuiz.setTitle("Original Title");
 
         Account mockAccount = new Account();
         mockAccount.setId(UUID.randomUUID());
         mockAccount.setEmail(educatorEmail);
 
-        Level mockLevel = new Level();
+        LearningUnit mockLevel = new LearningUnit();
         mockLevel.setId(levelId);
+        mockLevel.setType("LEVEL");
+        mockLevel.setName("Level 1");
 
         when(accountRepository.findByEmail(educatorEmail)).thenReturn(Optional.of(mockAccount));
-        when(quizRepository.findById(quizId)).thenReturn(Optional.of(existingQuiz));
-        when(levelRepository.findById(levelId)).thenReturn(Optional.of(mockLevel));
+        when(contentItemRepository.findById(quizId)).thenReturn(Optional.of(existingQuiz));
+        when(learningUnitRepository.findById(levelId)).thenReturn(Optional.of(mockLevel));
 
-        when(quizRepository.save(any(Quiz.class))).thenAnswer(invocation -> {
-            Quiz q = invocation.getArgument(0);
+        when(contentItemRepository.save(any(ContentItem.class))).thenAnswer(invocation -> {
+            ContentItem q = invocation.getArgument(0);
             if (q.getId() == null) q.setId(UUID.randomUUID());
-            if (q.getQuestions() != null) {
-                for (org.fsa_2026.company_fsa_captone_2026.entity.QuizQuestion qt : q.getQuestions()) {
-                    if (qt.getId() == null) qt.setId(UUID.randomUUID());
-                }
-            }
             return q;
         });
 
