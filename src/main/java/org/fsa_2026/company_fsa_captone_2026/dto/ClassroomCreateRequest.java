@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -22,6 +23,6 @@ public class ClassroomCreateRequest implements Serializable {
     private Instant startDate;
     private Instant endDate;
     private Integer currentStudents;
-    private String dialectId;
+    private UUID dialectId;
     private Boolean isActive;
 }
