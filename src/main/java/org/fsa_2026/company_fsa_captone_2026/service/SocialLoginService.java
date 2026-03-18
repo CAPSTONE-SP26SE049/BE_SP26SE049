@@ -18,14 +18,16 @@ import org.fsa_2026.company_fsa_captone_2026.repository.RefreshTokenRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
 import java.util.Collections;
+import java.util.Map;
 
 /**
  * Social Login Service
- * Handles Google OAuth2 login:
- * 1. Verify ID Token with Google
+ * Handles Google and Facebook OAuth2 login:
+ * 1. Verify token with provider (Google ID Token / Facebook Access Token)
  * 2. Find or create Account
  * 3. Generate JWT tokens
  */
@@ -41,6 +43,12 @@ public class SocialLoginService {
     @Value("${social.google.client-id}")
     private String googleClientId;
 
+    @Value("${social.facebook.app-id:}")
+    private String facebookAppId;
+
+    @Value("${social.facebook.app-secret:}")
+    private String facebookAppSecret;
+
     /**
      * Entry point for social login
      */
@@ -48,41 +56,125 @@ public class SocialLoginService {
     public LoginResponse socialLogin(SocialLoginRequest request) {
         return switch (request.getProvider().toUpperCase()) {
             case "GOOGLE" -> loginWithGoogle(request.getToken());
+            case "FACEBOOK" -> loginWithFacebook(request.getToken());
             default -> throw new ApiException("BAD_REQUEST",
                     "Provider không hỗ trợ: " + request.getProvider());
         };
     }
 
     /**
-     * Verify Google ID Token and login/register user
+     * Verify Google Token (ID Token or Access Token) and login/register user
      */
-    private LoginResponse loginWithGoogle(String idTokenString) {
+    @SuppressWarnings("unchecked")
+    private LoginResponse loginWithGoogle(String token) {
+        // Step 1: Try verifying as ID Token
         try {
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
                     new NetHttpTransport(), GsonFactory.getDefaultInstance())
                     .setAudience(Collections.singletonList(googleClientId))
                     .build();
 
-            GoogleIdToken idToken = verifier.verify(idTokenString);
-            if (idToken == null) {
-                throw new ApiException("UNAUTHORIZED", "Google token không hợp lệ hoặc đã hết hạn");
+            GoogleIdToken idToken = verifier.verify(token);
+            if (idToken != null) {
+                GoogleIdToken.Payload payload = idToken.getPayload();
+                String email = payload.getEmail();
+                String name = (String) payload.get("name");
+                String pictureUrl = (String) payload.get("picture");
+                String googleId = payload.getSubject();
+
+                log.info("Google login verified via ID Token for: {} (googleId: {})", email, googleId);
+                return findOrCreateAccountAndLogin(email, name, pictureUrl, "GOOGLE", googleId);
+            }
+            log.info("Token is not a valid ID Token, will try as Access Token");
+        } catch (Exception e) {
+            log.info("ID Token verification failed ({}), trying as Access Token...", e.getMessage());
+        }
+
+        // Step 2: Treat as Access Token → call Google UserInfo API
+        try {
+            log.info("Calling Google UserInfo API with access token...");
+            RestTemplate restTemplate = new RestTemplate();
+            String userInfoUrl = "https://www.googleapis.com/oauth2/v3/userinfo";
+
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.setBearerAuth(token);
+            org.springframework.http.HttpEntity<String> entity = new org.springframework.http.HttpEntity<>(headers);
+
+            org.springframework.http.ResponseEntity<Map> response = restTemplate.exchange(
+                    userInfoUrl, org.springframework.http.HttpMethod.GET, entity, Map.class);
+
+            Map<String, Object> googleUser = response.getBody();
+
+            if (googleUser == null || googleUser.get("sub") == null) {
+                log.error("Google UserInfo API returned null or no sub field. Response: {}", googleUser);
+                throw new ApiException("UNAUTHORIZED", "Google token không hợp lệ");
             }
 
-            GoogleIdToken.Payload payload = idToken.getPayload();
-            String email = payload.getEmail();
-            String name = (String) payload.get("name");
-            String pictureUrl = (String) payload.get("picture");
-            String googleId = payload.getSubject();
+            String email = (String) googleUser.get("email");
+            String name = (String) googleUser.get("name");
+            String pictureUrl = (String) googleUser.get("picture");
+            String googleId = (String) googleUser.get("sub");
 
-            log.info("Google login verified for: {} (googleId: {})", email, googleId);
-
+            log.info("Google login verified via Access Token for: {} (googleId: {})", email, googleId);
             return findOrCreateAccountAndLogin(email, name, pictureUrl, "GOOGLE", googleId);
 
         } catch (ApiException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Google login verification failed:", e);
-            throw new ApiException("UNAUTHORIZED", "Không thể xác minh tài khoản Google: " + e.getMessage());
+            log.error("Google Access Token verification failed:", e);
+            throw new ApiException("UNAUTHORIZED", "Không thể xác minh tài khoản Google: " +
+                    (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
+        }
+    }
+
+    /**
+     * Verify Facebook Access Token and login/register user
+     * Uses Facebook Graph API to get user info
+     */
+    @SuppressWarnings("unchecked")
+    private LoginResponse loginWithFacebook(String accessToken) {
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+
+            // Call Facebook Graph API to verify token and get user info
+            String url = "https://graph.facebook.com/me?fields=id,name,email,picture.type(large)"
+                    + "&access_token=" + accessToken;
+
+            Map<String, Object> fbUser = restTemplate.getForObject(url, Map.class);
+
+            if (fbUser == null || fbUser.get("id") == null) {
+                throw new ApiException("UNAUTHORIZED", "Facebook token không hợp lệ");
+            }
+
+            String email = (String) fbUser.get("email");
+            String name = (String) fbUser.get("name");
+            String fbId = (String) fbUser.get("id");
+
+            // Extract picture URL from nested response
+            String pictureUrl = null;
+            Map<String, Object> picture = (Map<String, Object>) fbUser.get("picture");
+            if (picture != null) {
+                Map<String, Object> data = (Map<String, Object>) picture.get("data");
+                if (data != null) {
+                    pictureUrl = (String) data.get("url");
+                }
+            }
+
+            // Facebook may not return email if user didn't grant permission
+            if (email == null || email.isBlank()) {
+                email = fbId + "@facebook.com";
+                log.warn("Facebook user {} did not provide email, using fallback: {}", fbId, email);
+            }
+
+            log.info("Facebook login verified for: {} (fbId: {})", email, fbId);
+
+            return findOrCreateAccountAndLogin(email, name, pictureUrl, "FACEBOOK", fbId);
+
+        } catch (ApiException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Facebook login verification failed:", e);
+            throw new ApiException("UNAUTHORIZED", "Không thể xác minh tài khoản Facebook: " + e.getMessage());
         }
     }
 
@@ -104,15 +196,24 @@ public class SocialLoginService {
                     .fullName(name != null ? name : email.split("@")[0])
                     .avatarUrl(pictureUrl)
                     .isActive(true)
-                    .emailVerified(true) // Social login = email already verified by Google
+                    .emailVerified(true) // Social login = email already verified by provider
                     .build();
             account = accountRepository.save(account);
             log.info("Tạo tài khoản mới từ {}: email={}", provider, email);
         } else {
-            // Existing account - update avatar if needed
-            if (account.getAvatarUrl() == null && pictureUrl != null) {
+            // Existing account - always update avatar and name from social provider
+            boolean updated = false;
+            if (pictureUrl != null && !pictureUrl.equals(account.getAvatarUrl())) {
                 account.setAvatarUrl(pictureUrl);
+                updated = true;
+            }
+            if (name != null && !name.isBlank() && !name.equals(account.getFullName())) {
+                account.setFullName(name);
+                updated = true;
+            }
+            if (updated) {
                 account = accountRepository.save(account);
+                log.info("Cập nhật thông tin từ {}: avatar={}, name={}", provider, pictureUrl, name);
             }
             log.info("Đăng nhập {} với tài khoản hiện có: email={}", provider, email);
         }
@@ -151,3 +252,4 @@ public class SocialLoginService {
                 .build();
     }
 }
+
