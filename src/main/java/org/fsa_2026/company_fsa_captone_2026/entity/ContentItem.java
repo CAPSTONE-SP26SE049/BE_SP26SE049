@@ -2,6 +2,8 @@ package org.fsa_2026.company_fsa_captone_2026.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /**
  * ContentItem Entity - Super Entity for Quiz and Pronunciation Practice (Challenge)
@@ -31,12 +33,14 @@ public class ContentItem extends BaseEntity {
     /**
      * Metadata JSON for item details.
      */
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "metadata_json", columnDefinition = "jsonb")
     private String metadataJson;
 
     /**
      * Items JSON (e.g., list of questions for a Quiz).
      */
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "items_json", columnDefinition = "jsonb")
     private String itemsJson;
 }

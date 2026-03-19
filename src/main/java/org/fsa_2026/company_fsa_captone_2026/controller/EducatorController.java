@@ -155,7 +155,7 @@ public class EducatorController {
         @Operation(summary = "Update Level", description = "Update level details like title and threshold")
         public ResponseEntity<ApiResponse<LevelResponse>> updateLevel(
                         @PathVariable UUID levelId,
-                        @Valid @RequestBody LevelUpdateRequest request,
+                        @Valid @RequestBody LevelCreateRequest request,
                         Authentication authentication) {
                 return ResponseEntity.ok(
                                 ApiResponse.success("Cập nhật cấp độ thành công",
@@ -247,8 +247,8 @@ public class EducatorController {
         }
 
         @GetMapping("/levels")
-        @Operation(summary = "Get Levels for Selection", description = "List all approved levels for quiz assignment")
-        public ResponseEntity<ApiResponse<List<LevelSelectionResponse>>> getLevelsForSelection() {
+        @Operation(summary = "Get Levels", description = "List all approved levels")
+        public ResponseEntity<ApiResponse<List<LevelResponse>>> getLevelsForSelection() {
                 return ResponseEntity.ok(
                                 ApiResponse.success("Thành công", educatorService.getAllLevelsForSelection()));
         }

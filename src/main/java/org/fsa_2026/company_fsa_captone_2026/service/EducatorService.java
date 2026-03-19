@@ -134,62 +134,57 @@ public class EducatorService {
 
     @Transactional
     public LevelResponse createLevel(String educatorEmail, LevelCreateRequest request) {
+
         Account educator = getAccountByEmail(educatorEmail);
 
-        learningUnitRepository.findById(request.getDialectId())
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Dialect"));
-
-        LearningUnit dialect = learningUnitRepository.findById(request.getDialectId())
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Dialect"));
-
-        Map<String, Object> metadata = new LinkedHashMap<>();
-        metadata.put("level_order", request.getLevelOrder());
-        metadata.put("description", request.getDescription() != null ? request.getDescription() : "");
-        metadata.put("min_stars_required", request.getMinStarsRequired() != null ? request.getMinStarsRequired() : 0);
-        metadata.put("status", "PENDING");
-        metadata.put("rejection_reason", "");
-        if (request.getErrorTagId() != null) {
-            metadata.put("error_tag_id", request.getErrorTagId().toString());
+        LearningUnit parent = null;
+        if (request.getParentId() != null) {
+            parent = learningUnitRepository.findById(request.getParentId())
+                    .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy parent"));
         }
 
         LearningUnit level;
         try {
             level = LearningUnit.builder()
-                    .parent(dialect)
+                    .parent(parent)
                     .name(request.getName())
-                    .type("LEVEL")
-                    .metadataJson(objectMapper.writeValueAsString(metadata))
+                    .type(request.getType())
+                    .metadataJson(objectMapper.writeValueAsString(
+                            request.getMetadataJson() != null ? request.getMetadataJson() : new LinkedHashMap<>()))
                     .build();
         } catch (Exception e) {
-            throw new ApiException("INTERNAL_ERROR", "Không thể tạo Level");
+            throw new ApiException("INTERNAL_ERROR", "Không thể tạo Learning Unit");
         }
         level.setCreatedBy(educator.getId().toString());
         level = learningUnitRepository.save(level);
 
         LevelResponse response = LevelResponse.fromEntity(level);
         saveApprovalHistory("LEVEL", level.getId(), educator, ContentStatus.PENDING,
-                request.getComment() != null && !request.getComment().isBlank()
-                        ? request.getComment() : "Educator created level",
+                "Educator created level",
                 response);
         return response;
     }
 
     @Transactional
-    public LevelResponse updateLevel(String educatorEmail, UUID levelId, LevelUpdateRequest request) {
+    public LevelResponse updateLevel(String educatorEmail, UUID levelId, LevelCreateRequest request) {
         Account educator = getAccountByEmail(educatorEmail);
         LearningUnit level = learningUnitRepository.findById(levelId)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy cấp độ"));
 
+        if (request.getParentId() != null
+                && (level.getParent() == null || !level.getParent().getId().equals(request.getParentId()))) {
+            LearningUnit parent = learningUnitRepository.findById(request.getParentId())
+                    .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy parent"));
+            level.setParent(parent);
+        }
+
+        level.setName(request.getName());
+        level.setType(request.getType());
+
         try {
-            Map<String, Object> metadata = level.getMetadataJson() != null
-                    ? new LinkedHashMap<>(objectMapper.readValue(level.getMetadataJson(), new TypeReference<Map<String, Object>>() {}))
+            Map<String, Object> metadata = request.getMetadataJson() != null
+                    ? new LinkedHashMap<>(request.getMetadataJson())
                     : new LinkedHashMap<>();
-
-            if (request.getName() != null) level.setName(request.getName());
-            if (request.getAiThreshold() != null) metadata.put("ai_threshold", request.getAiThreshold());
-            if (request.getErrorTagId() != null) metadata.put("error_tag_id", request.getErrorTagId().toString());
-            metadata.put("status", "PENDING");
-
             level.setMetadataJson(objectMapper.writeValueAsString(metadata));
         } catch (Exception e) {
             throw new ApiException("INTERNAL_ERROR", "Không thể cập nhật Level");
@@ -200,8 +195,7 @@ public class EducatorService {
 
         LevelResponse response = LevelResponse.fromEntity(level);
         saveApprovalHistory("LEVEL", level.getId(), educator, ContentStatus.PENDING,
-                request.getComment() != null && !request.getComment().isBlank()
-                        ? request.getComment() : "Educator updated level",
+                "Educator updated level",
                 response);
         return response;
     }
@@ -237,7 +231,7 @@ public class EducatorService {
     }
 
     @Transactional(readOnly = true)
-    public List<LevelSelectionResponse> getAllLevelsForSelection() {
+    public List<LevelResponse> getAllLevelsForSelection() {
         return learningUnitRepository.findByType("LEVEL").stream()
                 .filter(unit -> {
                     try {
@@ -249,7 +243,7 @@ public class EducatorService {
                         return false;
                     }
                 })
-                .map(LevelSelectionResponse::fromEntity)
+                .map(LevelResponse::fromEntity)
                 .collect(Collectors.toList());
     }
 

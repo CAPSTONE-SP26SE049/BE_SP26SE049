@@ -302,23 +302,22 @@ public class AdminService {
 
     @Transactional
     public LevelResponse createLevel(LevelCreateRequest request) {
-        LearningUnit dialect = learningUnitRepository.findById(request.getDialectId())
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Dialect"));
+        LearningUnit parent = null;
+        if (request.getParentId() != null) {
+            parent = learningUnitRepository.findById(request.getParentId())
+                    .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy parent"));
+        }
 
         LearningUnit level = LearningUnit.builder()
-                .parent(dialect)
+                .parent(parent)
                 .name(request.getName())
-                .type("LEVEL")
+                .type(request.getType())
                 .build();
 
         try {
-            Map<String, Object> metadata = new java.util.HashMap<>();
-            metadata.put("level_order", request.getLevelOrder());
-            metadata.put("description", request.getDescription());
-            metadata.put("min_stars_required", request.getMinStarsRequired() != null ? request.getMinStarsRequired() : 0);
-            if (request.getErrorTagId() != null) {
-                metadata.put("error_tag_id", request.getErrorTagId().toString());
-            }
+            Map<String, Object> metadata = request.getMetadataJson() != null
+                    ? new java.util.HashMap<>(request.getMetadataJson())
+                    : new java.util.HashMap<>();
             level.setMetadataJson(objectMapper.writeValueAsString(metadata));
         } catch (Exception e) {
             log.error("Failed to serialize Level metadata", e);
@@ -332,27 +331,20 @@ public class AdminService {
         LearningUnit level = learningUnitRepository.findById(id)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Level"));
 
-        if (level.getParent() == null || !level.getParent().getId().equals(request.getDialectId())) {
-            LearningUnit dialect = learningUnitRepository.findById(request.getDialectId())
-                    .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Dialect"));
-            level.setParent(dialect);
+        if (request.getParentId() != null
+                && (level.getParent() == null || !level.getParent().getId().equals(request.getParentId()))) {
+            LearningUnit parent = learningUnitRepository.findById(request.getParentId())
+                    .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy parent"));
+            level.setParent(parent);
         }
 
         level.setName(request.getName());
+        level.setType(request.getType());
 
         try {
-            Map<String, Object> metadata = new java.util.HashMap<>();
-            if (level.getMetadataJson() != null) {
-                metadata = objectMapper.readValue(level.getMetadataJson(), Map.class);
-            }
-            metadata.put("level_order", request.getLevelOrder());
-            metadata.put("description", request.getDescription());
-            if (request.getMinStarsRequired() != null) {
-                metadata.put("min_stars_required", request.getMinStarsRequired());
-            }
-            if (request.getErrorTagId() != null) {
-                metadata.put("error_tag_id", request.getErrorTagId().toString());
-            }
+            Map<String, Object> metadata = request.getMetadataJson() != null
+                    ? new java.util.HashMap<>(request.getMetadataJson())
+                    : new java.util.HashMap<>();
             level.setMetadataJson(objectMapper.writeValueAsString(metadata));
         } catch (Exception e) {
             log.error("Failed to update Level metadata", e);
