@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.fsa_2026.company_fsa_captone_2026.dto.ApiResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeAssignRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeBankRequest;
+import org.fsa_2026.company_fsa_captone_2026.dto.QuizChallengeItemResponse;
 import org.fsa_2026.company_fsa_captone_2026.entity.ChallengeBank;
 import org.fsa_2026.company_fsa_captone_2026.entity.QuizChallengeItem;
 import org.fsa_2026.company_fsa_captone_2026.service.ChallengeBankService;
@@ -48,5 +49,12 @@ public class ChallengeBankController {
             @RequestBody ChallengeAssignRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Gán câu hỏi vào quiz thành công", 
                 challengeBankService.assignChallengesToQuiz(quizId, request.getChallengeIds())));
+    }
+    @GetMapping("/quiz/{quizId}/challenges")
+    @Operation(summary = "Lấy danh sách câu hỏi đã gán vào quiz")
+    public ResponseEntity<ApiResponse<List<QuizChallengeItemResponse>>> getChallengesByQuizId(
+            @PathVariable UUID quizId) {
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách câu hỏi thành công",
+                challengeBankService.getChallengesByQuizId(quizId)));
     }
 }

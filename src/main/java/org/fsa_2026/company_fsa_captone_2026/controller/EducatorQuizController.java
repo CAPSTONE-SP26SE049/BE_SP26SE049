@@ -14,7 +14,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -49,5 +51,14 @@ public class EducatorQuizController {
             Authentication authentication) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Tạo quiz thành công", quizService.createQuiz(request)));
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Update Quiz", description = "Update an existing Quiz stored in LearningUnit")
+    public ResponseEntity<ApiResponse<LearningUnit>> updateQuiz(
+            @PathVariable("id") UUID id,
+            @Valid @RequestBody QuizCreateRequest request,
+            Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật quiz thành công", quizService.updateQuiz(id, request)));
     }
 }

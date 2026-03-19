@@ -36,6 +36,10 @@ public class QuizCreateRequest implements Serializable {
 
     private Integer questionCount;
 
+    private Integer pointsPerQuestion;
+
+    private String difficulty;
+
     private String comment;
 
     @jakarta.validation.Valid

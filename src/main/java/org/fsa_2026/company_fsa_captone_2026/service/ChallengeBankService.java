@@ -2,10 +2,14 @@ package org.fsa_2026.company_fsa_captone_2026.service;
 
 import lombok.RequiredArgsConstructor;
 import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeBankRequest;
+import org.fsa_2026.company_fsa_captone_2026.dto.QuizChallengeItemResponse;
+import org.fsa_2026.company_fsa_captone_2026.entity.Account;
 import org.fsa_2026.company_fsa_captone_2026.entity.ChallengeBank;
 import org.fsa_2026.company_fsa_captone_2026.entity.QuizChallengeItem;
+import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.ChallengeBankRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.QuizChallengeItemRepository;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,20 +23,24 @@ public class ChallengeBankService {
 
     private final ChallengeBankRepository challengeBankRepository;
     private final QuizChallengeItemRepository quizChallengeItemRepository;
+    private final AccountRepository accountRepository;
 
     @Transactional
     public ChallengeBank createChallenge(ChallengeBankRequest request) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        Account account = accountRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản để gán người tạo"));
+
         ChallengeBank challenge = ChallengeBank.builder()
                 .contentText(request.getContentText())
                 .skillType(request.getSkillType())
                 .difficultyTag(request.getDifficultyTag())
                 .isGlobal(request.getIsGlobal() != null ? request.getIsGlobal() : true)
                 .metadataJson(request.getMetadataJson())
-                .createdBy(request.getCreatedBy())
+                .createdBy(account.getId())
                 .build();
         return challengeBankRepository.save(challenge);
     }
-
     @Transactional(readOnly = true)
     public List<ChallengeBank> getAllChallenges() {
         return challengeBankRepository.findAll();
@@ -48,6 +56,7 @@ public class ChallengeBankService {
         List<QuizChallengeItem> items = challengeIds.stream().map(cid -> QuizChallengeItem.builder()
                 .quizId(quizId)
                 .challengeBankId(cid)
+                .challengeId(cid) // Map to both columns to satisfy legacy DB constraint
                 .build()).collect(Collectors.toList());
         
         // Find current max order index if appending, or start from 1.
@@ -57,5 +66,16 @@ public class ChallengeBankService {
         }
 
         return quizChallengeItemRepository.saveAll(items);
+    }
+    @Transactional(readOnly = true)
+    public List<QuizChallengeItemResponse> getChallengesByQuizId(UUID quizId) {
+        List<QuizChallengeItem> items = quizChallengeItemRepository.findByQuizIdOrderByOrderIndex(quizId);
+
+        return items.stream()
+                .map(item -> QuizChallengeItemResponse.builder()
+                        .orderIndex(item.getOrderIndex())
+                        .challenge(challengeBankRepository.findById(item.getChallengeBankId()).orElse(null))
+                        .build())
+                .collect(Collectors.toList());
     }
 }

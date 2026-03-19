@@ -25,6 +25,9 @@ public class QuizChallengeItem {
     @Column(name = "challenge_bank_id", nullable = false)
     private UUID challengeBankId;
 
+    @Column(name = "challenge_id", nullable = false)
+    private UUID challengeId;
+
     @Column(name = "order_index")
     private Integer orderIndex;
 }

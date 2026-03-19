@@ -50,6 +50,27 @@ public class QuizService {
         return learningUnitRepository.save(quiz);
     }
 
+    @Transactional
+    public LearningUnit updateQuiz(UUID id, QuizCreateRequest request) {
+        LearningUnit quiz = learningUnitRepository.findById(id)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Quiz"));
+
+        if (!"QUIZ".equalsIgnoreCase(quiz.getType())) {
+            throw new ApiException("INVALID_TYPE", "Đơn vị học tập không phải là Quiz");
+        }
+
+        quiz.setName(request.getTitle());
+
+        Map<String, Object> metadata = buildQuizMetadata(request);
+        try {
+            quiz.setMetadataJson(objectMapper.writeValueAsString(metadata));
+        } catch (JsonProcessingException e) {
+            throw new ApiException("INVALID_METADATA", "Quiz metadata không hợp lệ");
+        }
+
+        return learningUnitRepository.save(quiz);
+    }
+
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getAllQuizzes() {
         return learningUnitRepository.findByType("QUIZ").stream()
@@ -77,6 +98,8 @@ public class QuizService {
         metadata.put("instructions", request.getInstructions());
         metadata.put("time_limit_minutes", request.getTimeLimitMinutes());
         metadata.put("passing_score", request.getPassingScore());
+        metadata.put("points_per_question", request.getPointsPerQuestion());
+        metadata.put("difficulty", request.getDifficulty());
         metadata.put("questions", request.getQuestions());
         metadata.put("question_count", request.getQuestionCount());
         metadata.put("comment", request.getComment());
@@ -102,6 +125,8 @@ public class QuizService {
         response.put("instructions", metadata.get("instructions"));
         response.put("timeLimitMinutes", metadata.get("time_limit_minutes"));
         response.put("passingScore", metadata.get("passing_score"));
+        response.put("pointsPerQuestion", metadata.get("points_per_question"));
+        response.put("difficulty", metadata.get("difficulty"));
 
         List<QuizQuestionRequest> questions = metadata.containsKey("questions")
                 ? objectMapper.convertValue(metadata.get("questions"), new TypeReference<List<QuizQuestionRequest>>() {})
