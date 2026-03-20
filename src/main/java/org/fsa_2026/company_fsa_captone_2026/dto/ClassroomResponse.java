@@ -20,6 +20,12 @@ public class ClassroomResponse implements Serializable {
     private String code;
     private String createdBy;
     private Instant createdAt;
+    private String description;
+    private Instant startDate;
+    private Instant endDate;
+    private Integer currentStudents;
+    private String dialectId;
+    private Boolean isActive;
 
     public static ClassroomResponse fromEntity(Classroom classroom) {
         if (classroom == null)
@@ -30,6 +36,12 @@ public class ClassroomResponse implements Serializable {
                 .code(classroom.getCode())
                 .createdBy(classroom.getEducator() != null ? classroom.getEducator().getId().toString() : null)
                 .createdAt(classroom.getCreatedAt())
+                .description(classroom.getDescription())
+                .startDate(classroom.getStartDate())
+                .endDate(classroom.getEndDate())
+                .currentStudents(classroom.getCurrentStudents())
+                .dialectId(classroom.getDialect() != null ? classroom.getDialect().getId().toString() : null)
+                .isActive(classroom.getIsActive())
                 .build();
     }
 }

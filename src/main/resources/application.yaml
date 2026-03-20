@@ -113,3 +113,11 @@ logging:
     org.fsa_2026: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# Social Login Configuration
+social:
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:1086072031174-fk0iepl3k13dol2u53tjsueo3c3vq70j.apps.googleusercontent.com}
+  facebook:
+    app-id: ${FACEBOOK_APP_ID:1169205748542841}
+    app-secret: ${FACEBOOK_APP_SECRET:0d2de9b4b7522feb23ad645db2eba153}

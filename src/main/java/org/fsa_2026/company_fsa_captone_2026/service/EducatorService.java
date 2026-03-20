@@ -590,10 +590,23 @@ public class EducatorService {
     @Transactional
     public ClassroomResponse createClassroom(String educatorEmail, ClassroomCreateRequest request) {
         Account educator = getAccountByEmail(educatorEmail);
+
+        LearningUnit dialect = null;
+        if (request.getDialectId() != null) {
+            dialect = learningUnitRepository.findById(request.getDialectId())
+                    .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy vùng phương ngữ"));
+        }
+
         Classroom classroom = Classroom.builder()
                 .educator(educator)
                 .name(request.getName())
                 .code(generateClassCode())
+                .description(request.getDescription())
+                .dialect(dialect)
+                .startDate(request.getStartDate())
+                .endDate(request.getEndDate())
+                .currentStudents(request.getCurrentStudents() != null ? request.getCurrentStudents() : 0)
+                .isActive(request.getIsActive() != null ? request.getIsActive() : true)
                 .build();
         return ClassroomResponse.fromEntity(classroomRepository.save(classroom));
     }
@@ -603,7 +616,19 @@ public class EducatorService {
         Classroom classroom = classroomRepository.findById(id)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy lớp học"));
         validateEducatorOwnership(educatorEmail, classroom);
+
         if (request.getName() != null) classroom.setName(request.getName());
+        if (request.getDescription() != null) classroom.setDescription(request.getDescription());
+        if (request.getStartDate() != null) classroom.setStartDate(request.getStartDate());
+        if (request.getEndDate() != null) classroom.setEndDate(request.getEndDate());
+        if (request.getCurrentStudents() != null) classroom.setCurrentStudents(request.getCurrentStudents());
+        if (request.getIsActive() != null) classroom.setIsActive(request.getIsActive());
+        if (request.getDialectId() != null) {
+            LearningUnit dialect = learningUnitRepository.findById(request.getDialectId())
+                    .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy vùng phương ngữ"));
+            classroom.setDialect(dialect);
+        }
+
         return ClassroomResponse.fromEntity(classroomRepository.save(classroom));
     }
 

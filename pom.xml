@@ -159,6 +159,12 @@
             <artifactId>poi-ooxml</artifactId>
             <version>5.3.0</version>
         </dependency>
+        <!-- Google API Client – Verify Google OAuth2 ID Token -->
+        <dependency>
+            <groupId>com.google.api-client</groupId>
+            <artifactId>google-api-client</artifactId>
+            <version>2.2.0</version>
+        </dependency>
     </dependencies>
     <dependencyManagement>
         <dependencies>

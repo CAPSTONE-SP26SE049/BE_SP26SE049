@@ -34,6 +34,7 @@ public class GenericExcelController {
 
     @PostConstruct
     public void init() {
+        // Cần khởi tạo tĩnh để map class Entity với JpaRepository của nó
         this.repositories = new Repositories(applicationContext);
     }
 
@@ -44,8 +45,19 @@ public class GenericExcelController {
             @RequestParam(defaultValue = "EXCEL") FileFormat format,
             HttpServletResponse response
     ) throws Exception {
+        // 1. Tìm Entity Class từ String
         Class<?> entityClass = resolveEntityClass(entityClassName);
-        doExport(format, entityClass, response);
+        
+        // 2. Tìm Repository tương ứng
+        JpaRepository<Object, ?> repository = getRepository(entityClass);
+
+        // 3. Thực thi export dùng hàm thư viện đã có
+        exportService.export(
+                format,
+                repository.findAll(),
+                (Class<Object>) entityClass,
+                response
+        );
     }
 
     @PostMapping(value = "/import/{entityClassName}", consumes = "multipart/form-data")
@@ -55,48 +67,32 @@ public class GenericExcelController {
             @RequestParam("file") MultipartFile file
     ) throws Exception {
         Class<?> entityClass = resolveEntityClass(entityClassName);
-        ImportResult result = doImport(file, entityClass);
+        JpaRepository<Object, ?> repository = getRepository(entityClass);
+
+        ImportResult result = importService.importFile(
+                file,
+                (Class<Object>) entityClass,
+                (JpaRepository<Object, Object>) repository
+        );
+
         return ResponseEntity.ok(ApiResponse.success("Import thành công dữ liệu " + entityClassName, result));
     }
 
     // --- HELPER METHODS ---
-
-    private <T> void doExport(
-            FileFormat format, 
-            Class<T> entityClass, 
-            HttpServletResponse response) throws Exception {
-        @SuppressWarnings("unchecked")
-        JpaRepository<T, ?> repository = (JpaRepository<T, ?>) repositories.getRepositoryFor(entityClass)
+    
+    @SuppressWarnings("unchecked")
+    private JpaRepository<Object, ?> getRepository(Class<?> entityClass) {
+        return (JpaRepository<Object, ?>) repositories.getRepositoryFor(entityClass)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy JpaRepository cho Entity: " + entityClass.getSimpleName()));
-        
-        exportService.export(
-                format,
-                repository.findAll(),
-                entityClass,
-                response
-        );
-    }
-
-    private <T> ImportResult doImport(
-            MultipartFile file, 
-            Class<T> entityClass) throws Exception {
-        @SuppressWarnings("unchecked")
-        JpaRepository<T, ?> repository = (JpaRepository<T, ?>) repositories.getRepositoryFor(entityClass)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy JpaRepository cho Entity: " + entityClass.getSimpleName()));
-        
-        return importService.importFile(
-                file,
-                entityClass,
-                repository
-        );
     }
 
     private Class<?> resolveEntityClass(String entityName) throws ClassNotFoundException {
-        // Assume entities are mostly in the main entity package
+        // Assume entities are mostly in the main entity package. Bạn có thể sửa map động nếu entity ở nhiều package.
         String basePackage = "org.fsa_2026.company_fsa_captone_2026.entity.";
+        // Xử lý viết hoa chữ cái đầu cho chắc chắn
         String normalizedName = entityName.substring(0, 1).toUpperCase() + entityName.substring(1);
         try {
-            return Class.forName(basePackage + normalizedName); // Try direct map
+            return Class.forName(basePackage + normalizedName);
         } catch (ClassNotFoundException e) {
             throw new IllegalArgumentException("Thực thể " + normalizedName + " không tồn tại trong hệ thống. Vui lòng truyền đúng tên class Entity.");
         }
