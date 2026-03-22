@@ -14,6 +14,7 @@ import org.fsa_2026.company_fsa_captone_2026.service.AssignmentService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -65,5 +66,14 @@ public class AssignmentController {
         return ResponseEntity.ok(
                 ApiResponse.success("Lấy danh sách assignment theo educator thành công",
                         assignmentService.getAssignmentsByEducator(educatorId)));
+    }
+
+    @DeleteMapping("/api/v1/educator/assignments/{assignmentId}")
+    @Operation(summary = "Delete assignment", description = "Remove a chapter assignment from a class. Only the educator who created the assignment can delete it.")
+    public ResponseEntity<ApiResponse<Void>> deleteAssignment(
+            Authentication authentication,
+            @PathVariable UUID assignmentId) {
+        assignmentService.deleteAssignment(authentication.getName(), assignmentId);
+        return ResponseEntity.ok(ApiResponse.success("Gỡ chương học khỏi lớp thành công", null));
     }
 }

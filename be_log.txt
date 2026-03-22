@@ -1,0 +1,18 @@
+009ee9d add assignment to class api
+934d766 merge admin
+86d6d1e add api import export excel
+2dcd425 api level,quiz,challenge_bank
+35a5990 add login facebook
+cfc4e07 feat: update login API and add Google login
+a8ccc1b fix: update and fix API for updating classroom
+0abb8d0 Fix API field for loading classroom data
+f2f3e3d fix bug
+8540f37 feat: Introduce StudySession, ContentItem, and RewardCatalog entities, consolidate user profiles, and merge prediction with phoneme feedback.
+6997b46 feat: Implement generic data import/export functionality, refactor base CRUD components, and update entities and services with schema changes.
+e589a38 feat: Centralize challenge details and link quiz questions directly to challenges, replacing generic content data and adding level selection.
+bdb653b feat: Implement a comprehensive quiz management system including quiz creation, question management, and admin approval workflows.
+d9fe80e feat: Introduce generic BaseCrudController and BaseCrudService with Excel import/export support and accompanying templates.
+8988c56 docs: Add full database schema ERD and update workspace Java null analysis mode.
+2f100bc Update new tables
+d7a194e Update refesh token
+a87dcdc Update config Deploy database

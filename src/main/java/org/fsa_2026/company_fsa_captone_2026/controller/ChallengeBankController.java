@@ -57,4 +57,29 @@ public class ChallengeBankController {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách câu hỏi thành công",
                 challengeBankService.getChallengesByQuizId(quizId)));
     }
+
+    @PutMapping("/challenge-bank/{id}")
+    @Operation(summary = "Cập nhật câu hỏi")
+    public ResponseEntity<ApiResponse<ChallengeBank>> updateChallenge(
+            @PathVariable UUID id,
+            @Valid @RequestBody ChallengeBankRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật câu hỏi thành công", 
+                challengeBankService.updateChallenge(id, request)));
+    }
+
+    @DeleteMapping("/challenge-bank/{id}")
+    @Operation(summary = "Xóa câu hỏi khỏi kho (sẽ bị gỡ khỏi tất cả quiz)")
+    public ResponseEntity<ApiResponse<Void>> deleteChallenge(@PathVariable UUID id) {
+        challengeBankService.deleteChallenge(id);
+        return ResponseEntity.ok(ApiResponse.success("Xóa câu hỏi thành công", null));
+    }
+
+    @DeleteMapping("/quiz/{quizId}/challenges/{challengeId}")
+    @Operation(summary = "Gỡ câu hỏi khỏi một quiz nhưng vẫn giữ trong kho")
+    public ResponseEntity<ApiResponse<Void>> removeChallengeFromQuiz(
+            @PathVariable UUID quizId,
+            @PathVariable UUID challengeId) {
+        challengeBankService.removeChallengeFromQuiz(quizId, challengeId);
+        return ResponseEntity.ok(ApiResponse.success("Gỡ câu hỏi khỏi quiz thành công", null));
+    }
 }

@@ -1,0 +1,31 @@
+On branch admin
+Your branch is ahead of 'origin/admin' by 4 commits.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   src/main/java/org/fsa_2026/company_fsa_captone_2026/controller/AssignmentController.java
+	modified:   src/main/java/org/fsa_2026/company_fsa_captone_2026/controller/ChallengeBankController.java
+	modified:   src/main/java/org/fsa_2026/company_fsa_captone_2026/dto/ChallengeBankRequest.java
+	modified:   src/main/java/org/fsa_2026/company_fsa_captone_2026/dto/EducatorAssignmentDTO.java
+	modified:   src/main/java/org/fsa_2026/company_fsa_captone_2026/dto/QuizCreateRequest.java
+	modified:   src/main/java/org/fsa_2026/company_fsa_captone_2026/entity/ChallengeBank.java
+	modified:   src/main/java/org/fsa_2026/company_fsa_captone_2026/repository/AssignmentRepository.java
+	modified:   src/main/java/org/fsa_2026/company_fsa_captone_2026/repository/ChallengeBankRepository.java
+	modified:   src/main/java/org/fsa_2026/company_fsa_captone_2026/repository/QuizChallengeItemRepository.java
+	modified:   src/main/java/org/fsa_2026/company_fsa_captone_2026/service/AssignmentService.java
+	modified:   src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeBankService.java
+	modified:   src/main/java/org/fsa_2026/company_fsa_captone_2026/service/QuizService.java
+	modified:   src/main/resources/db/changelog/db.changelog-master.xml
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	be_log.txt
+	reading_20_questions.xlsx
+	src/main/java/org/fsa_2026/company_fsa_captone_2026/controller/ChallengeExcelController.java
+	src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java
+	src/main/resources/db/migration/
+	status.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")

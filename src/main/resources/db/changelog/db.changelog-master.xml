@@ -15,4 +15,17 @@
                 columnDataType="INTEGER"/>
     </changeSet>
 
+    <changeSet id="31-add-region-to-challenge-bank" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="challenge_bank" columnName="region"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="challenge_bank">
+            <column name="region" type="VARCHAR(20)" defaultValue="BAC">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

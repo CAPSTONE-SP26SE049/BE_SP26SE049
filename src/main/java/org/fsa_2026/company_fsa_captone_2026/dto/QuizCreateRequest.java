@@ -42,7 +42,8 @@ public class QuizCreateRequest implements Serializable {
 
     private String comment;
 
+    private String skillType;
+
     @jakarta.validation.Valid
-    @jakarta.validation.constraints.NotEmpty(message = "Quiz must contain at least one question")
     private java.util.List<QuizQuestionRequest> questions;
 }

@@ -101,4 +101,24 @@ public class AssignmentService {
 
         return assignmentRepository.findAssignmentsByEducatorId(educatorId);
     }
+
+    @Transactional
+    public void deleteAssignment(String educatorEmail, UUID assignmentId) {
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "Assignment not found"));
+
+        Account educator = accountRepository.findByEmail(educatorEmail)
+                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "Educator account not found"));
+
+        if (educator.getRoleCode() != RoleCode.EDUCATOR) {
+            throw new ApiException(ErrorCode.FORBIDDEN, "Only educator can delete assignment");
+        }
+
+        // Verify the educator owns this assignment
+        if (!assignment.getAssignedBy().getId().equals(educator.getId())) {
+            throw new ApiException(ErrorCode.FORBIDDEN, "You can only delete your own assignments");
+        }
+
+        assignmentRepository.delete(assignment);
+    }
 }

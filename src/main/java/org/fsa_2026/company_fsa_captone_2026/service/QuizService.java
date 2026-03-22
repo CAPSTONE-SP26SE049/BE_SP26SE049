@@ -103,6 +103,7 @@ public class QuizService {
         metadata.put("questions", request.getQuestions());
         metadata.put("question_count", request.getQuestionCount());
         metadata.put("comment", request.getComment());
+        metadata.put("skill_type", request.getSkillType());
         return metadata;
     }
 
@@ -134,6 +135,7 @@ public class QuizService {
         response.put("questions", questions);
         response.put("questionCount", metadata.get("question_count"));
         response.put("comment", metadata.get("comment"));
+        response.put("skillType", metadata.get("skill_type"));
 
         return response;
     }
