@@ -17,6 +17,7 @@ import java.util.Map;
       "skillType": "READING",
       "difficultyTag": "BEGINNER",
       "isGlobal": true,
+      "region": "BAC",
       "metadataJson": {
         "options": ["nợn", "lợn", "lộn"],
         "correctAnswer": "lợn",
@@ -30,5 +31,6 @@ public class ChallengeBankRequest {
     private SkillType skillType;
     private DifficultyTag difficultyTag;
     private Boolean isGlobal;
+    private String region; // BAC, TRUNG, NAM
     private Map<String, Object> metadataJson;
 }

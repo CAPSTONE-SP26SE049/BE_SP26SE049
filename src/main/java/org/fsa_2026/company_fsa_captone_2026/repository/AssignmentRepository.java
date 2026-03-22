@@ -52,7 +52,10 @@ public interface AssignmentRepository extends JpaRepository<Assignment, UUID> {
                 lu.name,
                 a.dueDate,
                 a.status,
-                a.createdAt
+                a.createdAt,
+                lu.id,
+                lu.parent.id,
+                lu.metadataJson
             )
             FROM Assignment a
             JOIN a.classroom c

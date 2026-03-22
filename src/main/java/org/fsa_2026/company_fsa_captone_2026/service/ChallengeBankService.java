@@ -36,6 +36,7 @@ public class ChallengeBankService {
                 .skillType(request.getSkillType())
                 .difficultyTag(request.getDifficultyTag())
                 .isGlobal(request.getIsGlobal() != null ? request.getIsGlobal() : true)
+                .region(request.getRegion() != null ? request.getRegion() : "BAC")
                 .metadataJson(request.getMetadataJson())
                 .createdBy(account.getId())
                 .build();
@@ -77,5 +78,34 @@ public class ChallengeBankService {
                         .challenge(challengeBankRepository.findById(item.getChallengeBankId()).orElse(null))
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public ChallengeBank updateChallenge(UUID id, ChallengeBankRequest request) {
+        ChallengeBank challenge = challengeBankRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy câu hỏi với ID: " + id));
+        
+        if (request.getContentText() != null) challenge.setContentText(request.getContentText());
+        if (request.getSkillType() != null) challenge.setSkillType(request.getSkillType());
+        if (request.getDifficultyTag() != null) challenge.setDifficultyTag(request.getDifficultyTag());
+        if (request.getIsGlobal() != null) challenge.setIsGlobal(request.getIsGlobal());
+        if (request.getRegion() != null) challenge.setRegion(request.getRegion());
+        if (request.getMetadataJson() != null) challenge.setMetadataJson(request.getMetadataJson());
+        
+        return challengeBankRepository.save(challenge);
+    }
+
+    @Transactional
+    public void deleteChallenge(UUID id) {
+        // Remove from all quizzes first to avoid constraints
+        quizChallengeItemRepository.deleteByChallengeBankId(id);
+        quizChallengeItemRepository.deleteByChallengeId(id);
+        challengeBankRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void removeChallengeFromQuiz(UUID quizId, UUID challengeId) {
+        quizChallengeItemRepository.deleteByQuizIdAndChallengeBankId(quizId, challengeId);
+        quizChallengeItemRepository.deleteByQuizIdAndChallengeId(quizId, challengeId);
     }
 }
