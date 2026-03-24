@@ -12,7 +12,8 @@
                 columnDataType="INTEGER"/>
     </changeSet>
 
-<<<<<<< HEAD
+    <include file="db/changelog/30-add-classroom-extended-fields.xml"/>
+
     <changeSet id="31-add-region-to-challenge-bank" author="antigravity">
         <preConditions onFail="MARK_RAN">
             <not>
@@ -25,9 +26,7 @@
             </column>
         </addColumn>
     </changeSet>
-=======
-    <include file="db/changelog/30-add-classroom-extended-fields.xml"/>
+
     <include file="db/changelog/31-drop-classroom-entity.xml"/>
->>>>>>> e99e602 (Remove classroom domain and drop schema)
 
 </databaseChangeLog>
