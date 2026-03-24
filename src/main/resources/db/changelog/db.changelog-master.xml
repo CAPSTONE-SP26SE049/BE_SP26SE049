@@ -29,6 +29,11 @@
 
     <include file="db/changelog/31-drop-classroom-entity.xml"/>
 
+    <include file="db/changelog/32-update-reward-catalog-icons.xml"/>
+
+    <include file="db/changelog/33-seed-new-reward-catalog-badges.xml"/>
+
+    <include file="db/changelog/34-add-last-login-date.xml"/>
     <changeSet id="32-add-account-learning-unit" author="antigravity">
         <createTable tableName="account_learning_unit">
             <column name="id" type="UUID">

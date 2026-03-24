@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -166,6 +167,10 @@ public class AuthService {
                     "Email chưa được xác thực. Vui lòng kiểm tra hộp thư để xác nhận email");
         }
 
+        // ── Update login streak ──────────────────────────────────────────────
+        updateLoginStreak(account);
+        accountRepository.save(account);
+
         // Generate tokens
         String accessToken = jwtTokenProvider.generateAccessToken(
                 account.getId(), account.getEmail(), account.getRoleCode().name());
@@ -184,7 +189,7 @@ public class AuthService {
 
         refreshTokenRepository.save(refreshToken);
 
-        log.info("User logged in successfully: {}", request.getEmail());
+        log.info("User logged in: {} — streak={} days", request.getEmail(), account.getCurrentStreakDays());
 
         return LoginResponse.builder()
                 .accessToken(accessToken)
@@ -196,6 +201,7 @@ public class AuthService {
                         .role(account.getRoleCode().name())
                         .region(account.getRegion())
                         .avatar(account.getAvatarUrl())
+                        .currentStreakDays(account.getCurrentStreakDays())
                         .build())
                 .build();
     }
@@ -274,6 +280,37 @@ public class AuthService {
                 .totalExperience(account.getTotalExperience())
                 .createdAt(account.getCreatedAt())
                 .build();
+    }
+
+    /**
+     * Update login streak for the given account.
+     *
+     * Rules:
+     *   - First ever login (lastLoginDate == null)  → streak = 1
+     *   - Same day login                            → no change (already counted)
+     *   - Logged in yesterday                       → streak++
+     *   - Missed one or more days                   → streak reset to 1
+     *
+     * Must be called BEFORE saving the account.
+     */
+    void updateLoginStreak(Account account) {
+        LocalDate today = LocalDate.now();
+        LocalDate last = account.getLastLoginDate();
+
+        if (last == null) {
+            // First login
+            account.setCurrentStreakDays(1);
+        } else if (last.equals(today)) {
+            // Already logged in today — nothing to do
+        } else if (last.equals(today.minusDays(1))) {
+            // Logged in yesterday — extend streak
+            account.setCurrentStreakDays(account.getCurrentStreakDays() + 1);
+        } else {
+            // Missed one or more days — reset
+            account.setCurrentStreakDays(1);
+        }
+
+        account.setLastLoginDate(today);
     }
 
     /**

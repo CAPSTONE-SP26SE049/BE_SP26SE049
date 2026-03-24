@@ -23,16 +23,21 @@ import org.fsa_2026.company_fsa_captone_2026.dto.UserManagementResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.UserStatusUpdateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.UserUpdateRequest;
 import org.fsa_2026.company_fsa_captone_2026.entity.Account;
+import org.fsa_2026.company_fsa_captone_2026.dto.RewardCreateRequest;
+import org.fsa_2026.company_fsa_captone_2026.dto.RewardResponse;
 import org.fsa_2026.company_fsa_captone_2026.entity.ContentApprovalHistory;
 import org.fsa_2026.company_fsa_captone_2026.entity.ContentItem;
 import org.fsa_2026.company_fsa_captone_2026.entity.DailyAnalytics;
 import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
+import org.fsa_2026.company_fsa_captone_2026.entity.RewardCatalog;
+import org.fsa_2026.company_fsa_captone_2026.entity.enums.RewardType;
 import org.fsa_2026.company_fsa_captone_2026.entity.enums.RoleCode;
 import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
 import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.ContentApprovalHistoryRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.ContentItemRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.DailyAnalyticsRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.RewardCatalogRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.LearningUnitRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.StudySessionRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -73,6 +78,7 @@ public class AdminService {
     private final EmailService emailService;
     private final DailyAnalyticsRepository dailyAnalyticsRepository;
     private final ObjectMapper objectMapper;
+    private final RewardCatalogRepository rewardCatalogRepository;
 
     /**
      * Create a new Educator account
@@ -645,5 +651,68 @@ public class AdminService {
     private String generateDefaultAvatar(String fullName) {
         String seed = fullName != null ? fullName.replaceAll("\\s+", "+") : "default";
         return "https://api.dicebear.com/7.x/initials/svg?seed=" + seed;
+    }
+
+    // ==========================================
+    // Reward Catalog Management (Badge/Achievement)
+    // ==========================================
+
+    @Transactional(readOnly = true)
+    public List<RewardResponse> getAllRewards() {
+        return rewardCatalogRepository.findAll()
+                .stream().map(RewardResponse::fromEntity).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public RewardResponse getRewardById(UUID id) {
+        RewardCatalog reward = rewardCatalogRepository.findById(id)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy phần thưởng"));
+        return RewardResponse.fromEntity(reward);
+    }
+
+    @Transactional
+    public RewardResponse createReward(RewardCreateRequest request) {
+        RewardCatalog reward = RewardCatalog.builder()
+                .code(request.getCode())
+                .name(request.getName())
+                .description(request.getDescription())
+                .rewardType(org.fsa_2026.company_fsa_captone_2026.entity.enums.RewardType.BADGE)
+                .category(request.getCategory())
+                .iconUrl(request.getIconUrl())
+                .criteriaJson(request.getCriteriaJson())
+                .xpReward(0)
+                .isActive(request.isActive())
+                .build();
+        return RewardResponse.fromEntity(rewardCatalogRepository.save(reward));
+    }
+
+    @Transactional
+    public RewardResponse updateReward(UUID id, RewardCreateRequest request) {
+        RewardCatalog reward = rewardCatalogRepository.findById(id)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy phần thưởng"));
+        reward.setCode(request.getCode());
+        reward.setName(request.getName());
+        reward.setDescription(request.getDescription());
+        reward.setCategory(request.getCategory());
+        reward.setIconUrl(request.getIconUrl());
+        reward.setCriteriaJson(request.getCriteriaJson());
+        reward.setActive(request.isActive());
+        return RewardResponse.fromEntity(rewardCatalogRepository.save(reward));
+    }
+
+    @Transactional
+    public RewardResponse toggleRewardActive(UUID id) {
+        RewardCatalog reward = rewardCatalogRepository.findById(id)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy phần thưởng"));
+        reward.setActive(!reward.isActive());
+        return RewardResponse.fromEntity(rewardCatalogRepository.save(reward));
+    }
+
+    @Transactional
+    public void deleteReward(UUID id) {
+        if (!rewardCatalogRepository.existsById(id)) {
+            throw new ApiException("NOT_FOUND", "Không tìm thấy phần thưởng");
+        }
+        rewardCatalogRepository.deleteById(id);
     }
 }
