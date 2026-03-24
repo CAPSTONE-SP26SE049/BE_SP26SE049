@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        Adds `last_login_date` (DATE) to the `account` table,
+        used to calculate daily login streak (current_streak_days).
+        nullable=true so existing accounts are not blocked on startup.
+    -->
+    <changeSet id="34-add-last-login-date-to-account" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="account" columnName="last_login_date"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="account">
+            <column name="last_login_date" type="DATE">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

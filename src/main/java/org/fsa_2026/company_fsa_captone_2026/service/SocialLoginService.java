@@ -1,6 +1,7 @@
 package org.fsa_2026.company_fsa_captone_2026.service;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.Map;
 
@@ -44,6 +45,7 @@ public class SocialLoginService {
     private final AccountRepository accountRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtTokenProvider jwtTokenProvider;
+    private final AuthService authService;  // for updateLoginStreak
 
     @Value("${social.google.client-id}")
     private String googleClientId;
@@ -69,7 +71,7 @@ public class SocialLoginService {
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
     private LoginResponse loginWithGoogle(String token) {
-        // Step 1: Try verifying as ID Token
+        // Step 1: Try verifying as ID Token (only works if FE sends id_token, not access_token)
         try {
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
                     new NetHttpTransport(), GsonFactory.getDefaultInstance())
@@ -87,14 +89,18 @@ public class SocialLoginService {
                 log.info("Google login verified via ID Token for: {} (googleId: {})", email, googleId);
                 return findOrCreateAccountAndLogin(email, name, pictureUrl, PROVIDER_GOOGLE);
             }
-            log.info("Token is not a valid ID Token, will try as Access Token");
-        } catch (java.security.GeneralSecurityException | java.io.IOException e) {
-            log.info("ID Token verification failed ({}), trying as Access Token...", e.getMessage());
+            log.info("Token is not a valid ID Token (returned null), will try as Access Token");
+        } catch (Exception e) {
+            // Catches GeneralSecurityException, IOException, IllegalArgumentException, etc.
+            // Access tokens (ya29.xxx) are opaque strings - NOT JWTs, so they fail ID Token parsing.
+            // This is expected behavior - fall through to Step 2 (UserInfo API).
+            log.info("ID Token verification failed [{}]: {}, trying as Access Token...",
+                    e.getClass().getSimpleName(), e.getMessage());
         }
 
         // Step 2: Treat as Access Token → call Google UserInfo API
         try {
-            log.info("Calling Google UserInfo API with access token...");
+            log.info("Calling Google UserInfo API with access token (length={})...", token != null ? token.length() : 0);
             RestTemplate restTemplate = new RestTemplate();
             String userInfoUrl = "https://www.googleapis.com/oauth2/v3/userinfo";
 
@@ -122,8 +128,13 @@ public class SocialLoginService {
 
         } catch (ApiException e) {
             throw e;
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            // Log exact Google API error (e.g. 401 invalid_token)
+            log.error("Google UserInfo API error {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new ApiException("UNAUTHORIZED",
+                    "Google token không hợp lệ (lỗi " + e.getStatusCode().value() + "): " + e.getResponseBodyAsString());
         } catch (org.springframework.web.client.RestClientException | ClassCastException e) {
-            log.error("Google Access Token verification failed:", e);
+            log.error("Google Access Token network/parse error:", e);
             throw new ApiException("UNAUTHORIZED", "Không thể xác minh tài khoản Google: " +
                     (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
         }
@@ -220,6 +231,10 @@ public class SocialLoginService {
             log.info("Đăng nhập {} với tài khoản hiện có: email={}", provider, email);
         }
 
+        // ── Update login streak (shared logic in AuthService) ──────────────────
+        authService.updateLoginStreak(account);
+        account = accountRepository.save(account);
+
         // Generate JWT tokens (same logic as normal login)
         String accessToken = jwtTokenProvider.generateAccessToken(
                 account.getId(), account.getEmail(), account.getRoleCode().name());
@@ -238,7 +253,8 @@ public class SocialLoginService {
                 .build();
         refreshTokenRepository.save(refreshToken);
 
-        log.info("Social login thành công [{}]: email={}, role={}", provider, email, account.getRoleCode().name());
+        log.info("Social login [{}]: email={}, role={}, streak={} days",
+                provider, email, account.getRoleCode().name(), account.getCurrentStreakDays());
 
         return LoginResponse.builder()
                 .accessToken(accessToken)
@@ -250,6 +266,7 @@ public class SocialLoginService {
                         .role(account.getRoleCode().name())
                         .region(account.getRegion())
                         .avatar(account.getAvatarUrl())
+                        .currentStreakDays(account.getCurrentStreakDays())
                         .build())
                 .build();
     }

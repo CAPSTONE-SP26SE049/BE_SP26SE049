@@ -29,4 +29,10 @@
 
     <include file="db/changelog/31-drop-classroom-entity.xml"/>
 
+    <include file="db/changelog/32-update-reward-catalog-icons.xml"/>
+
+    <include file="db/changelog/33-seed-new-reward-catalog-badges.xml"/>
+
+    <include file="db/changelog/34-add-last-login-date.xml"/>
+
 </databaseChangeLog>

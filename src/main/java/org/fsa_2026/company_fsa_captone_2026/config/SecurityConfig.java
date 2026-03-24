@@ -95,7 +95,10 @@ public class SecurityConfig {
                                     // Root and favicon
                                     "/",
                                     "/error",
-                                    "/favicon.ico")
+                                    "/favicon.ico",
+
+                                    // Public badge catalog (learners can view without login)
+                                    "/api/v1/badges/catalog")
                             .permitAll()
 
                             // Admin endpoints

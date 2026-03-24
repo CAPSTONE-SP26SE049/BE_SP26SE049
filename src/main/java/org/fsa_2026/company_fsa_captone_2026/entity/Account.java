@@ -1,6 +1,7 @@
 package org.fsa_2026.company_fsa_captone_2026.entity;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 import org.fsa_2026.company_fsa_captone_2026.entity.enums.RoleCode;
 
@@ -83,6 +84,13 @@ public class Account extends BaseEntity {
     @Column(name = "current_streak_days", nullable = false)
     @Builder.Default
     private Integer currentStreakDays = 0;
+
+    /**
+     * Date of the most recent login — used to calculate daily streak.
+     * null for accounts that have never logged in after this feature was added.
+     */
+    @Column(name = "last_login_date")
+    private LocalDate lastLoginDate;
 
     @Column(name = "total_experience", nullable = false)
     @Builder.Default

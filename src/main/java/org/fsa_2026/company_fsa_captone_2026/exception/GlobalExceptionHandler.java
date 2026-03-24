@@ -1,6 +1,7 @@
 package org.fsa_2026.company_fsa_captone_2026.exception;
 
 import org.fsa_2026.company_fsa_captone_2026.common.error.ValidationErrorResponse;
+import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -138,6 +139,24 @@ public class GlobalExceptionHandler
                 ex.getMessage(),
                 LocalDateTime.now());
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Handle ApiException with correct HTTP status based on error code.
+     * Previously this fell through to handleRuntimeException and always returned 400.
+     */
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<ErrorResponse> handleApiException(ApiException ex) {
+        HttpStatus status = switch (ex.getCode().toUpperCase()) {
+            case "UNAUTHORIZED" -> HttpStatus.UNAUTHORIZED;
+            case "NOT_FOUND"    -> HttpStatus.NOT_FOUND;
+            case "CONFLICT"     -> HttpStatus.CONFLICT;
+            case "FORBIDDEN"    -> HttpStatus.FORBIDDEN;
+            default             -> HttpStatus.BAD_REQUEST;
+        };
+        log.warn("[{}] ApiException: code={}, message={}", status.value(), ex.getCode(), ex.getMessage());
+        ErrorResponse error = new ErrorResponse(status.value(), ex.getMessage(), LocalDateTime.now());
+        return new ResponseEntity<>(error, status);
     }
 
     @ExceptionHandler(RuntimeException.class)
