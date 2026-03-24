@@ -1,14 +1,17 @@
 package org.fsa_2026.company_fsa_captone_2026.dto;
 
+import java.io.Serializable;
+import java.util.Map;
+
+import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.io.Serializable;
-import java.util.Map;
 
 /**
  * Level Response DTO
@@ -33,6 +36,7 @@ public class LevelResponse implements Serializable {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
+    @SuppressWarnings("unchecked")
     public static LevelResponse fromEntity(LearningUnit level) {
         if (level == null)
             return null;
@@ -58,8 +62,8 @@ public class LevelResponse implements Serializable {
                 status = (String) metadata.get("status");
                 rejectionReason = (String) metadata.get("rejection_reason");
             }
-        } catch (Exception e) {
-            // Log
+        } catch (JsonProcessingException | ClassCastException ignored) {
+            // Keep fallback values when metadata parsing fails.
         }
 
         return LevelResponse.builder()

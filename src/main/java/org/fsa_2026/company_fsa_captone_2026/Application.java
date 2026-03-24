@@ -29,6 +29,9 @@ public class Application {
 
     /**
      * CORS Filter Bean - Áp dụng CORS configuration toàn ứng dụng
+     *
+     * @param corsConfigurationSource nguồn cấu hình CORS được Spring quản lý
+     * @return CorsFilter sử dụng cấu hình CORS toàn cục
      */
     @Bean
     public CorsFilter corsFilter(CorsConfigurationSource corsConfigurationSource) {

@@ -1,15 +1,18 @@
 package org.fsa_2026.company_fsa_captone_2026.dto;
 
+import java.io.Serializable;
+import java.util.List;
+import java.util.Map;
+
+import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.io.Serializable;
-import java.util.List;
-import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -25,13 +28,14 @@ public class ErrorTagResponse implements Serializable {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
+    @SuppressWarnings("unchecked")
     public static ErrorTagResponse fromEntity(LearningUnit tag) {
         if (tag == null)
             return null;
 
         String tagCode = "";
         String description = "";
-        List<String> regions = null;
+        List<String> regions = new java.util.ArrayList<>();
 
         try {
             if (tag.getMetadataJson() != null) {
@@ -40,8 +44,8 @@ public class ErrorTagResponse implements Serializable {
                 description = (String) metadata.get("description");
                 regions = (List<String>) metadata.get("regions");
             }
-        } catch (Exception e) {
-            // Log
+        } catch (JsonProcessingException | ClassCastException ignored) {
+            // Keep fallback values when metadata is missing or malformed.
         }
 
         return ErrorTagResponse.builder()

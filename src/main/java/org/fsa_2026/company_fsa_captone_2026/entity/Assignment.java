@@ -1,22 +1,21 @@
 package org.fsa_2026.company_fsa_captone_2026.entity;
 
+import java.time.Instant;
+import java.util.UUID;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UuidGenerator;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UuidGenerator;
-
-import java.time.Instant;
-import java.util.UUID;
 
 @Entity
 @Table(name = "assignment")
@@ -36,15 +35,14 @@ public class Assignment {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "classroom_id", nullable = false)
-    private Classroom classroom;
+    @Column(name = "classroom_id", nullable = false)
+    private UUID classroomId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @jakarta.persistence.ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
     @JoinColumn(name = "learning_unit_id", nullable = false)
     private LearningUnit learningUnit;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @jakarta.persistence.ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
     @JoinColumn(name = "assigned_by", nullable = false)
     private Account assignedBy;
 

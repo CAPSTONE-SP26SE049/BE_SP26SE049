@@ -18,8 +18,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import jakarta.annotation.PostConstruct;
 
-import java.io.IOException;
-
 @RestController
 @RequestMapping("/api/v1/excel")
 @RequiredArgsConstructor
@@ -40,6 +38,7 @@ public class GenericExcelController {
 
     @GetMapping("/export/{entityClassName}")
     @Operation(summary = "Export dữ liệu của bất kỳ Entity nào", description = "entityClassName là tên class Entity (ví dụ: ChallengeBank, Classroom, User)")
+    @SuppressWarnings("unchecked")
     public void exportFile(
             @PathVariable String entityClassName,
             @RequestParam(defaultValue = "EXCEL") FileFormat format,
@@ -62,6 +61,7 @@ public class GenericExcelController {
 
     @PostMapping(value = "/import/{entityClassName}", consumes = "multipart/form-data")
     @Operation(summary = "Import dữ liệu bằng File Excel cho bất kỳ Entity nào")
+    @SuppressWarnings("unchecked")
     public ResponseEntity<ApiResponse<ImportResult>> importFile(
             @PathVariable String entityClassName,
             @RequestParam("file") MultipartFile file

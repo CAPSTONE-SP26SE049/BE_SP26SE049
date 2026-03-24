@@ -15,12 +15,6 @@ spring:
         jdbc:
           time_zone: UTC  # ISO 8601 compliance
 
-  # Spring Data JPA
-  data:
-    jpa:
-      repositories:
-        bootstrap-mode: default
-
   datasource:
     url: jdbc:postgresql://${PGHOST:speak-journeyvn123.postgres.database.azure.com}:${PGPORT:5432}/${PGDATABASE:postgres}
     username: ${PGUSER:postgres}
@@ -47,7 +41,7 @@ spring:
     host: smtp.gmail.com
     port: 587
     username: ${MAIL_USERNAME:nguyenductuan11012003@gmail.com}
-    password: ${MAIL_PASSWORD:mpeyxysuqkrnwoqx}
+    password: ${MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
@@ -66,13 +60,12 @@ mail:
   base-url: ${MAIL_BASE_URL:http://localhost:5173}
 
 server:
-  port: ${SERVER_PORT:8082}  # Use environment variable or default 8082
-  # If port is in use, can also use: port: 0 (auto-assign available port)
-  shutdown: graceful  # Graceful shutdown on SIGTERM
+  port: 8082
+  shutdown: GRACEFUL
 
 # JWT Configuration
 jwt:
-  secret: F4/Bv1CjoyB+R3EhxoD4GaGmKzfskIKsyog/ABCL04xKSut2anfVIzvneaT2ZVReoQA5nX9oK8TS782AAOLrmg==
+  secret: ${JWT_SECRET:}
   access-token-expiration: 3600000      # 1 hour in milliseconds
   refresh-token-expiration: 2592000000  # 30 days in milliseconds
 
@@ -120,4 +113,4 @@ social:
     client-id: ${GOOGLE_CLIENT_ID:1086072031174-fk0iepl3k13dol2u53tjsueo3c3vq70j.apps.googleusercontent.com}
   facebook:
     app-id: ${FACEBOOK_APP_ID:1169205748542841}
-    app-secret: ${FACEBOOK_APP_SECRET:0d2de9b4b7522feb23ad645db2eba153}
+    app-secret: ${FACEBOOK_APP_SECRET:}

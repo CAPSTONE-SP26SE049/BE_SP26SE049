@@ -1,10 +1,19 @@
 package org.fsa_2026.company_fsa_captone_2026.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
+import java.time.Instant;
+
 import org.fsa_2026.company_fsa_captone_2026.entity.enums.RoleCode;
 
-import java.time.Instant;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * Account Entity - User Accounts (ISO Compliant)
@@ -81,6 +90,12 @@ public class Account extends BaseEntity {
 
     /**
      * Factory: tạo Account mới với role USER cho đăng ký thường
+     *
+     * @param email email người dùng
+     * @param passwordHash mật khẩu đã băm
+     * @param phone số điện thoại
+     * @param region vùng miền
+     * @return thực thể Account mới ở role USER
      */
     public static Account createUserAccount(String email, String passwordHash, String phone, String region) {
         return Account.builder()

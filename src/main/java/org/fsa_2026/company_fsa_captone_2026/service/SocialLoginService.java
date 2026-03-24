@@ -1,11 +1,9 @@
 package org.fsa_2026.company_fsa_captone_2026.service;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.gson.GsonFactory;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.Instant;
+import java.util.Collections;
+import java.util.Map;
+
 import org.fsa_2026.company_fsa_captone_2026.common.JwtTokenProvider;
 import org.fsa_2026.company_fsa_captone_2026.dto.LoginResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.SocialLoginRequest;
@@ -20,9 +18,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.Instant;
-import java.util.Collections;
-import java.util.Map;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Social Login Service
@@ -36,6 +38,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class SocialLoginService {
 
+    private static final String PROVIDER_GOOGLE = "GOOGLE";
+    private static final String META_PICTURE = "picture";
+
     private final AccountRepository accountRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtTokenProvider jwtTokenProvider;
@@ -43,19 +48,16 @@ public class SocialLoginService {
     @Value("${social.google.client-id}")
     private String googleClientId;
 
-    @Value("${social.facebook.app-id:}")
-    private String facebookAppId;
-
-    @Value("${social.facebook.app-secret:}")
-    private String facebookAppSecret;
-
     /**
      * Entry point for social login
+        *
+        * @param request social login request including provider and token
+        * @return login response containing access token, refresh token and user info
      */
     @Transactional
     public LoginResponse socialLogin(SocialLoginRequest request) {
         return switch (request.getProvider().toUpperCase()) {
-            case "GOOGLE" -> loginWithGoogle(request.getToken());
+            case PROVIDER_GOOGLE -> loginWithGoogle(request.getToken());
             case "FACEBOOK" -> loginWithFacebook(request.getToken());
             default -> throw new ApiException("BAD_REQUEST",
                     "Provider không hỗ trợ: " + request.getProvider());
@@ -65,7 +67,7 @@ public class SocialLoginService {
     /**
      * Verify Google Token (ID Token or Access Token) and login/register user
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private LoginResponse loginWithGoogle(String token) {
         // Step 1: Try verifying as ID Token
         try {
@@ -79,14 +81,14 @@ public class SocialLoginService {
                 GoogleIdToken.Payload payload = idToken.getPayload();
                 String email = payload.getEmail();
                 String name = (String) payload.get("name");
-                String pictureUrl = (String) payload.get("picture");
+                String pictureUrl = (String) payload.get(META_PICTURE);
                 String googleId = payload.getSubject();
 
                 log.info("Google login verified via ID Token for: {} (googleId: {})", email, googleId);
-                return findOrCreateAccountAndLogin(email, name, pictureUrl, "GOOGLE", googleId);
+                return findOrCreateAccountAndLogin(email, name, pictureUrl, PROVIDER_GOOGLE);
             }
             log.info("Token is not a valid ID Token, will try as Access Token");
-        } catch (Exception e) {
+        } catch (java.security.GeneralSecurityException | java.io.IOException e) {
             log.info("ID Token verification failed ({}), trying as Access Token...", e.getMessage());
         }
 
@@ -112,15 +114,15 @@ public class SocialLoginService {
 
             String email = (String) googleUser.get("email");
             String name = (String) googleUser.get("name");
-            String pictureUrl = (String) googleUser.get("picture");
+            String pictureUrl = (String) googleUser.get(META_PICTURE);
             String googleId = (String) googleUser.get("sub");
 
             log.info("Google login verified via Access Token for: {} (googleId: {})", email, googleId);
-            return findOrCreateAccountAndLogin(email, name, pictureUrl, "GOOGLE", googleId);
+            return findOrCreateAccountAndLogin(email, name, pictureUrl, PROVIDER_GOOGLE);
 
         } catch (ApiException e) {
             throw e;
-        } catch (Exception e) {
+        } catch (org.springframework.web.client.RestClientException | ClassCastException e) {
             log.error("Google Access Token verification failed:", e);
             throw new ApiException("UNAUTHORIZED", "Không thể xác minh tài khoản Google: " +
                     (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
@@ -152,7 +154,7 @@ public class SocialLoginService {
 
             // Extract picture URL from nested response
             String pictureUrl = null;
-            Map<String, Object> picture = (Map<String, Object>) fbUser.get("picture");
+            Map<String, Object> picture = (Map<String, Object>) fbUser.get(META_PICTURE);
             if (picture != null) {
                 Map<String, Object> data = (Map<String, Object>) picture.get("data");
                 if (data != null) {
@@ -168,11 +170,11 @@ public class SocialLoginService {
 
             log.info("Facebook login verified for: {} (fbId: {})", email, fbId);
 
-            return findOrCreateAccountAndLogin(email, name, pictureUrl, "FACEBOOK", fbId);
+            return findOrCreateAccountAndLogin(email, name, pictureUrl, "FACEBOOK");
 
         } catch (ApiException e) {
             throw e;
-        } catch (Exception e) {
+        } catch (org.springframework.web.client.RestClientException | ClassCastException e) {
             log.error("Facebook login verification failed:", e);
             throw new ApiException("UNAUTHORIZED", "Không thể xác minh tài khoản Facebook: " + e.getMessage());
         }
@@ -183,7 +185,7 @@ public class SocialLoginService {
      */
     private LoginResponse findOrCreateAccountAndLogin(
             String email, String name, String pictureUrl,
-            String provider, String providerId) {
+            String provider) {
 
         Account account = accountRepository.findByEmail(email).orElse(null);
 

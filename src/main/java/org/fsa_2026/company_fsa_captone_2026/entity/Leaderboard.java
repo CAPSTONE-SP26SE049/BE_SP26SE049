@@ -1,9 +1,15 @@
 package org.fsa_2026.company_fsa_captone_2026.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
-
 import java.time.LocalDate;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * Leaderboard Entity
@@ -47,13 +53,6 @@ public class Leaderboard extends BaseEntity {
     /** Optional: Region code (matches account.region) for regional leaderboards */
     @Column(name = "region_code", length = 30)
     private String regionCode;
-
-    /** Optional: classroom-scoped leaderboard */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "classroom_id", foreignKey = @ForeignKey(name = "fk_leaderboard_classroom"))
-    private Classroom classroom;
-
-
 
     /** Once finalized, the rankings are locked and no longer updated */
     @Column(name = "is_finalized", nullable = false)

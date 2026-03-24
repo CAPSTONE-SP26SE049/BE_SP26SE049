@@ -1,26 +1,26 @@
 package org.fsa_2026.company_fsa_captone_2026.service;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
 import org.fsa_2026.company_fsa_captone_2026.common.ErrorCode;
 import org.fsa_2026.company_fsa_captone_2026.dto.AssignmentCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.AssignmentDTO;
 import org.fsa_2026.company_fsa_captone_2026.dto.EducatorAssignmentDTO;
 import org.fsa_2026.company_fsa_captone_2026.entity.Account;
 import org.fsa_2026.company_fsa_captone_2026.entity.Assignment;
-import org.fsa_2026.company_fsa_captone_2026.entity.Classroom;
 import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
 import org.fsa_2026.company_fsa_captone_2026.entity.enums.RoleCode;
 import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
 import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.AssignmentRepository;
-import org.fsa_2026.company_fsa_captone_2026.repository.ClassroomRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.LearningUnitRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -30,15 +30,11 @@ public class AssignmentService {
     private static final String LEARNING_UNIT_TYPE_LEVEL = "LEVEL";
 
     private final AssignmentRepository assignmentRepository;
-    private final ClassroomRepository classroomRepository;
     private final LearningUnitRepository learningUnitRepository;
     private final AccountRepository accountRepository;
 
     @Transactional
     public AssignmentDTO createAssignment(String educatorEmail, AssignmentCreateRequest request) {
-        Classroom classroom = classroomRepository.findById(request.getClassroomId())
-                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "Classroom not found"));
-
         LearningUnit learningUnit = learningUnitRepository.findById(request.getLearningUnitId())
                 .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "Learning unit not found"));
 
@@ -54,7 +50,7 @@ public class AssignmentService {
         }
 
         Assignment assignment = Assignment.builder()
-                .classroom(classroom)
+            .classroomId(request.getClassroomId())
                 .learningUnit(learningUnit)
                 .assignedBy(assignedBy)
                 .dueDate(request.getDueDate())
@@ -77,16 +73,11 @@ public class AssignmentService {
         if (!accountRepository.existsById(studentId)) {
             throw new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "Student not found");
         }
-
-        return assignmentRepository.findAssignmentDtosByStudentId(studentId);
+        return Collections.emptyList();
     }
 
     @Transactional(readOnly = true)
     public List<AssignmentDTO> getAssignmentsByClassroom(UUID classroomId) {
-        if (!classroomRepository.existsById(classroomId)) {
-            throw new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "Classroom not found");
-        }
-
         return assignmentRepository.findAssignmentDtosByClassroomId(classroomId);
     }
 

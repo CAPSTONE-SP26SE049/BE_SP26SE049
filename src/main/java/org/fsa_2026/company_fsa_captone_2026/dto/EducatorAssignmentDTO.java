@@ -1,18 +1,21 @@
 package org.fsa_2026.company_fsa_captone_2026.dto;
 
+<<<<<<< HEAD
+=======
+import java.time.Instant;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+>>>>>>> e99e602 (Remove classroom domain and drop schema)
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.time.Instant;
-import java.util.UUID;
 
 @Data
 @NoArgsConstructor
 @Builder
 public class EducatorAssignmentDTO {
     private UUID id;
-    private String classroomName;
     private String levelName;
     private Instant dueDate;
     private String status;

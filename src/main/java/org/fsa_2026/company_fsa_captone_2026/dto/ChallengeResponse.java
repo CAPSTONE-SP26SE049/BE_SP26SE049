@@ -1,15 +1,17 @@
 package org.fsa_2026.company_fsa_captone_2026.dto;
 
+import java.io.Serializable;
+import java.util.Map;
+
+import org.fsa_2026.company_fsa_captone_2026.entity.ContentItem;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.fsa_2026.company_fsa_captone_2026.entity.ContentItem;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.io.Serializable;
-import java.time.Instant;
-import java.util.Map;
 
 /**
  * Challenge Response DTO
@@ -34,6 +36,7 @@ public class ChallengeResponse implements Serializable {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
+    @SuppressWarnings("unchecked")
     public static ChallengeResponse fromEntity(ContentItem challenge) {
         if (challenge == null)
             return null;
@@ -57,7 +60,9 @@ public class ChallengeResponse implements Serializable {
                 difficulty = (String) metadata.get("difficulty");
                 rejectionReason = (String) metadata.get("rejection_reason");
             }
-        } catch (Exception e) { }
+        } catch (JsonProcessingException | ClassCastException ignored) {
+            // Keep default response values when metadata parsing fails.
+        }
 
         return ChallengeResponse.builder()
                 .id(challenge.getId().toString())

@@ -1,16 +1,19 @@
 package org.fsa_2026.company_fsa_captone_2026.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.fsa_2026.company_fsa_captone_2026.entity.ContentItem;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.fsa_2026.company_fsa_captone_2026.entity.ContentItem;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Response DTO for Quiz
@@ -34,6 +37,7 @@ public class QuizResponse implements Serializable {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
+    @SuppressWarnings("unchecked")
     public static QuizResponse fromEntity(ContentItem entity) {
         if (entity == null) return null;
 
@@ -52,24 +56,26 @@ public class QuizResponse implements Serializable {
                 timeLimitMinutes = (Integer) metadata.get("time_limit_minutes");
                 rejectionReason = (String) metadata.get("rejection_reason");
             }
-        } catch (Exception e) { }
+        } catch (JsonProcessingException | ClassCastException ignored) {
+            // Keep fallback values when metadata cannot be parsed.
+        }
 
         // Map questions from itemsJson
-        List<QuizQuestionResponse> questions = null;
+        List<QuizQuestionResponse> questions = new java.util.ArrayList<>();
         try {
             if (entity.getItemsJson() != null) {
                 List<Map<String, Object>> items = objectMapper.readValue(entity.getItemsJson(), List.class);
-                questions = items.stream().map(item -> {
-                    return QuizQuestionResponse.builder()
+                questions = items.stream().map(item -> QuizQuestionResponse.builder()
                         .skillType((String) item.get("skill_type"))
                         .difficulty((String) item.get("difficulty"))
                         .questionOrder((Integer) item.get("question_order"))
                         .points((Integer) item.get("points"))
                         .challengeId((String) item.get("challenge_id"))
-                        .build();
-                }).collect(Collectors.toList());
+                        .build()).collect(Collectors.toList());
             }
-        } catch (Exception e) { }
+        } catch (JsonProcessingException | ClassCastException ignored) {
+            // Keep empty question list when itemsJson cannot be parsed.
+        }
 
         return QuizResponse.builder()
                 .id(entity.getId().toString())

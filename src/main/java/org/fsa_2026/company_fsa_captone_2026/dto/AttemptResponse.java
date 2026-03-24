@@ -1,17 +1,20 @@
 package org.fsa_2026.company_fsa_captone_2026.dto;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.fsa_2026.company_fsa_captone_2026.entity.SessionDetail;
-
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+
+import org.fsa_2026.company_fsa_captone_2026.entity.SessionDetail;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Attempt Response DTO
@@ -37,6 +40,7 @@ public class AttemptResponse implements Serializable {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
+    @SuppressWarnings("unchecked")
     public static AttemptResponse fromEntity(SessionDetail detail) {
         if (detail == null)
             return null;
@@ -48,11 +52,12 @@ public class AttemptResponse implements Serializable {
                 Map<String, Object> meta = objectMapper.readValue(detail.getAttemptMetadataJson(), Map.class);
                 audioUrl = (String) meta.get("audioUrl");
                 Object lms = meta.get("latencyMs");
-                if (lms instanceof Number) {
-                    latencyMs = ((Number) lms).intValue();
+                if (lms instanceof Number number) {
+                    latencyMs = number.intValue();
                 }
             }
-        } catch (Exception ignored) {
+        } catch (JsonProcessingException | ClassCastException ignored) {
+            // Gracefully fallback to null fields when metadata is malformed.
         }
 
         return AttemptResponse.builder()
@@ -63,6 +68,7 @@ public class AttemptResponse implements Serializable {
                 .scoreOverall(detail.getScoreOverall())
                 .isPassed(detail.getIsPassed())
                 .latencyMs(latencyMs)
+                .feedback(new java.util.ArrayList<>())
                 .createdAt(detail.getCreatedAt())
                 .build();
     }

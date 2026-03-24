@@ -1,21 +1,41 @@
 package org.fsa_2026.company_fsa_captone_2026.controller;
 
+import java.util.List;
+import java.util.UUID;
+
+import org.fsa_2026.company_fsa_captone_2026.dto.ApiResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeCreateRequest;
+import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.EducatorDashboardSummaryResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.ErrorTagResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.FeedbackCreateRequest;
+import org.fsa_2026.company_fsa_captone_2026.dto.LevelCreateRequest;
+import org.fsa_2026.company_fsa_captone_2026.dto.LevelResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.PlacementRuleRequest;
+import org.fsa_2026.company_fsa_captone_2026.dto.PlacementRuleResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.StudentAnalyticsResponse;
+import org.fsa_2026.company_fsa_captone_2026.service.EducatorService;
+import org.fsa_2026.company_fsa_captone_2026.service.ErrorTagService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.fsa_2026.company_fsa_captone_2026.dto.*;
-import org.fsa_2026.company_fsa_captone_2026.service.EducatorService;
-import org.fsa_2026.company_fsa_captone_2026.service.ErrorTagService;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 @RestController
@@ -25,6 +45,8 @@ import java.util.UUID;
 @SecurityRequirement(name = "bearer-jwt")
 public class EducatorController {
 
+        private static final String MSG_SUCCESS = "Thành công";
+
         private final EducatorService educatorService;
         private final ErrorTagService errorTagService;
 
@@ -33,76 +55,10 @@ public class EducatorController {
         public ResponseEntity<ApiResponse<EducatorDashboardSummaryResponse>> getDashboardSummary(
                         Authentication authentication) {
                 return ResponseEntity
-                                .ok(ApiResponse.success("Thành công",
+                                .ok(ApiResponse.success(MSG_SUCCESS,
                                                 educatorService.getDashboardSummary(authentication.getName())));
         }
 
-        @GetMapping("/classrooms")
-        @Operation(summary = "Get Classrooms", description = "List all classrooms managed by the educator")
-        public ResponseEntity<ApiResponse<List<ClassroomResponse>>> getClassrooms(Authentication authentication) {
-                return ResponseEntity
-                                .ok(ApiResponse.success("Thành công",
-                                                educatorService.getClassrooms(authentication.getName())));
-        }
-
-        @PostMapping("/classrooms")
-        @Operation(summary = "Create Classroom", description = "Create a new classroom")
-        public ResponseEntity<ApiResponse<ClassroomResponse>> createClassroom(
-                        Authentication authentication,
-                        @Valid @RequestBody ClassroomCreateRequest request) {
-                return ResponseEntity.status(HttpStatus.CREATED)
-                                .body(ApiResponse.success("Tạo lớp học thành công",
-                                                educatorService.createClassroom(authentication.getName(), request)));
-        }
-
-        @PatchMapping("/classrooms/{id}")
-        @Operation(summary = "Update Classroom", description = "Update classroom name")
-        public ResponseEntity<ApiResponse<ClassroomResponse>> updateClassroom(
-                        @PathVariable UUID id,
-                        @Valid @RequestBody ClassroomCreateRequest request,
-                        Authentication authentication) {
-                return ResponseEntity.ok(ApiResponse.success("Cập nhật lớp học thành công",
-                                educatorService.updateClassroom(authentication.getName(), id, request)));
-        }
-
-        @DeleteMapping("/classrooms/{id}")
-        @Operation(summary = "Delete Classroom", description = "Remove a classroom")
-        public ResponseEntity<ApiResponse<Void>> deleteClassroom(
-                        @PathVariable UUID id,
-                        Authentication authentication) {
-                educatorService.deleteClassroom(authentication.getName(), id);
-                return ResponseEntity.ok(ApiResponse.success("Xóa lớp học thành công", null));
-        }
-
-        @GetMapping("/classrooms/{id}/students")
-        @Operation(summary = "Get Classroom Students", description = "List all students in a classroom")
-        public ResponseEntity<ApiResponse<List<UserManagementResponse>>> getClassroomStudents(
-                        @PathVariable UUID id,
-                        Authentication authentication) {
-                return ResponseEntity.ok(
-                                ApiResponse.success("Thành công",
-                                                educatorService.getClassroomStudents(authentication.getName(), id)));
-        }
-
-        @PostMapping("/classrooms/{id}/students")
-        @Operation(summary = "Add Student to Classroom", description = "Enroll a student using email")
-        public ResponseEntity<ApiResponse<Void>> addStudentToClassroom(
-                        @PathVariable UUID id,
-                        @Valid @RequestBody AddStudentRequest request,
-                        Authentication authentication) {
-                educatorService.addStudentToClassroom(authentication.getName(), id, request);
-                return ResponseEntity.ok(ApiResponse.success("Thêm học viên vào lớp thành công", null));
-        }
-
-        @DeleteMapping("/classrooms/{id}/students/{studentId}")
-        @Operation(summary = "Remove Student from Classroom", description = "Unenroll a student")
-        public ResponseEntity<ApiResponse<Void>> removeStudentFromClassroom(
-                        @PathVariable UUID id,
-                        @PathVariable UUID studentId,
-                        Authentication authentication) {
-                educatorService.removeStudentFromClassroom(authentication.getName(), id, studentId);
-                return ResponseEntity.ok(ApiResponse.success("Xóa học viên khỏi lớp thành công", null));
-        }
 
         @GetMapping("/students/{id}/analytics")
         @Operation(summary = "Get Student Analytics", description = "Detailed pronunciation report for a student")
@@ -110,18 +66,8 @@ public class EducatorController {
                         @PathVariable UUID id,
                         Authentication authentication) {
                 return ResponseEntity.ok(
-                                ApiResponse.success("Thành công",
+                                ApiResponse.success(MSG_SUCCESS,
                                                 educatorService.getStudentAnalytics(authentication.getName(), id)));
-        }
-
-        @GetMapping("/classrooms/{id}/performance")
-        @Operation(summary = "Get Classroom Performance", description = "Aggregated performance stats for a classroom")
-        public ResponseEntity<ApiResponse<ClassroomPerformanceResponse>> getClassroomPerformance(
-                        @PathVariable UUID id,
-                        Authentication authentication) {
-                return ResponseEntity.ok(
-                                ApiResponse.success("Thành công",
-                                                educatorService.getClassroomPerformance(authentication.getName(), id)));
         }
 
         @GetMapping("/curriculum/{region}")
@@ -130,7 +76,7 @@ public class EducatorController {
                         @PathVariable String region,
                         Authentication authentication) {
                 return ResponseEntity.ok(
-                                ApiResponse.success("Thành công", educatorService.getCurriculumByRegion(region)));
+                                ApiResponse.success(MSG_SUCCESS, educatorService.getCurriculumByRegion(region)));
         }
 
         @PostMapping("/curriculum/levels")
@@ -233,7 +179,7 @@ public class EducatorController {
         public ResponseEntity<ApiResponse<List<PlacementRuleResponse>>> getPlacementRules(
                         Authentication authentication) {
                 return ResponseEntity.ok(
-                                ApiResponse.success("Thành công", educatorService.getPlacementRules()));
+                                ApiResponse.success(MSG_SUCCESS, educatorService.getPlacementRules()));
         }
 
         @PostMapping("/placement/rules")
@@ -250,6 +196,6 @@ public class EducatorController {
         @Operation(summary = "Get Levels", description = "List all approved levels")
         public ResponseEntity<ApiResponse<List<LevelResponse>>> getLevelsForSelection() {
                 return ResponseEntity.ok(
-                                ApiResponse.success("Thành công", educatorService.getAllLevelsForSelection()));
+                                ApiResponse.success(MSG_SUCCESS, educatorService.getAllLevelsForSelection()));
         }
 }

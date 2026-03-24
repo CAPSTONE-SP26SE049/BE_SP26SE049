@@ -1,5 +1,6 @@
 package org.fsa_2026.company_fsa_captone_2026.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +13,6 @@ import org.fsa_2026.company_fsa_captone_2026.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -22,8 +22,12 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class EducatorService {
 
-    private final ClassroomRepository classroomRepository;
-    private final ClassroomMemberRepository classroomMemberRepository;
+        private static final String CODE_NOT_FOUND = "NOT_FOUND";
+        private static final String TYPE_LEVEL = "LEVEL";
+        private static final String TYPE_PRONUNCIATION = "PRONUNCIATION";
+        private static final String STATUS_PENDING = "PENDING";
+        private static final String MSG_LEVEL_NOT_FOUND = "Không tìm thấy Level";
+
     private final AccountRepository accountRepository;
     private final SessionDetailRepository sessionDetailRepository;
     private final LearningUnitRepository learningUnitRepository;
@@ -33,101 +37,16 @@ public class EducatorService {
     private final ContentApprovalHistoryRepository contentApprovalHistoryRepository;
     private final ObjectMapper objectMapper;
 
-    // ─── Classroom Performance ───────────────────────────────────────────────
-
-    @Transactional(readOnly = true)
-    public ClassroomPerformanceResponse getClassroomPerformance(String educatorEmail, UUID classroomId) {
-        Classroom classroom = classroomRepository.findById(classroomId)
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy lớp học"));
-        validateEducatorOwnership(educatorEmail, classroom);
-
-        List<SessionDetail> details = getSessionDetailsForClassroom(classroomId);
-
-        if (details.isEmpty()) {
-            return ClassroomPerformanceResponse.builder()
-                    .classroomId(classroomId.toString())
-                    .classroomName(classroom.getName())
-                    .averageScore(BigDecimal.ZERO)
-                    .completionRate(BigDecimal.ZERO)
-                    .commonErrors(Collections.emptyList())
-                    .build();
-        }
-
-        BigDecimal avgScore = BigDecimal.valueOf(details.stream()
-                .filter(d -> d.getScoreOverall() != null)
-                .mapToDouble(d -> d.getScoreOverall().doubleValue())
-                .average()
-                .orElse(0.0));
-
-        long passedCount = details.stream().filter(d -> Boolean.TRUE.equals(d.getIsPassed())).count();
-        BigDecimal completionRate = BigDecimal.valueOf((double) passedCount / details.size() * 100);
-
-        return ClassroomPerformanceResponse.builder()
-                .classroomId(classroomId.toString())
-                .classroomName(classroom.getName())
-                .averageScore(avgScore)
-                .completionRate(completionRate)
-                .commonErrors(getCommonErrors(details))
-                .build();
-    }
-
-    private List<SessionDetail> getSessionDetailsForClassroom(UUID classroomId) {
-        return classroomMemberRepository.findByClassroomId(classroomId).stream()
-                .flatMap(m -> sessionDetailRepository
-                        .findByAccountIdOrderByCreatedAtDesc(m.getStudent().getId()).stream())
-                .collect(Collectors.toList());
-    }
-
-    private List<ClassroomPerformanceResponse.CommonErrorResponse> getCommonErrors(List<SessionDetail> details) {
-        List<PhonemeFeedbackDetail> allFeedback = details.stream()
-                .filter(sd -> sd.getAttemptMetadataJson() != null)
-                .flatMap(sd -> {
-                    try {
-                        Map<String, Object> meta = objectMapper.readValue(
-                                sd.getAttemptMetadataJson(), new TypeReference<Map<String, Object>>() {});
-                        Object phonemeRaw = meta.get("phoneme_feedback_json");
-                        if (phonemeRaw == null) return Stream.empty();
-                        String phonemeJson = objectMapper.writeValueAsString(phonemeRaw);
-                        return objectMapper.readValue(phonemeJson,
-                                new TypeReference<List<PhonemeFeedbackDetail>>() {}).stream();
-                    } catch (Exception e) {
-                        log.error("Error deserializing phoneme feedback for session_detail {}", sd.getId(), e);
-                        return Stream.empty();
-                    }
-                })
-                .collect(Collectors.toList());
-
-        Map<String, List<PhonemeFeedbackDetail>> groupedByPhoneme = allFeedback.stream()
-                .collect(Collectors.groupingBy(PhonemeFeedbackDetail::getPhonemeIpa));
-
-        return groupedByPhoneme.entrySet().stream()
-                .map(entry -> {
-                    List<PhonemeFeedbackDetail> feedbackList = entry.getValue();
-                    double avgError = feedbackList.stream()
-                            .mapToDouble(f -> f.getScore().doubleValue())
-                            .average()
-                            .orElse(0.0);
-                    return ClassroomPerformanceResponse.CommonErrorResponse.builder()
-                            .phoneme(entry.getKey())
-                            .occurrenceCount((long) feedbackList.size())
-                            .averageErrorScore(BigDecimal.valueOf(avgError))
-                            .build();
-                })
-                .sorted(Comparator.comparing(r -> r.getAverageErrorScore()))
-                .limit(5)
-                .collect(Collectors.toList());
-    }
-
     // ─── Curriculum / Level ──────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
     public List<LevelResponse> getCurriculumByRegion(String region) {
         LearningUnit dialect = learningUnitRepository
                 .findByTypeAndNameIgnoreCase("DIALECT", region)
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy vùng miền: " + region));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy vùng miền: " + region));
 
         return learningUnitRepository
-                .findByParentIdAndType(dialect.getId(), "LEVEL").stream()
+                .findByParentIdAndType(dialect.getId(), TYPE_LEVEL).stream()
                 .map(LevelResponse::fromEntity)
                 .collect(Collectors.toList());
     }
@@ -140,7 +59,7 @@ public class EducatorService {
         LearningUnit parent = null;
         if (request.getParentId() != null) {
             parent = learningUnitRepository.findById(request.getParentId())
-                    .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy parent"));
+                    .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy parent"));
         }
 
         LearningUnit level;
@@ -152,14 +71,14 @@ public class EducatorService {
                     .metadataJson(objectMapper.writeValueAsString(
                             request.getMetadataJson() != null ? request.getMetadataJson() : new LinkedHashMap<>()))
                     .build();
-        } catch (Exception e) {
+                } catch (JsonProcessingException e) {
             throw new ApiException("INTERNAL_ERROR", "Không thể tạo Learning Unit");
         }
         level.setCreatedBy(educator.getId().toString());
         level = learningUnitRepository.save(level);
 
         LevelResponse response = LevelResponse.fromEntity(level);
-        saveApprovalHistory("LEVEL", level.getId(), educator, ContentStatus.PENDING,
+        saveApprovalHistory(TYPE_LEVEL, level.getId(), educator, ContentStatus.PENDING,
                 "Educator created level",
                 response);
         return response;
@@ -169,12 +88,12 @@ public class EducatorService {
     public LevelResponse updateLevel(String educatorEmail, UUID levelId, LevelCreateRequest request) {
         Account educator = getAccountByEmail(educatorEmail);
         LearningUnit level = learningUnitRepository.findById(levelId)
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy cấp độ"));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
 
         if (request.getParentId() != null
                 && (level.getParent() == null || !level.getParent().getId().equals(request.getParentId()))) {
             LearningUnit parent = learningUnitRepository.findById(request.getParentId())
-                    .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy parent"));
+                    .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy parent"));
             level.setParent(parent);
         }
 
@@ -186,7 +105,7 @@ public class EducatorService {
                     ? new LinkedHashMap<>(request.getMetadataJson())
                     : new LinkedHashMap<>();
             level.setMetadataJson(objectMapper.writeValueAsString(metadata));
-        } catch (Exception e) {
+                } catch (JsonProcessingException e) {
             throw new ApiException("INTERNAL_ERROR", "Không thể cập nhật Level");
         }
 
@@ -194,7 +113,7 @@ public class EducatorService {
         level = learningUnitRepository.save(level);
 
         LevelResponse response = LevelResponse.fromEntity(level);
-        saveApprovalHistory("LEVEL", level.getId(), educator, ContentStatus.PENDING,
+        saveApprovalHistory(TYPE_LEVEL, level.getId(), educator, ContentStatus.PENDING,
                 "Educator updated level",
                 response);
         return response;
@@ -205,7 +124,7 @@ public class EducatorService {
         getAccountByEmail(educatorEmail);
 
         LearningUnit level = learningUnitRepository.findById(levelId)
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy cấp độ"));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
 
         List<ContentItem> contentItems = contentItemRepository.findByLearningUnitId(levelId);
         if (!contentItems.isEmpty()) {
@@ -217,14 +136,14 @@ public class EducatorService {
     @Transactional
     public void uploadLevelAudio(UUID levelId, String audioUrl) {
         LearningUnit level = learningUnitRepository.findById(levelId)
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy cấp độ"));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
         try {
             Map<String, Object> metadata = level.getMetadataJson() != null
                     ? new LinkedHashMap<>(objectMapper.readValue(level.getMetadataJson(), new TypeReference<Map<String, Object>>() {}))
                     : new LinkedHashMap<>();
             metadata.put("audio_url", audioUrl);
             level.setMetadataJson(objectMapper.writeValueAsString(metadata));
-        } catch (Exception e) {
+                } catch (JsonProcessingException e) {
             throw new ApiException("INTERNAL_ERROR", "Không thể cập nhật audio URL");
         }
         learningUnitRepository.save(level);
@@ -232,14 +151,14 @@ public class EducatorService {
 
     @Transactional(readOnly = true)
     public List<LevelResponse> getAllLevelsForSelection() {
-        return learningUnitRepository.findByType("LEVEL").stream()
+                return learningUnitRepository.findByType(TYPE_LEVEL).stream()
                 .filter(unit -> {
                     try {
                         if (unit.getMetadataJson() == null) return false;
                         Map<String, Object> meta = objectMapper.readValue(
                                 unit.getMetadataJson(), new TypeReference<Map<String, Object>>() {});
                         return "APPROVED".equals(meta.get("status"));
-                    } catch (Exception e) {
+                                        } catch (JsonProcessingException | ClassCastException e) {
                         return false;
                     }
                 })
@@ -253,7 +172,7 @@ public class EducatorService {
     public ChallengeResponse createChallenge(String educatorEmail, ChallengeCreateRequest request) {
         Account educator = getAccountByEmail(educatorEmail);
         LearningUnit level = learningUnitRepository.findById(request.getLevelId())
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Level"));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
 
         Map<String, Object> metadata = buildChallengeMetadata(request);
 
@@ -266,11 +185,11 @@ public class EducatorService {
             challenge = ContentItem.builder()
                     .learningUnit(level)
                     .title(title)
-                    .type("PRONUNCIATION")
-                    .status("PENDING")
+                                        .type(TYPE_PRONUNCIATION)
+                                        .status(STATUS_PENDING)
                     .metadataJson(objectMapper.writeValueAsString(metadata))
                     .build();
-        } catch (Exception e) {
+                } catch (JsonProcessingException e) {
             throw new ApiException("INTERNAL_ERROR", "Không thể tạo Challenge");
         }
         challenge.setCreatedBy(educator.getId().toString());
@@ -289,10 +208,10 @@ public class EducatorService {
             ChallengeCreateRequest request) {
         Account educator = getAccountByEmail(educatorEmail);
         ContentItem challenge = contentItemRepository.findById(challengeId)
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Challenge"));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy Challenge"));
 
         LearningUnit level = learningUnitRepository.findById(request.getLevelId())
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Level"));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
 
         Map<String, Object> metadata = buildChallengeMetadata(request);
 
@@ -303,9 +222,9 @@ public class EducatorService {
         try {
             challenge.setLearningUnit(level);
             challenge.setTitle(title);
-            challenge.setStatus("PENDING");
+                        challenge.setStatus(STATUS_PENDING);
             challenge.setMetadataJson(objectMapper.writeValueAsString(metadata));
-        } catch (Exception e) {
+                } catch (JsonProcessingException e) {
             throw new ApiException("INTERNAL_ERROR", "Không thể cập nhật Challenge");
         }
         challenge.setUpdatedBy(educator.getId().toString());
@@ -323,7 +242,7 @@ public class EducatorService {
     public void deleteChallenge(String educatorEmail, UUID id) {
         getAccountByEmail(educatorEmail);
         if (!contentItemRepository.existsById(id)) {
-            throw new ApiException("NOT_FOUND", "Không tìm thấy Challenge");
+                        throw new ApiException(CODE_NOT_FOUND, "Không tìm thấy Challenge");
         }
         contentItemRepository.deleteById(id);
     }
@@ -356,7 +275,7 @@ public class EducatorService {
     public QuizResponse getQuizById(String educatorEmail, UUID quizId) {
         getAccountByEmail(educatorEmail);
         ContentItem quiz = contentItemRepository.findById(quizId)
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy bài kiểm tra"));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy bài kiểm tra"));
         return QuizResponse.fromEntity(quiz);
     }
 
@@ -364,7 +283,7 @@ public class EducatorService {
     public QuizResponse createQuiz(String educatorEmail, QuizCreateRequest request) {
         Account educator = getAccountByEmail(educatorEmail);
         LearningUnit level = learningUnitRepository.findById(request.getLevelId())
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Level"));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
 
         ContentItem quiz;
         try {
@@ -372,11 +291,11 @@ public class EducatorService {
                     .learningUnit(level)
                     .title(request.getTitle())
                     .type("QUIZ")
-                    .status("PENDING")
+                                        .status(STATUS_PENDING)
                     .metadataJson(objectMapper.writeValueAsString(buildQuizMetadata(request)))
                     .itemsJson(objectMapper.writeValueAsString(buildQuestionsJson(request.getQuestions())))
                     .build();
-        } catch (Exception e) {
+                } catch (JsonProcessingException e) {
             throw new ApiException("INTERNAL_ERROR", "Không thể tạo Quiz");
         }
         quiz.setCreatedBy(educator.getId().toString());
@@ -394,17 +313,17 @@ public class EducatorService {
     public QuizResponse updateQuiz(String educatorEmail, UUID quizId, QuizCreateRequest request) {
         Account educator = getAccountByEmail(educatorEmail);
         ContentItem quiz = contentItemRepository.findById(quizId)
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy bài kiểm tra"));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy bài kiểm tra"));
         LearningUnit level = learningUnitRepository.findById(request.getLevelId())
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Level"));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
 
         try {
             quiz.setLearningUnit(level);
             quiz.setTitle(request.getTitle());
-            quiz.setStatus("PENDING");
+                        quiz.setStatus(STATUS_PENDING);
             quiz.setMetadataJson(objectMapper.writeValueAsString(buildQuizMetadata(request)));
             quiz.setItemsJson(objectMapper.writeValueAsString(buildQuestionsJson(request.getQuestions())));
-        } catch (Exception e) {
+                } catch (JsonProcessingException e) {
             throw new ApiException("INTERNAL_ERROR", "Không thể cập nhật Quiz");
         }
         quiz.setUpdatedBy(educator.getId().toString());
@@ -449,7 +368,7 @@ public class EducatorService {
     public void submitFeedback(String educatorEmail, UUID studentId, FeedbackCreateRequest request) {
         Account educator = getAccountByEmail(educatorEmail);
         SessionDetail sessionDetail = sessionDetailRepository.findById(request.getAttemptId())
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy lượt luyện tập"));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy lượt luyện tập"));
 
         EducatorFeedback feedback = EducatorFeedback.builder()
                 .educator(educator)
@@ -473,9 +392,9 @@ public class EducatorService {
     @Transactional
     public PlacementRuleResponse updateOrCreatePlacementRule(PlacementRuleRequest request) {
         LearningUnit errorTag = learningUnitRepository.findById(request.getErrorTagId())
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy ErrorTag cấu hình"));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy ErrorTag cấu hình"));
         LearningUnit dialect = learningUnitRepository.findById(request.getDialectId())
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Dialect cấu hình"));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy Dialect cấu hình"));
 
         UUID errorTagId = request.getErrorTagId();
         UUID dialectId = request.getDialectId();
@@ -499,29 +418,19 @@ public class EducatorService {
 
     @Transactional(readOnly = true)
     public EducatorDashboardSummaryResponse getDashboardSummary(String educatorEmail) {
-        Account educator = getAccountByEmail(educatorEmail);
-        List<Classroom> classrooms = classroomRepository.findByEducatorId(educator.getId());
+        getAccountByEmail(educatorEmail);
 
-        long totalStudents = classrooms.stream()
-                .flatMap(c -> classroomMemberRepository.findByClassroomId(c.getId()).stream())
-                .map(m -> m.getStudent().getId())
-                .distinct()
-                .count();
-
-        List<SessionDetail> classroomDetails = classrooms.stream()
-                .flatMap(c -> getSessionDetailsForClassroom(c.getId()).stream())
-                .collect(Collectors.toList());
-
-        long totalAttempts = classroomDetails.size();
-        double avgScore = classroomDetails.stream()
+        List<SessionDetail> details = sessionDetailRepository.findAll();
+        long totalAttempts = details.size();
+        double avgScore = details.stream()
                 .filter(d -> d.getScoreOverall() != null)
                 .mapToDouble(d -> d.getScoreOverall().doubleValue())
                 .average()
                 .orElse(0.0);
 
         return EducatorDashboardSummaryResponse.builder()
-                .activeClassrooms(classrooms.size())
-                .totalStudents(totalStudents)
+                .activeClassrooms(0)
+                .totalStudents(0)
                 .totalAttempts(totalAttempts)
                 .averageClassScore(avgScore)
                 .build();
@@ -532,7 +441,7 @@ public class EducatorService {
     @Transactional(readOnly = true)
     public StudentAnalyticsResponse getStudentAnalytics(String educatorEmail, UUID studentId) {
         Account student = accountRepository.findById(studentId)
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy học viên"));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy học viên"));
 
         List<SessionDetail> details = sessionDetailRepository.findByAccountIdOrderByCreatedAtDesc(studentId);
 
@@ -547,7 +456,7 @@ public class EducatorService {
                         String phonemeJson = objectMapper.writeValueAsString(phonemeRaw);
                         return objectMapper.readValue(phonemeJson,
                                 new TypeReference<List<PhonemeFeedbackDetail>>() {}).stream();
-                    } catch (Exception e) {
+                                        } catch (JsonProcessingException | ClassCastException e) {
                         log.error("Error deserializing phoneme feedback for session_detail {}", sd.getId(), e);
                         return Stream.empty();
                     }
@@ -577,107 +486,6 @@ public class EducatorService {
                 .build();
     }
 
-    // ─── Classrooms ──────────────────────────────────────────────────────────
-
-    @Transactional(readOnly = true)
-    public List<ClassroomResponse> getClassrooms(String educatorEmail) {
-        Account educator = getAccountByEmail(educatorEmail);
-        return classroomRepository.findByEducatorId(educator.getId()).stream()
-                .map(ClassroomResponse::fromEntity)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional
-    public ClassroomResponse createClassroom(String educatorEmail, ClassroomCreateRequest request) {
-        Account educator = getAccountByEmail(educatorEmail);
-
-        LearningUnit dialect = null;
-        if (request.getDialectId() != null) {
-            dialect = learningUnitRepository.findById(request.getDialectId())
-                    .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy vùng phương ngữ"));
-        }
-
-        Classroom classroom = Classroom.builder()
-                .educator(educator)
-                .name(request.getName())
-                .code(generateClassCode())
-                .description(request.getDescription())
-                .dialect(dialect)
-                .startDate(request.getStartDate())
-                .endDate(request.getEndDate())
-                .currentStudents(request.getCurrentStudents() != null ? request.getCurrentStudents() : 0)
-                .isActive(request.getIsActive() != null ? request.getIsActive() : true)
-                .build();
-        return ClassroomResponse.fromEntity(classroomRepository.save(classroom));
-    }
-
-    @Transactional
-    public ClassroomResponse updateClassroom(String educatorEmail, UUID id, ClassroomCreateRequest request) {
-        Classroom classroom = classroomRepository.findById(id)
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy lớp học"));
-        validateEducatorOwnership(educatorEmail, classroom);
-
-        if (request.getName() != null) classroom.setName(request.getName());
-        if (request.getDescription() != null) classroom.setDescription(request.getDescription());
-        if (request.getStartDate() != null) classroom.setStartDate(request.getStartDate());
-        if (request.getEndDate() != null) classroom.setEndDate(request.getEndDate());
-        if (request.getCurrentStudents() != null) classroom.setCurrentStudents(request.getCurrentStudents());
-        if (request.getIsActive() != null) classroom.setIsActive(request.getIsActive());
-        if (request.getDialectId() != null) {
-            LearningUnit dialect = learningUnitRepository.findById(request.getDialectId())
-                    .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy vùng phương ngữ"));
-            classroom.setDialect(dialect);
-        }
-
-        return ClassroomResponse.fromEntity(classroomRepository.save(classroom));
-    }
-
-    @Transactional
-    public void deleteClassroom(String educatorEmail, UUID id) {
-        Classroom classroom = classroomRepository.findById(id)
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy lớp học"));
-        validateEducatorOwnership(educatorEmail, classroom);
-        classroomRepository.delete(classroom);
-    }
-
-    @Transactional(readOnly = true)
-    public List<UserManagementResponse> getClassroomStudents(String educatorEmail, UUID classroomId) {
-        Classroom classroom = classroomRepository.findById(classroomId)
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy lớp học"));
-        validateEducatorOwnership(educatorEmail, classroom);
-        return classroomMemberRepository.findByClassroomId(classroomId).stream()
-                .map(member -> UserManagementResponse.fromEntity(member.getStudent()))
-                .collect(Collectors.toList());
-    }
-
-    @Transactional
-    public void addStudentToClassroom(String educatorEmail, UUID classroomId, AddStudentRequest request) {
-        Classroom classroom = classroomRepository.findById(classroomId)
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy lớp học"));
-        validateEducatorOwnership(educatorEmail, classroom);
-
-        Account student = accountRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy học viên với email này"));
-
-        if (classroomMemberRepository.existsByClassroomIdAndStudentId(classroomId, student.getId())) {
-            throw new ApiException("BAD_REQUEST", "Học viên này đã có trong lớp");
-        }
-
-        ClassroomMember member = ClassroomMember.builder()
-                .classroom(classroom)
-                .student(student)
-                .build();
-        classroomMemberRepository.save(member);
-    }
-
-    @Transactional
-    public void removeStudentFromClassroom(String educatorEmail, UUID classroomId, UUID studentId) {
-        Classroom classroom = classroomRepository.findById(classroomId)
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy lớp học"));
-        validateEducatorOwnership(educatorEmail, classroom);
-        classroomMemberRepository.deleteByClassroomIdAndStudentId(classroomId, studentId);
-    }
-
     // ─── Approval History ────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
@@ -694,7 +502,7 @@ public class EducatorService {
         String contentSnapshot = "";
         try {
             contentSnapshot = objectMapper.writeValueAsString(responseDTO);
-        } catch (Exception e) {
+                } catch (JsonProcessingException e) {
             log.error("Failed to serialize {} content snapshot", contentType, e);
         }
 
@@ -711,16 +519,7 @@ public class EducatorService {
 
     private Account getAccountByEmail(String email) {
         return accountRepository.findByEmail(email)
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy tài khoản"));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy tài khoản"));
     }
 
-    private void validateEducatorOwnership(String educatorEmail, Classroom classroom) {
-        if (!classroom.getEducator().getEmail().equals(educatorEmail)) {
-            throw new ApiException("FORBIDDEN", "Bạn không có quyền quản lý lớp học này");
-        }
-    }
-
-    private String generateClassCode() {
-        return UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-    }
 }
