@@ -161,6 +161,27 @@ public class GlobalExceptionHandler
         return new ResponseEntity<>(err, HttpStatus.UNAUTHORIZED);
     }
 
+    @ExceptionHandler(org.fsa_2026.company_fsa_captone_2026.service.AuthService.ValidationException.class)
+    public ResponseEntity<ValidationErrorResponse> handleAuthValidationException(
+            org.fsa_2026.company_fsa_captone_2026.service.AuthService.ValidationException ex) {
+
+        Map<String, java.util.List<String>> errors = new HashMap<>();
+        if (ex.getErrors() != null) {
+            ex.getErrors().forEach((key, value) -> {
+                java.util.List<String> list = new java.util.ArrayList<>();
+                list.add(value);
+                errors.put(key, list);
+            });
+        }
+
+        ValidationErrorResponse response = new ValidationErrorResponse(
+                "Validation failed",
+                errors
+        );
+
+        return ResponseEntity.badRequest().body(response);
+    }
+
     public record ErrorResponse(int status, String message, LocalDateTime timestamp)
     {
     }
