@@ -7,16 +7,24 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.fsa_2026.company_fsa_captone_2026.common.Constants;
 import org.fsa_2026.company_fsa_captone_2026.dto.ApiResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.QuizChallengeItemResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.UserProfileResponse;
 import org.fsa_2026.company_fsa_captone_2026.service.AuthService;
+import org.fsa_2026.company_fsa_captone_2026.service.ChallengeBankService;
+import org.fsa_2026.company_fsa_captone_2026.service.QuizService;
+import org.fsa_2026.company_fsa_captone_2026.service.UserProfileService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.fsa_2026.company_fsa_captone_2026.service.UserProfileService;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * User Controller
@@ -32,6 +40,8 @@ public class UserController {
 
     private final AuthService authService;
     private final UserProfileService userProfileService;
+    private final QuizService quizService;
+    private final ChallengeBankService challengeBankService;
 
     /**
      * Get Current User Profile - GET /api/v1/users/me
@@ -62,5 +72,53 @@ public class UserController {
         UserProfileResponse updatedProfile = userProfileService.updateProfile(authentication.getName(), request);
 
         return ResponseEntity.ok(ApiResponse.success("Cập nhật thông tin thành công", updatedProfile));
+    }
+
+    @GetMapping("/levels/{levelId}/quizzes")
+    @Operation(
+            summary = "Get quizzes in level for user",
+            description = "Lấy danh sách quiz bên trong chương theo levelId để user chọn màn chơi",
+            security = @SecurityRequirement(name = "bearer-jwt")
+    )
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuizzesByLevelForUser(
+            @PathVariable UUID levelId,
+            Authentication authentication) {
+
+        log.info("User {} lấy danh sách quiz theo levelId: {}", authentication.getName(), levelId);
+
+        List<Map<String, Object>> quizzes = quizService.getQuizzesByLevel(levelId);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách quiz theo chương thành công", quizzes));
+    }
+
+    @GetMapping("/challenges/{challengeId}/quizzes")
+    @Operation(
+            summary = "Get quizzes by challenge for user",
+            description = "Lấy danh sách quiz đã được gán câu hỏi theo challengeId trong nhóm User API",
+            security = @SecurityRequirement(name = "bearer-jwt")
+    )
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuizzesByChallengeForUser(
+            @PathVariable UUID challengeId,
+            Authentication authentication) {
+
+        log.info("User {} lấy danh sách quiz theo challengeId: {}", authentication.getName(), challengeId);
+
+        List<Map<String, Object>> quizzes = quizService.getQuizzesByChallengeId(challengeId);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách quiz theo câu hỏi thành công", quizzes));
+    }
+
+    @GetMapping("/quizzes/{quizId}/challenges")
+    @Operation(
+            summary = "Get assigned questions in quiz for user",
+            description = "Lấy toàn bộ câu hỏi đã được gán vào quiz theo quizId trong nhóm User API",
+            security = @SecurityRequirement(name = "bearer-jwt")
+    )
+    public ResponseEntity<ApiResponse<List<QuizChallengeItemResponse>>> getChallengesByQuizForUser(
+            @PathVariable UUID quizId,
+            Authentication authentication) {
+
+        log.info("User {} lấy danh sách câu hỏi theo quizId: {}", authentication.getName(), quizId);
+
+        List<QuizChallengeItemResponse> challenges = challengeBankService.getChallengesByQuizId(quizId);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách câu hỏi trong quiz thành công", challenges));
     }
 }
