@@ -2,6 +2,8 @@ package org.fsa_2026.company_fsa_captone_2026.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
 
 /**
@@ -31,6 +33,7 @@ public class SessionDetail extends BaseEntity {
     @Column(name = "score_overall", precision = 5, scale = 2)
     private BigDecimal scoreOverall;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "attempt_metadata_json", columnDefinition = "jsonb")
     private String attemptMetadataJson;
 }
