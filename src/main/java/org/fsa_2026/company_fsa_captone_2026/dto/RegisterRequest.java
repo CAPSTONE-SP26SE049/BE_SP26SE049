@@ -30,7 +30,4 @@ public class RegisterRequest implements Serializable {
     @NotBlank(message = "Số điện thoại không được để trống")
     @Pattern(regexp = "^\\d+$", message = "Số điện thoại chỉ được chứa chữ số")
     private String phone;
-
-    @NotBlank(message = "Vùng miền không được để trống")
-    private String region;
 }

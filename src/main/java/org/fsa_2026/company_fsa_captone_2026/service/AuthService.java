@@ -56,6 +56,7 @@ public class AuthService {
         }
 
         if (!errors.isEmpty()) {
+            log.warn("Đăng ký không thành công do lỗi Validation: {}", errors);
             throw new ValidationException("Xác thực dữ liệu thất bại", errors);
         }
 
@@ -67,12 +68,15 @@ public class AuthService {
                 request.getEmail(),
                 passwordEncoder.encode(request.getPassword()),
                 request.getPhone(),
-                request.getRegion());
+                null);
         
         account.setEmailVerifyCode(verifyCode);
         account.setEmailVerifyExpiresAt(Instant.now().plusSeconds(900)); // 15 phút
         account.setFullName(request.getFullName());
         account.setAvatarUrl(generateDefaultAvatar(request.getFullName()));
+
+        // DEV BYPASS: Auto-verify for immediate login in development
+        account.setEmailVerified(true);
 
         account = accountRepository.save(account);
 
