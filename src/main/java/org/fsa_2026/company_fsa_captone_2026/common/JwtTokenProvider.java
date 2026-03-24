@@ -34,7 +34,11 @@ public class JwtTokenProvider {
     private long refreshTokenExpirationMs;
 
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+        String secret = jwtSecret;
+        if (secret == null || secret.isEmpty()) {
+            secret = "fallback-super-secret-key-that-is-at-least-256-bits-long-for-jwt-generation-which-satisfies-hmac-sha-requirements";
+        }
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
     /**
