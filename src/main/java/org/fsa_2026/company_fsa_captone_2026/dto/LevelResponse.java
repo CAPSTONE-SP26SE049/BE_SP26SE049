@@ -34,6 +34,11 @@ public class LevelResponse implements Serializable {
     private String status;
     private String rejectionReason;
 
+    // Progression fields
+    private Integer starsEarned;
+    private Boolean isCompleted;
+    private Boolean isLocked;
+
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @SuppressWarnings("unchecked")
@@ -77,6 +82,9 @@ public class LevelResponse implements Serializable {
                 .audioUrl(audioUrl)
                 .status(status)
                 .rejectionReason(rejectionReason)
+                .starsEarned(0) // Default values, populated by Service
+                .isCompleted(false)
+                .isLocked(true)
                 .build();
     }
 }

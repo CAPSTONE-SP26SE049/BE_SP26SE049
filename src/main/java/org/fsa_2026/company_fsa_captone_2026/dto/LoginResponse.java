@@ -32,6 +32,8 @@ public class LoginResponse implements Serializable {
         private String role;
         private String region;
         private String avatar;
+        /** Current consecutive login streak in days */
+        private int currentStreakDays;
     }
 }
 

@@ -29,4 +29,39 @@
 
     <include file="db/changelog/31-drop-classroom-entity.xml"/>
 
+    <include file="db/changelog/32-update-reward-catalog-icons.xml"/>
+
+    <include file="db/changelog/33-seed-new-reward-catalog-badges.xml"/>
+
+    <include file="db/changelog/34-add-last-login-date.xml"/>
+    <changeSet id="32-add-account-learning-unit" author="antigravity">
+        <createTable tableName="account_learning_unit">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+            <column name="account_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_alu_account" referencedTableName="account" referencedColumnNames="id"/>
+            </column>
+            <column name="learning_unit_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_alu_learning_unit" referencedTableName="learning_unit" referencedColumnNames="id"/>
+            </column>
+            <column name="stars_earned" type="INTEGER" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_completed" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="highest_score" type="NUMERIC(5,2)"/>
+        </createTable>
+        <addUniqueConstraint tableName="account_learning_unit" columnNames="account_id, learning_unit_id" constraintName="uniq_alu_account_unit"/>
+    </changeSet>
+
 </databaseChangeLog>

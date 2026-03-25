@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- ================================================================
+         Update icon_url for 52 badges in reward_catalog table
+         Generated: 2026-03-24 — SpeakVN Journey Achievement System
+         ================================================================ -->
+    <changeSet id="32-update-reward-catalog-icons" author="antigravity" runOnChange="false">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="reward_catalog"/>
+        </preConditions>
+
+        <!-- ==================== LEARNING (15) ==================== -->
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_learn_first_level_1774320331129.png"/>
+            <where>code = 'LEARN_FIRST_LEVEL'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_learn_5_levels_1774320350141.png"/>
+            <where>code = 'LEARN_5_LEVELS'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_learn_10_levels_1774320365804.png"/>
+            <where>code = 'LEARN_10_LEVELS'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_learn_15_levels_1774320381238.png"/>
+            <where>code = 'LEARN_15_LEVELS'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_learn_north_complete_1774320396390.png"/>
+            <where>code = 'LEARN_NORTH_COMPLETE'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_learn_central_complete_1774320415064.png"/>
+            <where>code = 'LEARN_CENTRAL_COMPLETE'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_learn_south_complete_1774320437732.png"/>
+            <where>code = 'LEARN_SOUTH_COMPLETE'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_learn_all_regions_1774320453459.png"/>
+            <where>code = 'LEARN_ALL_REGIONS'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_learn_beginner_done_1774320467005.png"/>
+            <where>code = 'LEARN_BEGINNER_DONE'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_learn_intermediate_done_1774320486543.png"/>
+            <where>code = 'LEARN_INTERMEDIATE_DONE'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_learn_advanced_done_1774320526582.png"/>
+            <where>code = 'LEARN_ADVANCED_DONE'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_learn_first_3star_1774320544136.png"/>
+            <where>code = 'LEARN_FIRST_3STAR'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_learn_10_3star_1774320564153.png"/>
+            <where>code = 'LEARN_10_3STAR'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_learn_all_3star_1774320580246.png"/>
+            <where>code = 'LEARN_ALL_3STAR'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_learn_retry_win_1774320596421.png"/>
+            <where>code = 'LEARN_RETRY_WIN'</where>
+        </update>
+
+        <!-- ==================== PRONUNCIATION (12) ==================== -->
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_phoneme_first_pass_1774320611814.png"/>
+            <where>code = 'PHONEME_FIRST_PASS'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_phoneme_nl_master_1774320627713.png"/>
+            <where>code = 'PHONEME_NL_MASTER'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_phoneme_sx_master_1774320644298.png"/>
+            <where>code = 'PHONEME_SX_MASTER'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_phoneme_dgir_master_1774320673724.png"/>
+            <where>code = 'PHONEME_DGIR_MASTER'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_phoneme_trch_master_1774320690268.png"/>
+            <where>code = 'PHONEME_TRCH_MASTER'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_phoneme_all_pairs_1774320707237.png"/>
+            <where>code = 'PHONEME_ALL_PAIRS'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_phoneme_tone_good_1774320726766.png"/>
+            <where>code = 'PHONEME_TONE_GOOD'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_phoneme_tone_master_1774320744624.png"/>
+            <where>code = 'PHONEME_TONE_MASTER'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_phoneme_perfect_session_1774320759505.png"/>
+            <where>code = 'PHONEME_PERFECT_SESSION'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_phoneme_perfect_5_1774320782716.png"/>
+            <where>code = 'PHONEME_PERFECT_5'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_phoneme_entry_done_1774320798739.png"/>
+            <where>code = 'PHONEME_ENTRY_DONE'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_phoneme_speed_1774320815182.png"/>
+            <where>code = 'PHONEME_SPEED'</where>
+        </update>
+
+        <!-- ==================== MINI_GAMES (12) ==================== -->
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_mini_first_play_1774320832038.png"/>
+            <where>code = 'MINI_FIRST_PLAY'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_mini_10_plays_1774320846852.png"/>
+            <where>code = 'MINI_10_PLAYS'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_mini_50_plays_1774320863767.png"/>
+            <where>code = 'MINI_50_PLAYS'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_mini_reading_first_1774320889622.png"/>
+            <where>code = 'MINI_READING_FIRST'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_mini_reading_saga_1774320907052.png"/>
+            <where>code = 'MINI_READING_SAGA'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_mini_writing_first_1774320925950.png"/>
+            <where>code = 'MINI_WRITING_FIRST'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_mini_writing_done_1774320945023.png"/>
+            <where>code = 'MINI_WRITING_DONE'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_mini_mario_first_1774320962407.png"/>
+            <where>code = 'MINI_MARIO_FIRST'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_mini_mario_clear_1774320979828.png"/>
+            <where>code = 'MINI_MARIO_CLEAR'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_mini_all_types_1774321002432.png"/>
+            <where>code = 'MINI_ALL_TYPES'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_mini_perfect_game_1774321018799.png"/>
+            <where>code = 'MINI_PERFECT_GAME'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_mini_perfect_10_1774321041241.png"/>
+            <where>code = 'MINI_PERFECT_10'</where>
+        </update>
+
+        <!-- ==================== SCORE (8) ==================== -->
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_score_first_star_1774321057369.png"/>
+            <where>code = 'SCORE_FIRST_STAR'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_score_50_stars_1774321082921.png"/>
+            <where>code = 'SCORE_50_STARS'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_score_100_stars_1774321099394.png"/>
+            <where>code = 'SCORE_100_STARS'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_score_300_stars_1774321125250.png"/>
+            <where>code = 'SCORE_300_STARS'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_score_500_stars_1774321142351.png"/>
+            <where>code = 'SCORE_500_STARS'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_score_perfect_first_1774321160771.png"/>
+            <where>code = 'SCORE_PERFECT_FIRST'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_score_perfect_5_1774321177895.png"/>
+            <where>code = 'SCORE_PERFECT_5'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_score_perfect_10_1774321194263.png"/>
+            <where>code = 'SCORE_PERFECT_10'</where>
+        </update>
+
+        <!-- ==================== SOCIAL (3) ==================== -->
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_social_first_friend_1774321209085.png"/>
+            <where>code = 'SOCIAL_FIRST_FRIEND'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_social_10_friends_1774321234523.png"/>
+            <where>code = 'SOCIAL_10_FRIENDS'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_social_leaderboard_top10_1774321249654.png"/>
+            <where>code = 'SOCIAL_LEADERBOARD_TOP10'</where>
+        </update>
+
+        <!-- ==================== SPECIAL (2) ==================== -->
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_special_early_bird_1774321265615.png"/>
+            <where>code = 'SPECIAL_EARLY_BIRD'</where>
+        </update>
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="/icons/badges/badge_special_night_owl_1774321280032.png"/>
+            <where>code = 'SPECIAL_NIGHT_OWL'</where>
+        </update>
+
+    </changeSet>
+
+</databaseChangeLog>

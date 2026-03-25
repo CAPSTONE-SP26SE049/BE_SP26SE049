@@ -2,6 +2,8 @@ package org.fsa_2026.company_fsa_captone_2026.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 
@@ -66,6 +68,7 @@ public class Tournament extends BaseEntity {
      * Prize configuration JSON.
      * Example: {"1": {"xp": 5000, "badge": "TOURNAMENT_WINNER"}, "2": {"xp": 2500}}
      */
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "prize_config_json", columnDefinition = "jsonb")
     private String prizeConfigJson;
 }

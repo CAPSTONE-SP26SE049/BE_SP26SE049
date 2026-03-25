@@ -1,0 +1,758 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- ================================================================
+         Seed 52 new badges into reward_catalog
+         Categories: LEARNING, PRONUNCIATION, MINI_GAMES, SCORE, SOCIAL, SPECIAL
+         Icons: /icons/badges/badge_*.png (served from frontend public/)
+         Generated: 2026-03-24
+         ================================================================ -->
+    <changeSet id="33-seed-new-reward-catalog-badges" author="antigravity">
+
+        <!-- ==================== LEARNING (15) ==================== -->
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_FIRST_LEVEL"/>
+            <column name="name" value="Bước Chân Đầu Tiên 👣"/>
+            <column name="description" value="Hoàn thành màn chơi đầu tiên trong hành trình"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="LEARNING"/>
+            <column name="icon_url" value="/icons/badges/badge_learn_first_level_1774320331129.png"/>
+            <column name="criteria_json" value='{"type":"levels_completed","threshold":1}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_5_LEVELS"/>
+            <column name="name" value="Leo Thang Xuất Sắc 🪜"/>
+            <column name="description" value="Hoàn thành 5 màn chơi"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="LEARNING"/>
+            <column name="icon_url" value="/icons/badges/badge_learn_5_levels_1774320350141.png"/>
+            <column name="criteria_json" value='{"type":"levels_completed","threshold":5}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_10_LEVELS"/>
+            <column name="name" value="Nửa Chặng Đường 🚩"/>
+            <column name="description" value="Hoàn thành 10 màn chơi"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="LEARNING"/>
+            <column name="icon_url" value="/icons/badges/badge_learn_10_levels_1774320365804.png"/>
+            <column name="criteria_json" value='{"type":"levels_completed","threshold":10}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_15_LEVELS"/>
+            <column name="name" value="Về Đích Rồi! 🏁"/>
+            <column name="description" value="Hoàn thành 15 màn chơi"/>
+            <column name="reward_type" value="ACHIEVEMENT"/>
+            <column name="category" value="LEARNING"/>
+            <column name="icon_url" value="/icons/badges/badge_learn_15_levels_1774320381238.png"/>
+            <column name="criteria_json" value='{"type":"levels_completed","threshold":15}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_NORTH_COMPLETE"/>
+            <column name="name" value="Chinh Phục Vùng Bắc 🔵"/>
+            <column name="description" value="Hoàn thành tất cả màn của Vùng Bắc"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="LEARNING"/>
+            <column name="icon_url" value="/icons/badges/badge_learn_north_complete_1774320396390.png"/>
+            <column name="criteria_json" value='{"type":"region_completed","region":"NORTH"}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_CENTRAL_COMPLETE"/>
+            <column name="name" value="Chinh Phục Vùng Trung 🟡"/>
+            <column name="description" value="Hoàn thành tất cả màn của Vùng Trung"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="LEARNING"/>
+            <column name="icon_url" value="/icons/badges/badge_learn_central_complete_1774320415064.png"/>
+            <column name="criteria_json" value='{"type":"region_completed","region":"CENTRAL"}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_SOUTH_COMPLETE"/>
+            <column name="name" value="Chinh Phục Vùng Nam 🔴"/>
+            <column name="description" value="Hoàn thành tất cả màn của Vùng Nam"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="LEARNING"/>
+            <column name="icon_url" value="/icons/badges/badge_learn_south_complete_1774320437732.png"/>
+            <column name="criteria_json" value='{"type":"region_completed","region":"SOUTH"}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_ALL_REGIONS"/>
+            <column name="name" value="Hành Trình Hoàn Chỉnh 🗺️"/>
+            <column name="description" value="Hoàn thành cả 3 vùng miền Bắc-Trung-Nam"/>
+            <column name="reward_type" value="ACHIEVEMENT"/>
+            <column name="category" value="LEARNING"/>
+            <column name="icon_url" value="/icons/badges/badge_learn_all_regions_1774320453459.png"/>
+            <column name="criteria_json" value='{"type":"all_regions_completed"}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_BEGINNER_DONE"/>
+            <column name="name" value="Nảy Mầm 🌱"/>
+            <column name="description" value="Hoàn thành tất cả màn độ khó Sơ cấp"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="LEARNING"/>
+            <column name="icon_url" value="/icons/badges/badge_learn_beginner_done_1774320467005.png"/>
+            <column name="criteria_json" value='{"type":"difficulty_completed","level":"BEGINNER"}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_INTERMEDIATE_DONE"/>
+            <column name="name" value="Vươn Cao 🌳"/>
+            <column name="description" value="Hoàn thành tất cả màn độ khó Trung cấp"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="LEARNING"/>
+            <column name="icon_url" value="/icons/badges/badge_learn_intermediate_done_1774320486543.png"/>
+            <column name="criteria_json" value='{"type":"difficulty_completed","level":"INTERMEDIATE"}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_ADVANCED_DONE"/>
+            <column name="name" value="Vượt Cao Cấp 🎓"/>
+            <column name="description" value="Hoàn thành tất cả màn độ khó Cao cấp"/>
+            <column name="reward_type" value="ACHIEVEMENT"/>
+            <column name="category" value="LEARNING"/>
+            <column name="icon_url" value="/icons/badges/badge_learn_advanced_done_1774320526582.png"/>
+            <column name="criteria_json" value='{"type":"difficulty_completed","level":"ADVANCED"}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_FIRST_3STAR"/>
+            <column name="name" value="Ba Sao Đầu Tiên ⭐⭐⭐"/>
+            <column name="description" value="Lần đầu đạt 3 sao trong một màn chơi"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="LEARNING"/>
+            <column name="icon_url" value="/icons/badges/badge_learn_first_3star_1774320544136.png"/>
+            <column name="criteria_json" value='{"type":"three_star_count","threshold":1}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_10_3STAR"/>
+            <column name="name" value="Mưa Sao Băng 💫"/>
+            <column name="description" value="Đạt 3 sao trong 10 màn khác nhau"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="LEARNING"/>
+            <column name="icon_url" value="/icons/badges/badge_learn_10_3star_1774320564153.png"/>
+            <column name="criteria_json" value='{"type":"three_star_count","threshold":10}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_ALL_3STAR"/>
+            <column name="name" value="Hoàn Hảo Tuyệt Đối 🌌"/>
+            <column name="description" value="Đạt 3 sao ở tất cả các màn chơi"/>
+            <column name="reward_type" value="ACHIEVEMENT"/>
+            <column name="category" value="LEARNING"/>
+            <column name="icon_url" value="/icons/badges/badge_learn_all_3star_1774320580246.png"/>
+            <column name="criteria_json" value='{"type":"all_levels_three_star"}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="LEARN_RETRY_WIN"/>
+            <column name="name" value="Không Bỏ Cuộc 🔥"/>
+            <column name="description" value="Thua rồi vượt qua cùng một màn chơi"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="LEARNING"/>
+            <column name="icon_url" value="/icons/badges/badge_learn_retry_win_1774320596421.png"/>
+            <column name="criteria_json" value='{"type":"fail_then_pass_same_level"}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- ==================== PRONUNCIATION (12) ==================== -->
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="PHONEME_FIRST_PASS"/>
+            <column name="name" value="Giọng Nói Đầu Tiên 🎤"/>
+            <column name="description" value="Vượt qua màn phát âm đầu tiên"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="PRONUNCIATION"/>
+            <column name="icon_url" value="/icons/badges/badge_phoneme_first_pass_1774320611814.png"/>
+            <column name="criteria_json" value='{"type":"pronunciation_level_passed","threshold":1}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="PHONEME_NL_MASTER"/>
+            <column name="name" value="Thuần Thục N/L 🏆"/>
+            <column name="description" value="Đạt độ chính xác N/L >= 90%"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="PRONUNCIATION"/>
+            <column name="icon_url" value="/icons/badges/badge_phoneme_nl_master_1774320627713.png"/>
+            <column name="criteria_json" value='{"type":"phoneme_accuracy","pair":"N_L","threshold":90}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="PHONEME_SX_MASTER"/>
+            <column name="name" value="Thuần Thục S/X 🎯"/>
+            <column name="description" value="Đạt độ chính xác S/X >= 90%"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="PRONUNCIATION"/>
+            <column name="icon_url" value="/icons/badges/badge_phoneme_sx_master_1774320644298.png"/>
+            <column name="criteria_json" value='{"type":"phoneme_accuracy","pair":"S_X","threshold":90}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="PHONEME_DGIR_MASTER"/>
+            <column name="name" value="Thuần Thục D/GI/R 🎖️"/>
+            <column name="description" value="Đạt độ chính xác D/GI/R >= 90%"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="PRONUNCIATION"/>
+            <column name="icon_url" value="/icons/badges/badge_phoneme_dgir_master_1774320673724.png"/>
+            <column name="criteria_json" value='{"type":"phoneme_accuracy","pair":"D_GI_R","threshold":90}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="PHONEME_TRCH_MASTER"/>
+            <column name="name" value="Thuần Thục TR/CH ⚡"/>
+            <column name="description" value="Đạt độ chính xác TR/CH >= 90%"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="PRONUNCIATION"/>
+            <column name="icon_url" value="/icons/badges/badge_phoneme_trch_master_1774320690268.png"/>
+            <column name="criteria_json" value='{"type":"phoneme_accuracy","pair":"TR_CH","threshold":90}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="PHONEME_ALL_PAIRS"/>
+            <column name="name" value="Chinh Phục Mọi Phụ Âm 👑"/>
+            <column name="description" value="Thành thạo tất cả các cặp phụ âm"/>
+            <column name="reward_type" value="ACHIEVEMENT"/>
+            <column name="category" value="PRONUNCIATION"/>
+            <column name="icon_url" value="/icons/badges/badge_phoneme_all_pairs_1774320707237.png"/>
+            <column name="criteria_json" value='{"type":"all_phoneme_pairs_mastered"}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="PHONEME_TONE_GOOD"/>
+            <column name="name" value="Thanh Điệu Vào Tai 🎵"/>
+            <column name="description" value="Đạt độ chính xác thanh điệu >= 80%"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="PRONUNCIATION"/>
+            <column name="icon_url" value="/icons/badges/badge_phoneme_tone_good_1774320726766.png"/>
+            <column name="criteria_json" value='{"type":"tone_accuracy","threshold":80}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="PHONEME_TONE_MASTER"/>
+            <column name="name" value="Bậc Thầy Thanh Điệu 🎼"/>
+            <column name="description" value="Thành thạo cả 6 thanh điệu tiếng Việt"/>
+            <column name="reward_type" value="ACHIEVEMENT"/>
+            <column name="category" value="PRONUNCIATION"/>
+            <column name="icon_url" value="/icons/badges/badge_phoneme_tone_master_1774320744624.png"/>
+            <column name="criteria_json" value='{"type":"tone_accuracy","threshold":95}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="PHONEME_PERFECT_SESSION"/>
+            <column name="name" value="Phiên Hoàn Hảo ✨"/>
+            <column name="description" value="Đạt điểm tuyệt đối trong một phiên phát âm"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="PRONUNCIATION"/>
+            <column name="icon_url" value="/icons/badges/badge_phoneme_perfect_session_1774320759505.png"/>
+            <column name="criteria_json" value='{"type":"perfect_pronunciation_session","threshold":1}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="PHONEME_PERFECT_5"/>
+            <column name="name" value="Ngũ Tuyệt Phát Âm 🎤x5"/>
+            <column name="description" value="Đạt điểm tuyệt đối 5 phiên phát âm"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="PRONUNCIATION"/>
+            <column name="icon_url" value="/icons/badges/badge_phoneme_perfect_5_1774320782716.png"/>
+            <column name="criteria_json" value='{"type":"perfect_pronunciation_session","threshold":5}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="PHONEME_ENTRY_DONE"/>
+            <column name="name" value="Biết Mình Biết Ta 🧭"/>
+            <column name="description" value="Hoàn thành bài kiểm tra phương ngữ đầu vào"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="PRONUNCIATION"/>
+            <column name="icon_url" value="/icons/badges/badge_phoneme_entry_done_1774320798739.png"/>
+            <column name="criteria_json" value='{"type":"entry_test_completed"}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="PHONEME_SPEED"/>
+            <column name="name" value="Nói Nhanh Nói Chuẩn ⚡🎤"/>
+            <column name="description" value="Phát âm chuẩn trong vòng 3 giây 10 lần"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="PRONUNCIATION"/>
+            <column name="icon_url" value="/icons/badges/badge_phoneme_speed_1774320815182.png"/>
+            <column name="criteria_json" value='{"type":"fast_pronunciation_count","threshold":10}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- ==================== MINI_GAMES (12) ==================== -->
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="MINI_FIRST_PLAY"/>
+            <column name="name" value="Bắt Đầu Chơi 🎮"/>
+            <column name="description" value="Chơi mini-game lần đầu tiên"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="MINI_GAMES"/>
+            <column name="icon_url" value="/icons/badges/badge_mini_first_play_1774320832038.png"/>
+            <column name="criteria_json" value='{"type":"minigame_played","threshold":1}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="MINI_10_PLAYS"/>
+            <column name="name" value="Nghiện Game 🔥🎮"/>
+            <column name="description" value="Chơi mini-game 10 lần"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="MINI_GAMES"/>
+            <column name="icon_url" value="/icons/badges/badge_mini_10_plays_1774320846852.png"/>
+            <column name="criteria_json" value='{"type":"minigame_played","threshold":10}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="MINI_50_PLAYS"/>
+            <column name="name" value="Cao Thủ Mini-game 👑🎮"/>
+            <column name="description" value="Chơi mini-game 50 lần"/>
+            <column name="reward_type" value="ACHIEVEMENT"/>
+            <column name="category" value="MINI_GAMES"/>
+            <column name="icon_url" value="/icons/badges/badge_mini_50_plays_1774320863767.png"/>
+            <column name="criteria_json" value='{"type":"minigame_played","threshold":50}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="MINI_READING_FIRST"/>
+            <column name="name" value="Tập Đọc 📖"/>
+            <column name="description" value="Chơi game Đọc lần đầu tiên"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="MINI_GAMES"/>
+            <column name="icon_url" value="/icons/badges/badge_mini_reading_first_1774320889622.png"/>
+            <column name="criteria_json" value='{"type":"minigame_type_played","game":"READING","threshold":1}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="MINI_READING_SAGA"/>
+            <column name="name" value="Saga Đọc Hoàn Chỉnh 📚"/>
+            <column name="description" value="Hoàn thành toàn bộ Saga Đọc"/>
+            <column name="reward_type" value="ACHIEVEMENT"/>
+            <column name="category" value="MINI_GAMES"/>
+            <column name="icon_url" value="/icons/badges/badge_mini_reading_saga_1774320907052.png"/>
+            <column name="criteria_json" value='{"type":"reading_saga_completed"}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="MINI_WRITING_FIRST"/>
+            <column name="name" value="Cầm Bút Lên ✏️"/>
+            <column name="description" value="Chơi game Viết lần đầu tiên"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="MINI_GAMES"/>
+            <column name="icon_url" value="/icons/badges/badge_mini_writing_first_1774320925950.png"/>
+            <column name="criteria_json" value='{"type":"minigame_type_played","game":"WRITING","threshold":1}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="MINI_WRITING_DONE"/>
+            <column name="name" value="Thư Pháp Số 🖌️"/>
+            <column name="description" value="Hoàn thành các màn game Viết"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="MINI_GAMES"/>
+            <column name="icon_url" value="/icons/badges/badge_mini_writing_done_1774320945023.png"/>
+            <column name="criteria_json" value='{"type":"writing_levels_completed","threshold":5}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="MINI_MARIO_FIRST"/>
+            <column name="name" value="Jump! 🍄"/>
+            <column name="description" value="Chơi game Mario phát âm lần đầu tiên"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="MINI_GAMES"/>
+            <column name="icon_url" value="/icons/badges/badge_mini_mario_first_1774320962407.png"/>
+            <column name="criteria_json" value='{"type":"minigame_type_played","game":"MARIO","threshold":1}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="MINI_MARIO_CLEAR"/>
+            <column name="name" value="Cờ Đến Đích 🏯"/>
+            <column name="description" value="Hoàn thành các màn game Mario"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="MINI_GAMES"/>
+            <column name="icon_url" value="/icons/badges/badge_mini_mario_clear_1774320979828.png"/>
+            <column name="criteria_json" value='{"type":"mario_levels_completed","threshold":5}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="MINI_ALL_TYPES"/>
+            <column name="name" value="Thiên Tài Đa Năng 🌈🎮"/>
+            <column name="description" value="Đã chơi tất cả loại mini-game"/>
+            <column name="reward_type" value="ACHIEVEMENT"/>
+            <column name="category" value="MINI_GAMES"/>
+            <column name="icon_url" value="/icons/badges/badge_mini_all_types_1774321002432.png"/>
+            <column name="criteria_json" value='{"type":"all_minigame_types_played"}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="MINI_PERFECT_GAME"/>
+            <column name="name" value="Điểm Tuyệt Đối 💯🎮"/>
+            <column name="description" value="Đạt điểm tuyệt đối trong một mini-game"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="MINI_GAMES"/>
+            <column name="icon_url" value="/icons/badges/badge_mini_perfect_game_1774321018799.png"/>
+            <column name="criteria_json" value='{"type":"minigame_perfect_score","threshold":1}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="MINI_PERFECT_10"/>
+            <column name="name" value="Đại Cao Thủ 💎🎮"/>
+            <column name="description" value="Đạt điểm tuyệt đối 10 mini-game"/>
+            <column name="reward_type" value="ACHIEVEMENT"/>
+            <column name="category" value="MINI_GAMES"/>
+            <column name="icon_url" value="/icons/badges/badge_mini_perfect_10_1774321041241.png"/>
+            <column name="criteria_json" value='{"type":"minigame_perfect_score","threshold":10}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- ==================== SCORE (8) ==================== -->
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SCORE_FIRST_STAR"/>
+            <column name="name" value="Ngôi Sao Đầu Tiên ⭐"/>
+            <column name="description" value="Thu được ngôi sao đầu tiên"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="SCORE"/>
+            <column name="icon_url" value="/icons/badges/badge_score_first_star_1774321057369.png"/>
+            <column name="criteria_json" value='{"type":"total_stars","threshold":1}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SCORE_50_STARS"/>
+            <column name="name" value="Bầu Trời Sao ✨"/>
+            <column name="description" value="Tích lũy 50 ngôi sao"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="SCORE"/>
+            <column name="icon_url" value="/icons/badges/badge_score_50_stars_1774321082921.png"/>
+            <column name="criteria_json" value='{"type":"total_stars","threshold":50}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SCORE_100_STARS"/>
+            <column name="name" value="Trăm Sao Tỏa Sáng 🌠"/>
+            <column name="description" value="Tích lũy 100 ngôi sao"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="SCORE"/>
+            <column name="icon_url" value="/icons/badges/badge_score_100_stars_1774321099394.png"/>
+            <column name="criteria_json" value='{"type":"total_stars","threshold":100}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SCORE_300_STARS"/>
+            <column name="name" value="Cơn Mưa Sao Băng 💫"/>
+            <column name="description" value="Tích lũy 300 ngôi sao"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="SCORE"/>
+            <column name="icon_url" value="/icons/badges/badge_score_300_stars_1774321125250.png"/>
+            <column name="criteria_json" value='{"type":"total_stars","threshold":300}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SCORE_500_STARS"/>
+            <column name="name" value="Ngân Hà Rực Rỡ 🌌"/>
+            <column name="description" value="Tích lũy 500 ngôi sao"/>
+            <column name="reward_type" value="ACHIEVEMENT"/>
+            <column name="category" value="SCORE"/>
+            <column name="icon_url" value="/icons/badges/badge_score_500_stars_1774321142351.png"/>
+            <column name="criteria_json" value='{"type":"total_stars","threshold":500}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SCORE_PERFECT_FIRST"/>
+            <column name="name" value="Hoàn Hảo Đầu Tiên 🥇"/>
+            <column name="description" value="Lần đầu đạt điểm tuyệt đối"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="SCORE"/>
+            <column name="icon_url" value="/icons/badges/badge_score_perfect_first_1774321160771.png"/>
+            <column name="criteria_json" value='{"type":"perfect_score_count","threshold":1}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SCORE_PERFECT_5"/>
+            <column name="name" value="Ngũ Tuyệt Điểm 🏅"/>
+            <column name="description" value="Đạt điểm tuyệt đối 5 lần"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="SCORE"/>
+            <column name="icon_url" value="/icons/badges/badge_score_perfect_5_1774321177895.png"/>
+            <column name="criteria_json" value='{"type":"perfect_score_count","threshold":5}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SCORE_PERFECT_10"/>
+            <column name="name" value="Đại Sư Điểm Số 🏆"/>
+            <column name="description" value="Đạt điểm tuyệt đối 10 lần"/>
+            <column name="reward_type" value="ACHIEVEMENT"/>
+            <column name="category" value="SCORE"/>
+            <column name="icon_url" value="/icons/badges/badge_score_perfect_10_1774321194263.png"/>
+            <column name="criteria_json" value='{"type":"perfect_score_count","threshold":10}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- ==================== SOCIAL (3) ==================== -->
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SOCIAL_FIRST_FRIEND"/>
+            <column name="name" value="Kết Nối Đầu Tiên 🤝"/>
+            <column name="description" value="Kết bạn với người chơi đầu tiên"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="SOCIAL"/>
+            <column name="icon_url" value="/icons/badges/badge_social_first_friend_1774321209085.png"/>
+            <column name="criteria_json" value='{"type":"friend_count","threshold":1}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SOCIAL_10_FRIENDS"/>
+            <column name="name" value="Cộng Đồng Sôi Nổi 👥"/>
+            <column name="description" value="Kết bạn với 10 người chơi"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="SOCIAL"/>
+            <column name="icon_url" value="/icons/badges/badge_social_10_friends_1774321234523.png"/>
+            <column name="criteria_json" value='{"type":"friend_count","threshold":10}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SOCIAL_LEADERBOARD_TOP10"/>
+            <column name="name" value="Hào Kiệt Top 10 🎖️"/>
+            <column name="description" value="Vào top 10 bảng xếp hạng"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="SOCIAL"/>
+            <column name="icon_url" value="/icons/badges/badge_social_leaderboard_top10_1774321249654.png"/>
+            <column name="criteria_json" value='{"type":"leaderboard_rank","max_rank":10}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- ==================== SPECIAL (2) ==================== -->
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SPECIAL_EARLY_BIRD"/>
+            <column name="name" value="Chim Sâu Buổi Sáng 🐦🌅"/>
+            <column name="description" value="Học trong khung giờ 5–8 sáng ít nhất 10 lần"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="SPECIAL"/>
+            <column name="icon_url" value="/icons/badges/badge_special_early_bird_1774321265615.png"/>
+            <column name="criteria_json" value='{"type":"study_hour_range","from":5,"to":8,"threshold":10}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="uuid_generate_v4()"/>
+            <column name="code" value="SPECIAL_NIGHT_OWL"/>
+            <column name="name" value="Cú Đêm 🦉🌙"/>
+            <column name="description" value="Học trong khung giờ 22–2 đêm ít nhất 10 lần"/>
+            <column name="reward_type" value="BADGE"/>
+            <column name="category" value="SPECIAL"/>
+            <column name="icon_url" value="/icons/badges/badge_special_night_owl_1774321280032.png"/>
+            <column name="criteria_json" value='{"type":"study_hour_range","from":22,"to":2,"threshold":10}'/>
+            <column name="xp_reward" valueNumeric="0"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+    </changeSet>
+
+</databaseChangeLog>
