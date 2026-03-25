@@ -1,5 +1,6 @@
 package org.fsa_2026.company_fsa_captone_2026.dto;
 
+import java.time.Instant;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,8 @@ public class ErrorTagResponse implements Serializable {
     private String name;
     private String description;
     private java.util.List<String> regions;
+    private Instant createdAt;
+    private Instant updatedAt;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -54,6 +57,8 @@ public class ErrorTagResponse implements Serializable {
                 .name(tag.getName())
                 .description(description)
                 .regions(regions)
+                .createdAt(tag.getCreatedAt())
+                .updatedAt(tag.getUpdatedAt())
                 .build();
     }
 }

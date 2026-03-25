@@ -16,6 +16,8 @@ import lombok.NoArgsConstructor;
 /**
  * Level Response DTO
  */
+import java.time.Instant;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -33,6 +35,8 @@ public class LevelResponse implements Serializable {
     private String audioUrl;
     private String status;
     private String rejectionReason;
+    private Instant createdAt;
+    private Instant updatedAt;
 
     // Progression fields
     private Integer starsEarned;
@@ -82,6 +86,8 @@ public class LevelResponse implements Serializable {
                 .audioUrl(audioUrl)
                 .status(status)
                 .rejectionReason(rejectionReason)
+                .createdAt(level.getCreatedAt())
+                .updatedAt(level.getUpdatedAt())
                 .starsEarned(0) // Default values, populated by Service
                 .isCompleted(false)
                 .isLocked(true)

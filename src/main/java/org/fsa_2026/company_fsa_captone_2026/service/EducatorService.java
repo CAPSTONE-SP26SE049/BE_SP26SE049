@@ -79,7 +79,8 @@ public class EducatorService {
 
         LevelResponse response = LevelResponse.fromEntity(level);
         saveApprovalHistory(TYPE_LEVEL, level.getId(), educator, ContentStatus.PENDING,
-                "Educator created level",
+                request.getComment() != null && !request.getComment().isBlank()
+                        ? request.getComment() : "Educator created level",
                 response);
         return response;
     }
@@ -114,7 +115,8 @@ public class EducatorService {
 
         LevelResponse response = LevelResponse.fromEntity(level);
         saveApprovalHistory(TYPE_LEVEL, level.getId(), educator, ContentStatus.PENDING,
-                "Educator updated level",
+                request.getComment() != null && !request.getComment().isBlank()
+                        ? request.getComment() : "Educator updated level",
                 response);
         return response;
     }

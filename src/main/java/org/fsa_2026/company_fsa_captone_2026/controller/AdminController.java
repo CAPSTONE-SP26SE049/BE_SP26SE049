@@ -8,7 +8,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.fsa_2026.company_fsa_captone_2026.dto.ApiResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.EducatorCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.RegisterResponse;
-import org.fsa_2026.company_fsa_captone_2026.service.AdminService;
+import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeBankRequest;
+import org.fsa_2026.company_fsa_captone_2026.entity.ChallengeBank;
+import org.fsa_2026.company_fsa_captone_2026.service.ChallengeBankService;
 import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.DialectCreateRequest;
@@ -42,6 +44,7 @@ import java.util.UUID;
 public class AdminController {
 
     private final AdminService adminService;
+    private final ChallengeBankService challengeBankService;
 
     /**
      * Create Educator Account - POST /api/v1/admin/educators
@@ -270,6 +273,46 @@ public class AdminController {
         log.info("Admin deleting level ID: {}", id);
         adminService.deleteLevel(id);
         return ResponseEntity.ok(ApiResponse.success("Xóa cấp độ thành công", null));
+    }
+
+    // ==========================================
+    // 1d. Content Management: Challenge Bank
+    // ==========================================
+
+    @GetMapping("/content/challenge-bank")
+    @Operation(summary = "Get All Challenges from Bank", description = "Retrieves a list of all challenges in the question bank")
+    public ResponseEntity<ApiResponse<List<ChallengeBank>>> getAllChallengeBank() {
+        log.info("Admin retrieving all challenge bank items");
+        List<ChallengeBank> responses = challengeBankService.getAllChallenges();
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách câu hỏi thành công", responses));
+    }
+
+    @PostMapping("/content/challenge-bank")
+    @Operation(summary = "Create Challenge Bank Item", description = "Create a new challenge in the question bank")
+    public ResponseEntity<ApiResponse<ChallengeBank>> createChallengeBankItem(
+            @Valid @RequestBody ChallengeBankRequest request) {
+        log.info("Admin creating a new challenge bank item");
+        ChallengeBank response = challengeBankService.createChallenge(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Tạo câu hỏi thành công", response));
+    }
+
+    @PutMapping("/content/challenge-bank/{id}")
+    @Operation(summary = "Update Challenge Bank Item", description = "Update an existing challenge bank item by ID")
+    public ResponseEntity<ApiResponse<ChallengeBank>> updateChallengeBankItem(
+            @PathVariable UUID id,
+            @Valid @RequestBody ChallengeBankRequest request) {
+        log.info("Admin updating challenge bank item ID: {}", id);
+        ChallengeBank response = challengeBankService.updateChallenge(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật câu hỏi thành công", response));
+    }
+
+    @DeleteMapping("/content/challenge-bank/{id}")
+    @Operation(summary = "Delete Challenge Bank Item", description = "Delete a challenge bank item by ID")
+    public ResponseEntity<ApiResponse<Void>> deleteChallengeBankItem(@PathVariable UUID id) {
+        log.info("Admin deleting challenge bank item ID: {}", id);
+        challengeBankService.deleteChallenge(id);
+        return ResponseEntity.ok(ApiResponse.success("Xóa câu hỏi thành công", null));
     }
 
     @GetMapping("/content/{id}/history")
