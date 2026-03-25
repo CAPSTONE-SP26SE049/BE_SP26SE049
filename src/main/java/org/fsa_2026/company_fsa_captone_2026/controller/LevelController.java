@@ -12,6 +12,7 @@ import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
 import org.fsa_2026.company_fsa_captone_2026.entity.Account;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -50,5 +51,15 @@ public class LevelController {
         }
 
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách cấp độ thành công", levels));
+    }
+
+    @GetMapping("/user")
+    @Operation(summary = "Get User Roadmap Levels", description = "Get chapters (levels) tailored for the current user's dialect", security = @SecurityRequirement(name = "bearer-jwt"))
+    public ResponseEntity<ApiResponse<List<LevelResponse>>> getUserLevels(
+            @RequestParam(required = false) String dialectId,
+            Authentication authentication) {
+        log.info("Get roadmap levels for user: {} with dialectId: {}", authentication.getName(), dialectId);
+        List<LevelResponse> levels = levelService.getUserRoadmap(authentication.getName(), dialectId);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách chương (roadmap) của người dùng thành công", levels));
     }
 }

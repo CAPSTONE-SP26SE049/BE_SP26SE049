@@ -7,8 +7,10 @@ import lombok.RequiredArgsConstructor;
 import org.fsa_2026.company_fsa_captone_2026.dto.QuizCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.QuizQuestionRequest;
 import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
+import org.fsa_2026.company_fsa_captone_2026.entity.QuizChallengeItem;
 import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
 import org.fsa_2026.company_fsa_captone_2026.repository.LearningUnitRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.QuizChallengeItemRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,7 @@ import java.util.stream.Collectors;
 public class QuizService {
 
     private final LearningUnitRepository learningUnitRepository;
+    private final QuizChallengeItemRepository quizChallengeItemRepository;
     private final ObjectMapper objectMapper;
 
     @Transactional
@@ -92,6 +95,26 @@ public class QuizService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getQuizzesByChallengeId(UUID challengeId) {
+        List<QuizChallengeItem> quizChallengeItems = quizChallengeItemRepository
+                .findByChallengeIdOrderByOrderIndex(challengeId);
+
+        if (quizChallengeItems.isEmpty()) {
+            return List.of();
+        }
+
+        List<UUID> quizIds = quizChallengeItems.stream()
+                .map(QuizChallengeItem::getQuizId)
+                .distinct()
+                .toList();
+
+        return learningUnitRepository.findAllById(quizIds).stream()
+                .filter(quiz -> "QUIZ".equalsIgnoreCase(quiz.getType()))
+                .map(this::buildQuizResponse)
+                .collect(Collectors.toList());
+    }
+
     private Map<String, Object> buildQuizMetadata(QuizCreateRequest request) {
         Map<String, Object> metadata = new LinkedHashMap<>();
         metadata.put("description", request.getDescription());
@@ -112,6 +135,7 @@ public class QuizService {
         response.put("id", quiz.getId());
         response.put("levelId", quiz.getParent() != null ? quiz.getParent().getId() : null);
         response.put("name", quiz.getName());
+        response.put("type", quiz.getType());
 
         Map<String, Object> metadata = new LinkedHashMap<>();
         if (quiz.getMetadataJson() != null) {
@@ -128,6 +152,7 @@ public class QuizService {
         response.put("passingScore", metadata.get("passing_score"));
         response.put("pointsPerQuestion", metadata.get("points_per_question"));
         response.put("difficulty", metadata.get("difficulty"));
+        response.put("skillType", metadata.get("skill_type"));
 
         List<QuizQuestionRequest> questions = metadata.containsKey("questions")
                 ? objectMapper.convertValue(metadata.get("questions"), new TypeReference<List<QuizQuestionRequest>>() {})

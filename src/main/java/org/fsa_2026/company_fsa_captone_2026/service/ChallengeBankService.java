@@ -73,10 +73,18 @@ public class ChallengeBankService {
         List<QuizChallengeItem> items = quizChallengeItemRepository.findByQuizIdOrderByOrderIndex(quizId);
 
         return items.stream()
-                .map(item -> QuizChallengeItemResponse.builder()
-                        .orderIndex(item.getOrderIndex())
-                        .challenge(challengeBankRepository.findById(item.getChallengeBankId()).orElse(null))
-                        .build())
+                .sorted((a, b) -> {
+                    Integer aOrder = a.getOrderIndex() == null ? Integer.MAX_VALUE : a.getOrderIndex();
+                    Integer bOrder = b.getOrderIndex() == null ? Integer.MAX_VALUE : b.getOrderIndex();
+                    return Integer.compare(aOrder, bOrder);
+                })
+                .map(item -> {
+                    UUID challengeId = item.getChallengeBankId() != null ? item.getChallengeBankId() : item.getChallengeId();
+                    return QuizChallengeItemResponse.builder()
+                            .orderIndex(item.getOrderIndex())
+                            .challenge(challengeId != null ? challengeBankRepository.findById(challengeId).orElse(null) : null)
+                            .build();
+                })
                 .collect(Collectors.toList());
     }
 
