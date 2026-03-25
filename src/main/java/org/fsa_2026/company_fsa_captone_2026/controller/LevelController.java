@@ -12,10 +12,7 @@ import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
 import org.fsa_2026.company_fsa_captone_2026.entity.Account;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-<<<<<<< HEAD
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-=======
->>>>>>> 123456b4ec8b41d914d253da4e8e138ffab643d7
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
