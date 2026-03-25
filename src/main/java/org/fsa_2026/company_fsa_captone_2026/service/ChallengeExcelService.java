@@ -51,7 +51,7 @@ public class ChallengeExcelService {
     private static final String COL_OPTIONS        = "Các lựa chọn (phân cách bằng |)";
     private static final String COL_CORRECT_ANSWER = "Đáp án chính xác";
     private static final String COL_HINT           = "Gợi ý";
-    private static final String COL_IMAGE_URL      = "Hình ảnh URL"; // Not used for READING anymore, but kept for legacy/other
+    // private static final String COL_IMAGE_URL      = "Hình ảnh URL"; // Not used for READING anymore, but kept for legacy/other
     private static final String COL_AUDIO_URL      = "Audio URL";
     private static final String COL_TRANSCRIPT     = "Transcript / Lời thoại";
     private static final String COL_SCRAMBLED      = "Các từ xáo trộn (phân cách bằng |)";
@@ -246,7 +246,6 @@ public class ChallengeExcelService {
         }
 
         // --- Excel logic (existing) ---
-        List<String> headers = getHeaders(skillType);
         int successCount = 0;
         int skipCount = 0;
         int errorCount = 0;
@@ -671,7 +670,7 @@ public class ChallengeExcelService {
                     workbook.createSheet("Empty");
                 }
             } else {
-                writeSheet(workbook, skillType.name(), skillType, data);
+                writeSheet(workbook, skillType != null ? skillType.name() : "Data", skillType, data);
             }
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
