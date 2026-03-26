@@ -4,5 +4,6 @@ public enum SkillType {
     LISTENING,
     SPEAKING,
     READING,
-    WRITING
+    WRITING,
+    ENTRY_TEST
 }

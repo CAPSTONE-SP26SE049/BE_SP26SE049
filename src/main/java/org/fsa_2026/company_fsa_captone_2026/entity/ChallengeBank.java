@@ -41,9 +41,6 @@ public class ChallengeBank {
     @Column(name = "difficulty_tag", length = 50, nullable = false)
     private DifficultyTag difficultyTag;
 
-    @Builder.Default
-    @Column(name = "is_global", nullable = false)
-    private Boolean isGlobal = true;
 
     /**
      * Miền: BAC (Bắc), TRUNG (Trung), NAM (Nam).

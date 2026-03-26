@@ -16,7 +16,6 @@ import java.util.Map;
       "contentText": "Chọn từ đúng chính tả để điền vào chỗ trống: 'Con ... đang ăn cỏ'",
       "skillType": "READING",
       "difficultyTag": "BEGINNER",
-      "isGlobal": true,
       "region": "BAC",
       "metadataJson": {
         "options": ["nợn", "lợn", "lộn"],
@@ -30,7 +29,6 @@ public class ChallengeBankRequest {
     private String contentText;
     private SkillType skillType;
     private DifficultyTag difficultyTag;
-    private Boolean isGlobal;
     private String region; // BAC, TRUNG, NAM
     private Map<String, Object> metadataJson;
 }

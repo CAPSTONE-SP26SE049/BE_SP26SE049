@@ -10,6 +10,7 @@ import org.fsa_2026.company_fsa_captone_2026.dto.EducatorCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.RegisterResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeBankRequest;
 import org.fsa_2026.company_fsa_captone_2026.entity.ChallengeBank;
+import org.fsa_2026.company_fsa_captone_2026.service.AdminService;
 import org.fsa_2026.company_fsa_captone_2026.service.ChallengeBankService;
 import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeResponse;
@@ -155,45 +156,6 @@ public class AdminController {
                         .build());
     }
 
-    // ==========================================
-    // 1b. Content Management: Pending & Approvals
-    // ==========================================
-
-    @GetMapping("/content/pending/levels")
-    @Operation(summary = "Get Pending Levels", description = "Retrieves a list of all levels awaiting admin approval")
-    public ResponseEntity<ApiResponse<List<LevelResponse>>> getPendingLevels() {
-        log.info("Admin retrieving pending levels");
-        List<LevelResponse> responses = adminService.getPendingLevels();
-        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách bài học chờ duyệt thành công", responses));
-    }
-
-    @GetMapping("/content/pending/challenges")
-    @Operation(summary = "Get Pending Challenges", description = "Retrieves a list of all challenges awaiting admin approval")
-    public ResponseEntity<ApiResponse<List<ChallengeResponse>>> getPendingChallenges() {
-        log.info("Admin retrieving pending challenges");
-        List<ChallengeResponse> responses = adminService.getPendingChallenges();
-        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách bài tập chờ duyệt thành công", responses));
-    }
-
-    @PutMapping("/content/levels/{id}/review")
-    @Operation(summary = "Review Level", description = "Approve or Reject a pending level")
-    public ResponseEntity<ApiResponse<LevelResponse>> reviewLevel(
-            @PathVariable UUID id,
-            @Valid @RequestBody org.fsa_2026.company_fsa_captone_2026.dto.ContentReviewRequest request) {
-        log.info("Admin reviewing level ID: {} with status: {}", id, request.getStatus());
-        LevelResponse response = adminService.reviewLevel(id, request);
-        return ResponseEntity.ok(ApiResponse.success("Duyệt bài học thành công", response));
-    }
-
-    @PutMapping("/content/challenges/{id}/review")
-    @Operation(summary = "Review Challenge", description = "Approve or Reject a pending challenge")
-    public ResponseEntity<ApiResponse<ChallengeResponse>> reviewChallenge(
-            @PathVariable UUID id,
-            @Valid @RequestBody org.fsa_2026.company_fsa_captone_2026.dto.ContentReviewRequest request) {
-        log.info("Admin reviewing challenge ID: {} with status: {}", id, request.getStatus());
-        ChallengeResponse response = adminService.reviewChallenge(id, request);
-        return ResponseEntity.ok(ApiResponse.success("Duyệt bài tập thành công", response));
-    }
 
     // ==========================================
     // 1c. Content Management: Dialects
