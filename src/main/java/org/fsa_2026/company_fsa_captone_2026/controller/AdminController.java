@@ -46,6 +46,7 @@ public class AdminController {
 
     private final AdminService adminService;
     private final ChallengeBankService challengeBankService;
+    private final org.fsa_2026.company_fsa_captone_2026.service.QuizService quizService;
 
     /**
      * Create Educator Account - POST /api/v1/admin/educators
@@ -354,6 +355,84 @@ public class AdminController {
                 "App is great but sometimes audio is lagging.",
                 "Need more southern dialect practice words.");
         return ResponseEntity.ok(ApiResponse.success("Thành công", mockResponse));
+    }
+
+    // ==========================================
+    // 4. Quiz Management APIs
+    // ==========================================
+
+    @GetMapping("/content/quizzes")
+    @Operation(summary = "Get All Quizzes", description = "Fetch all quizzes, optionally filtered by levelId")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuizzes(
+            @RequestParam(value = "levelId", required = false) UUID levelId) {
+        log.info("Admin retrieving quizzes. Level filter: {}", levelId);
+        List<Map<String, Object>> responses = levelId != null 
+                ? quizService.getQuizzesByLevel(levelId) 
+                : quizService.getAllQuizzes();
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách quiz thành công", responses));
+    }
+
+    @GetMapping("/content/quizzes/{id}")
+    @Operation(summary = "Get Quiz Detail", description = "Get details of a specific quiz by ID")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getQuizById(@PathVariable UUID id) {
+        log.info("Admin retrieving quiz detail ID: {}", id);
+        return ResponseEntity.ok(ApiResponse.success("Lấy thông tin quiz thành công", quizService.getQuizDetails(id)));
+    }
+
+    @PostMapping("/content/quizzes")
+    @Operation(summary = "Create Quiz", description = "Create a new quiz stored in LearningUnit")
+    public ResponseEntity<ApiResponse<org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit>> createQuiz(
+            @Valid @RequestBody org.fsa_2026.company_fsa_captone_2026.dto.QuizCreateRequest request) {
+        log.info("Admin creating a new quiz: {}", request.getTitle());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Tạo quiz thành công", quizService.createQuiz(request)));
+    }
+
+    @PutMapping("/content/quizzes/{id}")
+    @Operation(summary = "Update Quiz", description = "Update an existing quiz by ID")
+    public ResponseEntity<ApiResponse<org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit>> updateQuiz(
+            @PathVariable UUID id,
+            @Valid @RequestBody org.fsa_2026.company_fsa_captone_2026.dto.QuizCreateRequest request) {
+        log.info("Admin updating quiz ID: {}", id);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật quiz thành công", quizService.updateQuiz(id, request)));
+    }
+
+    @DeleteMapping("/content/quizzes/{id}")
+    @Operation(summary = "Delete Quiz", description = "Delete a quiz by ID")
+    public ResponseEntity<ApiResponse<Void>> deleteQuiz(@PathVariable UUID id) {
+        log.info("Admin deleting quiz ID: {}", id);
+        quizService.deleteQuiz(id);
+        return ResponseEntity.ok(ApiResponse.success("Xóa quiz thành công", null));
+    }
+
+    @GetMapping("/content/quizzes/{id}/challenges")
+    @Operation(summary = "Get Quiz Challenges", description = "Get challenges assigned to a quiz")
+    public ResponseEntity<ApiResponse<List<org.fsa_2026.company_fsa_captone_2026.dto.QuizChallengeItemResponse>>> getQuizChallenges(
+            @PathVariable UUID id) {
+        log.info("Admin retrieving challenges for quiz ID: {}", id);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách thử thách của quiz thành công", 
+                challengeBankService.getChallengesByQuizId(id)));
+    }
+
+    @PostMapping("/content/quizzes/{id}/challenges")
+    @Operation(summary = "Assign Challenges to Quiz", description = "Assign challenges to a quiz")
+    public ResponseEntity<ApiResponse<List<org.fsa_2026.company_fsa_captone_2026.entity.QuizChallengeItem>>> assignChallengesToQuiz(
+            @PathVariable UUID id,
+            @RequestBody Map<String, List<UUID>> request) {
+        List<UUID> challengeIds = request.get("challengeIds");
+        log.info("Admin assigning challenges to quiz ID: {}", id);
+        return ResponseEntity.ok(ApiResponse.success("Gán thử thách vào quiz thành công", 
+                challengeBankService.assignChallengesToQuiz(id, challengeIds)));
+    }
+
+    @DeleteMapping("/content/quizzes/{id}/challenges/{challengeId}")
+    @Operation(summary = "Remove Challenge from Quiz", description = "Remove a challenge from a quiz")
+    public ResponseEntity<ApiResponse<Void>> removeChallengeFromQuiz(
+            @PathVariable UUID id,
+            @PathVariable UUID challengeId) {
+        log.info("Admin removing challenge ID: {} from quiz ID: {}", challengeId, id);
+        challengeBankService.removeChallengeFromQuiz(id, challengeId);
+        return ResponseEntity.ok(ApiResponse.success("Xóa thử thách khỏi quiz thành công", null));
     }
 
 }

@@ -40,4 +40,12 @@ public class QuizController {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách quiz thành công", quizService.getAllQuizzes()));
     }
 
+    @GetMapping("/quizzes/by-level")
+    @Operation(summary = "Get Quizzes by Level", description = "Fetch quizzes for a specific level")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuizzesByLevel(
+            @org.springframework.web.bind.annotation.RequestParam("levelId") java.util.UUID levelId) {
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách quiz theo level thành công",
+                quizService.getQuizzesByLevel(levelId)));
+    }
+
 }

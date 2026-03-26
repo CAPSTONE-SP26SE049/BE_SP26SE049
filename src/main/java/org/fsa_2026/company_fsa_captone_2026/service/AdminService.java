@@ -29,7 +29,6 @@ import org.fsa_2026.company_fsa_captone_2026.entity.ContentItem;
 import org.fsa_2026.company_fsa_captone_2026.entity.DailyAnalytics;
 import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
 import org.fsa_2026.company_fsa_captone_2026.entity.RewardCatalog;
-import org.fsa_2026.company_fsa_captone_2026.entity.enums.RewardType;
 import org.fsa_2026.company_fsa_captone_2026.entity.enums.RoleCode;
 import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
 import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
@@ -79,9 +78,9 @@ public class AdminService {
 
     /**
      * Create a new Educator account
-        *
-        * @param request thông tin educator cần tạo
-        * @return thông tin tài khoản educator sau khi tạo
+     *
+     * @param request thông tin educator cần tạo
+     * @return thông tin tài khoản educator sau khi tạo
      */
     @Transactional
     public RegisterResponse createEducatorAccount(EducatorCreateRequest request) {
@@ -153,14 +152,14 @@ public class AdminService {
     @Transactional(readOnly = true)
     public UserManagementResponse getUserById(UUID id) {
         Account account = accountRepository.findById(id)
-            .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_USER_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_USER_NOT_FOUND));
         return UserManagementResponse.fromEntity(account);
     }
 
     @Transactional
     public UserManagementResponse updateUserStatus(UUID id, UserStatusUpdateRequest request) {
         Account account = accountRepository.findById(id)
-            .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_USER_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_USER_NOT_FOUND));
 
         account.setIsActive(request.getIsActive());
         account = accountRepository.save(account);
@@ -171,7 +170,7 @@ public class AdminService {
     @Transactional
     public UserManagementResponse updateUser(UUID id, UserUpdateRequest request) {
         Account account = accountRepository.findById(id)
-            .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_USER_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_USER_NOT_FOUND));
 
         if (request.getPhone() != null) {
             account.setPhone(request.getPhone());
@@ -197,14 +196,14 @@ public class AdminService {
 
     /**
      * Create a new Challenge
-        *
-        * @param request dữ liệu challenge cần tạo
-        * @return challenge đã được lưu
+     *
+     * @param request dữ liệu challenge cần tạo
+     * @return challenge đã được lưu
      */
     @Transactional
     public ChallengeResponse createChallenge(ChallengeCreateRequest request) {
         LearningUnit level = learningUnitRepository.findById(request.getLevelId())
-            .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
 
         ContentItem challenge = new ContentItem();
         challenge.setLearningUnit(level);
@@ -234,18 +233,18 @@ public class AdminService {
 
     /**
      * Update an existing Challenge
-        *
-        * @param id id challenge cần cập nhật
-        * @param request dữ liệu challenge mới
-        * @return challenge sau khi cập nhật
+     *
+     * @param id      id challenge cần cập nhật
+     * @param request dữ liệu challenge mới
+     * @return challenge sau khi cập nhật
      */
     @Transactional
     public ChallengeResponse updateChallenge(UUID id, ChallengeCreateRequest request) {
         ContentItem challenge = contentItemRepository.findById(id)
-            .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_CHALLENGE_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_CHALLENGE_NOT_FOUND));
 
         LearningUnit level = learningUnitRepository.findById(request.getLevelId())
-            .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
 
         challenge.setLearningUnit(level);
         challenge.setTitle(request.getContentText());
@@ -290,7 +289,7 @@ public class AdminService {
     @Transactional(readOnly = true)
     public ChallengeResponse getChallengeById(UUID id) {
         ContentItem challenge = contentItemRepository.findById(id)
-            .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_CHALLENGE_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_CHALLENGE_NOT_FOUND));
         return ChallengeResponse.fromEntity(challenge);
     }
 
@@ -300,7 +299,7 @@ public class AdminService {
                 .name(request.getName())
                 .type("DIALECT")
                 .build();
-        
+
         try {
             Map<String, Object> metadata = new java.util.HashMap<>();
             metadata.put("description", request.getDescription());
@@ -319,7 +318,7 @@ public class AdminService {
                 .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy Dialect"));
 
         dialect.setName(request.getName());
-        
+
         try {
             Map<String, Object> metadata = new java.util.HashMap<>();
             if (dialect.getMetadataJson() != null) {
@@ -357,7 +356,7 @@ public class AdminService {
     @Transactional(readOnly = true)
     public LevelResponse getLevelById(UUID id) {
         LearningUnit level = learningUnitRepository.findById(id)
-            .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
         return LevelResponse.fromEntity(level);
     }
 
@@ -391,12 +390,12 @@ public class AdminService {
     @Transactional
     public LevelResponse updateLevel(UUID id, LevelCreateRequest request) {
         LearningUnit level = learningUnitRepository.findById(id)
-            .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
 
         if (request.getParentId() != null
                 && (level.getParent() == null || !level.getParent().getId().equals(request.getParentId()))) {
             LearningUnit parent = learningUnitRepository.findById(request.getParentId())
-                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy parent"));
+                    .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy parent"));
             level.setParent(parent);
         }
 
@@ -416,18 +415,12 @@ public class AdminService {
         return LevelResponse.fromEntity(learningUnitRepository.save(level));
     }
 
-
-
-
-
-        @Transactional(readOnly = true)
+    @Transactional(readOnly = true)
     public QuizResponse getQuizById(UUID id) {
         ContentItem quiz = contentItemRepository.findById(id)
-            .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy Quiz"));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy Quiz"));
         return QuizResponse.fromEntity(quiz);
     }
-
-
 
     @Transactional(readOnly = true)
     public List<ContentApprovalHistoryResponse> getContentApprovalHistory(UUID contentId) {
@@ -436,7 +429,7 @@ public class AdminService {
                 .collect(Collectors.toList());
     }
 
-        @Transactional
+    @Transactional
     public void deleteLevel(UUID id) {
         if (!learningUnitRepository.existsById(id)) {
             throw new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND);
@@ -449,7 +442,7 @@ public class AdminService {
      *
      * @return tổng quan analytics toàn hệ thống
      */
-        @Transactional
+    @Transactional
     public AnalyticsOverviewResponse getAnalyticsOverview() {
         LocalDate today = LocalDate.now();
         Optional<DailyAnalytics> analyticsOpt = dailyAnalyticsRepository.findByRecordDate(today);
