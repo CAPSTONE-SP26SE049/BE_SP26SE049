@@ -74,6 +74,6 @@ public class AssignmentController {
             Authentication authentication,
             @PathVariable UUID assignmentId) {
         assignmentService.deleteAssignment(authentication.getName(), assignmentId);
-        return ResponseEntity.ok(ApiResponse.success("Gỡ chương học khỏi lớp thành công", null));
+        return ResponseEntity.ok(ApiResponse.success("Gỡ học phần khỏi lớp thành công", null));
     }
 }

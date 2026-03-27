@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.fsa_2026.company_fsa_captone_2026.dto.ApiResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeAssignRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeBankRequest;
@@ -22,6 +23,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/educator")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Educator Challenge Bank", description = "Quản lý kho câu hỏi cho educator")
 @SecurityRequirement(name = "bearer-jwt")
 public class ChallengeBankController {
@@ -44,7 +46,8 @@ public class ChallengeBankController {
             @RequestParam(required = false) UUID levelId
     ) {
         List<ChallengeBank> challenges = challengeBankService.getAllChallenges(skillType, region, levelId);
-        System.out.println("DEBUG: Found " + challenges.size() + " challenges for filters: skillType=" + skillType + ", region=" + region + ", levelId=" + levelId);
+        log.debug("challenge-bank filter: count={}, skillType={}, region={}, levelId={}",
+                challenges.size(), skillType, region, levelId);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách câu hỏi thành công", challenges));
     }
 
