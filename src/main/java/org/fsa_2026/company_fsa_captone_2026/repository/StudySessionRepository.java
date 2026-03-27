@@ -19,6 +19,15 @@ public interface StudySessionRepository extends JpaRepository<StudySession, UUID
 
     List<StudySession> findBySessionType(String sessionType);
 
+    @Query("""
+            SELECT s
+            FROM StudySession s
+            WHERE s.account.id = :accountId
+              AND s.startedAt < :before
+            ORDER BY s.startedAt DESC
+            """)
+    List<StudySession> findPastSessionsByAccountId(@Param("accountId") UUID accountId, @Param("before") Instant before);
+
     @Query("SELECT COUNT(DISTINCT s.account.id) FROM StudySession s WHERE s.startedAt > :after")
     long countDistinctAccountByStartedAtAfter(@Param("after") Instant after);
 }
