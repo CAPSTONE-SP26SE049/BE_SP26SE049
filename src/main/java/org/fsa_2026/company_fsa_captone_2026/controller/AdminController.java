@@ -8,7 +8,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.fsa_2026.company_fsa_captone_2026.dto.ApiResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.EducatorCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.RegisterResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeBankRequest;
+import org.fsa_2026.company_fsa_captone_2026.entity.ChallengeBank;
 import org.fsa_2026.company_fsa_captone_2026.service.AdminService;
+import org.fsa_2026.company_fsa_captone_2026.service.ChallengeBankService;
 import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.DialectCreateRequest;
@@ -42,6 +45,8 @@ import java.util.UUID;
 public class AdminController {
 
     private final AdminService adminService;
+    private final ChallengeBankService challengeBankService;
+    private final org.fsa_2026.company_fsa_captone_2026.service.QuizService quizService;
 
     /**
      * Create Educator Account - POST /api/v1/admin/educators
@@ -152,45 +157,6 @@ public class AdminController {
                         .build());
     }
 
-    // ==========================================
-    // 1b. Content Management: Pending & Approvals
-    // ==========================================
-
-    @GetMapping("/content/pending/levels")
-    @Operation(summary = "Get Pending Levels", description = "Retrieves a list of all levels awaiting admin approval")
-    public ResponseEntity<ApiResponse<List<LevelResponse>>> getPendingLevels() {
-        log.info("Admin retrieving pending levels");
-        List<LevelResponse> responses = adminService.getPendingLevels();
-        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách bài học chờ duyệt thành công", responses));
-    }
-
-    @GetMapping("/content/pending/challenges")
-    @Operation(summary = "Get Pending Challenges", description = "Retrieves a list of all challenges awaiting admin approval")
-    public ResponseEntity<ApiResponse<List<ChallengeResponse>>> getPendingChallenges() {
-        log.info("Admin retrieving pending challenges");
-        List<ChallengeResponse> responses = adminService.getPendingChallenges();
-        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách bài tập chờ duyệt thành công", responses));
-    }
-
-    @PutMapping("/content/levels/{id}/review")
-    @Operation(summary = "Review Level", description = "Approve or Reject a pending level")
-    public ResponseEntity<ApiResponse<LevelResponse>> reviewLevel(
-            @PathVariable UUID id,
-            @Valid @RequestBody org.fsa_2026.company_fsa_captone_2026.dto.ContentReviewRequest request) {
-        log.info("Admin reviewing level ID: {} with status: {}", id, request.getStatus());
-        LevelResponse response = adminService.reviewLevel(id, request);
-        return ResponseEntity.ok(ApiResponse.success("Duyệt bài học thành công", response));
-    }
-
-    @PutMapping("/content/challenges/{id}/review")
-    @Operation(summary = "Review Challenge", description = "Approve or Reject a pending challenge")
-    public ResponseEntity<ApiResponse<ChallengeResponse>> reviewChallenge(
-            @PathVariable UUID id,
-            @Valid @RequestBody org.fsa_2026.company_fsa_captone_2026.dto.ContentReviewRequest request) {
-        log.info("Admin reviewing challenge ID: {} with status: {}", id, request.getStatus());
-        ChallengeResponse response = adminService.reviewChallenge(id, request);
-        return ResponseEntity.ok(ApiResponse.success("Duyệt bài tập thành công", response));
-    }
 
     // ==========================================
     // 1c. Content Management: Dialects
@@ -272,6 +238,46 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success("Xóa cấp độ thành công", null));
     }
 
+    // ==========================================
+    // 1d. Content Management: Challenge Bank
+    // ==========================================
+
+    @GetMapping("/content/challenge-bank")
+    @Operation(summary = "Get All Challenges from Bank", description = "Retrieves a list of all challenges in the question bank")
+    public ResponseEntity<ApiResponse<List<ChallengeBank>>> getAllChallengeBank() {
+        log.info("Admin retrieving all challenge bank items");
+        List<ChallengeBank> responses = challengeBankService.getAllChallenges();
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách câu hỏi thành công", responses));
+    }
+
+    @PostMapping("/content/challenge-bank")
+    @Operation(summary = "Create Challenge Bank Item", description = "Create a new challenge in the question bank")
+    public ResponseEntity<ApiResponse<ChallengeBank>> createChallengeBankItem(
+            @Valid @RequestBody ChallengeBankRequest request) {
+        log.info("Admin creating a new challenge bank item");
+        ChallengeBank response = challengeBankService.createChallenge(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Tạo câu hỏi thành công", response));
+    }
+
+    @PutMapping("/content/challenge-bank/{id}")
+    @Operation(summary = "Update Challenge Bank Item", description = "Update an existing challenge bank item by ID")
+    public ResponseEntity<ApiResponse<ChallengeBank>> updateChallengeBankItem(
+            @PathVariable UUID id,
+            @Valid @RequestBody ChallengeBankRequest request) {
+        log.info("Admin updating challenge bank item ID: {}", id);
+        ChallengeBank response = challengeBankService.updateChallenge(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật câu hỏi thành công", response));
+    }
+
+    @DeleteMapping("/content/challenge-bank/{id}")
+    @Operation(summary = "Delete Challenge Bank Item", description = "Delete a challenge bank item by ID")
+    public ResponseEntity<ApiResponse<Void>> deleteChallengeBankItem(@PathVariable UUID id) {
+        log.info("Admin deleting challenge bank item ID: {}", id);
+        challengeBankService.deleteChallenge(id);
+        return ResponseEntity.ok(ApiResponse.success("Xóa câu hỏi thành công", null));
+    }
+
     @GetMapping("/content/{id}/history")
     @Operation(summary = "Get Content Approval History", description = "View the audit log for a specific level or challenge")
     public ResponseEntity<ApiResponse<List<org.fsa_2026.company_fsa_captone_2026.dto.ContentApprovalHistoryResponse>>> getContentApprovalHistory(
@@ -349,6 +355,84 @@ public class AdminController {
                 "App is great but sometimes audio is lagging.",
                 "Need more southern dialect practice words.");
         return ResponseEntity.ok(ApiResponse.success("Thành công", mockResponse));
+    }
+
+    // ==========================================
+    // 4. Quiz Management APIs
+    // ==========================================
+
+    @GetMapping("/content/quizzes")
+    @Operation(summary = "Get All Quizzes", description = "Fetch all quizzes, optionally filtered by levelId")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuizzes(
+            @RequestParam(value = "levelId", required = false) UUID levelId) {
+        log.info("Admin retrieving quizzes. Level filter: {}", levelId);
+        List<Map<String, Object>> responses = levelId != null 
+                ? quizService.getQuizzesByLevel(levelId) 
+                : quizService.getAllQuizzes();
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách quiz thành công", responses));
+    }
+
+    @GetMapping("/content/quizzes/{id}")
+    @Operation(summary = "Get Quiz Detail", description = "Get details of a specific quiz by ID")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getQuizById(@PathVariable UUID id) {
+        log.info("Admin retrieving quiz detail ID: {}", id);
+        return ResponseEntity.ok(ApiResponse.success("Lấy thông tin quiz thành công", quizService.getQuizDetails(id)));
+    }
+
+    @PostMapping("/content/quizzes")
+    @Operation(summary = "Create Quiz", description = "Create a new quiz stored in LearningUnit")
+    public ResponseEntity<ApiResponse<org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit>> createQuiz(
+            @Valid @RequestBody org.fsa_2026.company_fsa_captone_2026.dto.QuizCreateRequest request) {
+        log.info("Admin creating a new quiz: {}", request.getTitle());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Tạo quiz thành công", quizService.createQuiz(request)));
+    }
+
+    @PutMapping("/content/quizzes/{id}")
+    @Operation(summary = "Update Quiz", description = "Update an existing quiz by ID")
+    public ResponseEntity<ApiResponse<org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit>> updateQuiz(
+            @PathVariable UUID id,
+            @Valid @RequestBody org.fsa_2026.company_fsa_captone_2026.dto.QuizCreateRequest request) {
+        log.info("Admin updating quiz ID: {}", id);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật quiz thành công", quizService.updateQuiz(id, request)));
+    }
+
+    @DeleteMapping("/content/quizzes/{id}")
+    @Operation(summary = "Delete Quiz", description = "Delete a quiz by ID")
+    public ResponseEntity<ApiResponse<Void>> deleteQuiz(@PathVariable UUID id) {
+        log.info("Admin deleting quiz ID: {}", id);
+        quizService.deleteQuiz(id);
+        return ResponseEntity.ok(ApiResponse.success("Xóa quiz thành công", null));
+    }
+
+    @GetMapping("/content/quizzes/{id}/challenges")
+    @Operation(summary = "Get Quiz Challenges", description = "Get challenges assigned to a quiz")
+    public ResponseEntity<ApiResponse<List<org.fsa_2026.company_fsa_captone_2026.dto.QuizChallengeItemResponse>>> getQuizChallenges(
+            @PathVariable UUID id) {
+        log.info("Admin retrieving challenges for quiz ID: {}", id);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách thử thách của quiz thành công", 
+                challengeBankService.getChallengesByQuizId(id)));
+    }
+
+    @PostMapping("/content/quizzes/{id}/challenges")
+    @Operation(summary = "Assign Challenges to Quiz", description = "Assign challenges to a quiz")
+    public ResponseEntity<ApiResponse<List<org.fsa_2026.company_fsa_captone_2026.entity.QuizChallengeItem>>> assignChallengesToQuiz(
+            @PathVariable UUID id,
+            @RequestBody Map<String, List<UUID>> request) {
+        List<UUID> challengeIds = request.get("challengeIds");
+        log.info("Admin assigning challenges to quiz ID: {}", id);
+        return ResponseEntity.ok(ApiResponse.success("Gán thử thách vào quiz thành công", 
+                challengeBankService.assignChallengesToQuiz(id, challengeIds)));
+    }
+
+    @DeleteMapping("/content/quizzes/{id}/challenges/{challengeId}")
+    @Operation(summary = "Remove Challenge from Quiz", description = "Remove a challenge from a quiz")
+    public ResponseEntity<ApiResponse<Void>> removeChallengeFromQuiz(
+            @PathVariable UUID id,
+            @PathVariable UUID challengeId) {
+        log.info("Admin removing challenge ID: {} from quiz ID: {}", challengeId, id);
+        challengeBankService.removeChallengeFromQuiz(id, challengeId);
+        return ResponseEntity.ok(ApiResponse.success("Xóa thử thách khỏi quiz thành công", null));
     }
 
 }

@@ -30,4 +30,9 @@ public class Constants {
 
     // Time Constants
     public static final long JWT_TOKEN_VALIDITY = 86400000L; // 24 hours in milliseconds
+
+    // Learning Unit Types
+    public static final String TYPE_LEVEL = "LEVEL";
+    public static final String TYPE_DIALECT = "DIALECT";
+    public static final String TYPE_QUIZ = "QUIZ";
 }

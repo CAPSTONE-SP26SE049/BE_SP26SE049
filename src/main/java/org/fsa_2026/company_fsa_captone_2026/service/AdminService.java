@@ -25,12 +25,10 @@ import org.fsa_2026.company_fsa_captone_2026.dto.UserUpdateRequest;
 import org.fsa_2026.company_fsa_captone_2026.entity.Account;
 import org.fsa_2026.company_fsa_captone_2026.dto.RewardCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.RewardResponse;
-import org.fsa_2026.company_fsa_captone_2026.entity.ContentApprovalHistory;
 import org.fsa_2026.company_fsa_captone_2026.entity.ContentItem;
 import org.fsa_2026.company_fsa_captone_2026.entity.DailyAnalytics;
 import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
 import org.fsa_2026.company_fsa_captone_2026.entity.RewardCatalog;
-import org.fsa_2026.company_fsa_captone_2026.entity.enums.RewardType;
 import org.fsa_2026.company_fsa_captone_2026.entity.enums.RoleCode;
 import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
 import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
@@ -63,8 +61,6 @@ public class AdminService {
     private static final String CODE_NOT_FOUND = "NOT_FOUND";
     private static final String TYPE_PRONUNCIATION = "PRONUNCIATION";
     private static final String TYPE_LEVEL = "LEVEL";
-    private static final String STATUS_PENDING = "PENDING";
-    private static final String META_REJECTION_REASON = "rejection_reason";
     private static final String MSG_USER_NOT_FOUND = "Không tìm thấy người dùng";
     private static final String MSG_LEVEL_NOT_FOUND = "Không tìm thấy Level";
     private static final String MSG_CHALLENGE_NOT_FOUND = "Không tìm thấy Challenge";
@@ -82,9 +78,9 @@ public class AdminService {
 
     /**
      * Create a new Educator account
-        *
-        * @param request thông tin educator cần tạo
-        * @return thông tin tài khoản educator sau khi tạo
+     *
+     * @param request thông tin educator cần tạo
+     * @return thông tin tài khoản educator sau khi tạo
      */
     @Transactional
     public RegisterResponse createEducatorAccount(EducatorCreateRequest request) {
@@ -156,14 +152,14 @@ public class AdminService {
     @Transactional(readOnly = true)
     public UserManagementResponse getUserById(UUID id) {
         Account account = accountRepository.findById(id)
-            .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_USER_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_USER_NOT_FOUND));
         return UserManagementResponse.fromEntity(account);
     }
 
     @Transactional
     public UserManagementResponse updateUserStatus(UUID id, UserStatusUpdateRequest request) {
         Account account = accountRepository.findById(id)
-            .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_USER_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_USER_NOT_FOUND));
 
         account.setIsActive(request.getIsActive());
         account = accountRepository.save(account);
@@ -174,7 +170,7 @@ public class AdminService {
     @Transactional
     public UserManagementResponse updateUser(UUID id, UserUpdateRequest request) {
         Account account = accountRepository.findById(id)
-            .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_USER_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_USER_NOT_FOUND));
 
         if (request.getPhone() != null) {
             account.setPhone(request.getPhone());
@@ -200,14 +196,14 @@ public class AdminService {
 
     /**
      * Create a new Challenge
-        *
-        * @param request dữ liệu challenge cần tạo
-        * @return challenge đã được lưu
+     *
+     * @param request dữ liệu challenge cần tạo
+     * @return challenge đã được lưu
      */
     @Transactional
     public ChallengeResponse createChallenge(ChallengeCreateRequest request) {
         LearningUnit level = learningUnitRepository.findById(request.getLevelId())
-            .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
 
         ContentItem challenge = new ContentItem();
         challenge.setLearningUnit(level);
@@ -225,6 +221,7 @@ public class AdminService {
             metadata.put("phonetic_transcription_ipa", request.getPhoneticTranscriptionIpa());
             metadata.put("reference_audio_url", request.getReferenceAudioUrl());
             metadata.put("focus_phonemes", request.getFocusPhonemes());
+            metadata.put("status", "APPROVED");
             challenge.setMetadataJson(objectMapper.writeValueAsString(metadata));
         } catch (JsonProcessingException e) {
             log.error("Failed to serialize Challenge metadata", e);
@@ -236,21 +233,22 @@ public class AdminService {
 
     /**
      * Update an existing Challenge
-        *
-        * @param id id challenge cần cập nhật
-        * @param request dữ liệu challenge mới
-        * @return challenge sau khi cập nhật
+     *
+     * @param id      id challenge cần cập nhật
+     * @param request dữ liệu challenge mới
+     * @return challenge sau khi cập nhật
      */
     @Transactional
     public ChallengeResponse updateChallenge(UUID id, ChallengeCreateRequest request) {
         ContentItem challenge = contentItemRepository.findById(id)
-            .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_CHALLENGE_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_CHALLENGE_NOT_FOUND));
 
         LearningUnit level = learningUnitRepository.findById(request.getLevelId())
-            .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
 
         challenge.setLearningUnit(level);
         challenge.setTitle(request.getContentText());
+        challenge.setStatus("APPROVED");
 
         try {
             Map<String, Object> metadata = new java.util.HashMap<>();
@@ -262,6 +260,7 @@ public class AdminService {
             metadata.put("phonetic_transcription_ipa", request.getPhoneticTranscriptionIpa());
             metadata.put("reference_audio_url", request.getReferenceAudioUrl());
             metadata.put("focus_phonemes", request.getFocusPhonemes());
+            metadata.put("status", "APPROVED");
             challenge.setMetadataJson(objectMapper.writeValueAsString(metadata));
         } catch (JsonProcessingException e) {
             log.error("Failed to update Challenge metadata", e);
@@ -290,7 +289,7 @@ public class AdminService {
     @Transactional(readOnly = true)
     public ChallengeResponse getChallengeById(UUID id) {
         ContentItem challenge = contentItemRepository.findById(id)
-            .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_CHALLENGE_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_CHALLENGE_NOT_FOUND));
         return ChallengeResponse.fromEntity(challenge);
     }
 
@@ -300,7 +299,7 @@ public class AdminService {
                 .name(request.getName())
                 .type("DIALECT")
                 .build();
-        
+
         try {
             Map<String, Object> metadata = new java.util.HashMap<>();
             metadata.put("description", request.getDescription());
@@ -319,7 +318,7 @@ public class AdminService {
                 .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy Dialect"));
 
         dialect.setName(request.getName());
-        
+
         try {
             Map<String, Object> metadata = new java.util.HashMap<>();
             if (dialect.getMetadataJson() != null) {
@@ -357,7 +356,7 @@ public class AdminService {
     @Transactional(readOnly = true)
     public LevelResponse getLevelById(UUID id) {
         LearningUnit level = learningUnitRepository.findById(id)
-            .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
         return LevelResponse.fromEntity(level);
     }
 
@@ -372,13 +371,14 @@ public class AdminService {
         LearningUnit level = LearningUnit.builder()
                 .parent(parent)
                 .name(request.getName())
-                .type(request.getType())
+                .type(TYPE_LEVEL)
                 .build();
 
         try {
             Map<String, Object> metadata = request.getMetadataJson() != null
                     ? new java.util.HashMap<>(request.getMetadataJson())
                     : new java.util.HashMap<>();
+            metadata.put("status", "APPROVED");
             level.setMetadataJson(objectMapper.writeValueAsString(metadata));
         } catch (JsonProcessingException e) {
             log.error("Failed to serialize Level metadata", e);
@@ -390,12 +390,12 @@ public class AdminService {
     @Transactional
     public LevelResponse updateLevel(UUID id, LevelCreateRequest request) {
         LearningUnit level = learningUnitRepository.findById(id)
-            .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
 
         if (request.getParentId() != null
                 && (level.getParent() == null || !level.getParent().getId().equals(request.getParentId()))) {
             LearningUnit parent = learningUnitRepository.findById(request.getParentId())
-                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy parent"));
+                    .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy parent"));
             level.setParent(parent);
         }
 
@@ -406,6 +406,7 @@ public class AdminService {
             Map<String, Object> metadata = request.getMetadataJson() != null
                     ? new java.util.HashMap<>(request.getMetadataJson())
                     : new java.util.HashMap<>();
+            metadata.put("status", "APPROVED");
             level.setMetadataJson(objectMapper.writeValueAsString(metadata));
         } catch (JsonProcessingException e) {
             log.error("Failed to update Level metadata", e);
@@ -415,177 +416,9 @@ public class AdminService {
     }
 
     @Transactional(readOnly = true)
-    @SuppressWarnings("unchecked")
-    public List<LevelResponse> getPendingLevels() {
-        return learningUnitRepository.findByType(TYPE_LEVEL).stream()
-                .filter(unit -> {
-                    try {
-                        if (unit.getMetadataJson() != null) {
-                            Map<String, Object> metadata = objectMapper.readValue(unit.getMetadataJson(), Map.class);
-                            return STATUS_PENDING.equals(metadata.get("status"));
-                        }
-                    } catch (JsonProcessingException | ClassCastException e) {
-                        log.debug("Failed to parse pending level metadata for unit {}", unit.getId(), e);
-                    }
-                    return false;
-                })
-                .map(LevelResponse::fromEntity)
-                .collect(Collectors.toList());
-    }
-
-        @Transactional(readOnly = true)
-    public List<ChallengeResponse> getPendingChallenges() {
-        return contentItemRepository.findAll().stream()
-                .filter(item -> TYPE_PRONUNCIATION.equals(item.getType()) && STATUS_PENDING.equals(item.getStatus()))
-                .map(ChallengeResponse::fromEntity)
-                .collect(Collectors.toList());
-    }
-
-        @Transactional
-    @SuppressWarnings("unchecked")
-    public LevelResponse reviewLevel(UUID id, org.fsa_2026.company_fsa_captone_2026.dto.ContentReviewRequest request) {
-        LearningUnit level = learningUnitRepository.findById(id)
-            .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
-
-        try {
-            java.util.Map<String, Object> metadata = new java.util.HashMap<>();
-            if (level.getMetadataJson() != null) {
-                metadata = objectMapper.readValue(level.getMetadataJson(), java.util.Map.class);
-            }
-            metadata.put("status", request.getStatus().name());
-            if (org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.REJECTED.equals(request.getStatus())) {
-                metadata.put(META_REJECTION_REASON, request.getRejectionReason());
-            } else {
-                metadata.remove(META_REJECTION_REASON);
-            }
-            level.setMetadataJson(objectMapper.writeValueAsString(metadata));
-        } catch (JsonProcessingException e) {
-            log.error("Failed to update Level status", e);
-        }
-
-        level = learningUnitRepository.save(level);
-
-        // Record history
-        String contentSnapshot = "";
-        try {
-            contentSnapshot = objectMapper.writeValueAsString(LevelResponse.fromEntity(level));
-        } catch (JsonProcessingException e) {
-            log.debug("Failed to serialize level snapshot for history: {}", level.getId(), e);
-        }
-
-        ContentApprovalHistory history = ContentApprovalHistory.builder()
-            .contentType(TYPE_LEVEL)
-                .contentId(level.getId())
-                .status(request.getStatus())
-                .comment(request.getComment() != null && !request.getComment().isBlank() ? request.getComment()
-                        : request.getRejectionReason())
-                .contentSnapshot(contentSnapshot)
-                .build();
-        contentApprovalHistoryRepository.save(history);
-
-        return LevelResponse.fromEntity(level);
-    }
-
-        @Transactional
-    @SuppressWarnings("unchecked")
-    public ChallengeResponse reviewChallenge(UUID id, org.fsa_2026.company_fsa_captone_2026.dto.ContentReviewRequest request) {
-        ContentItem challenge = contentItemRepository.findById(id)
-            .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_CHALLENGE_NOT_FOUND));
-
-        challenge.setStatus(request.getStatus().name());
-
-        if (org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.REJECTED.name().equals(request.getStatus().name())) {
-            try {
-                java.util.Map<String, Object> metadata = new java.util.HashMap<>();
-                if (challenge.getMetadataJson() != null) {
-                    metadata = objectMapper.readValue(challenge.getMetadataJson(), java.util.Map.class);
-                }
-                metadata.put(META_REJECTION_REASON, request.getRejectionReason());
-                challenge.setMetadataJson(objectMapper.writeValueAsString(metadata));
-            } catch (JsonProcessingException e) {
-                log.debug("Failed to update rejection_reason for challenge {}", challenge.getId(), e);
-            }
-        }
-
-        challenge = contentItemRepository.save(challenge);
-
-        // Record history
-        String contentSnapshot = "";
-        try {
-            contentSnapshot = objectMapper.writeValueAsString(ChallengeResponse.fromEntity(challenge));
-        } catch (JsonProcessingException e) {
-            log.debug("Failed to serialize challenge snapshot for history: {}", challenge.getId(), e);
-        }
-
-        ContentApprovalHistory history = ContentApprovalHistory.builder()
-                .contentType("CHALLENGE")
-                .contentId(challenge.getId())
-                .status(request.getStatus())
-                .comment(request.getComment() != null && !request.getComment().isBlank() ? request.getComment()
-                        : request.getRejectionReason())
-                .contentSnapshot(contentSnapshot)
-                .build();
-        contentApprovalHistoryRepository.save(history);
-
-        return ChallengeResponse.fromEntity(challenge);
-    }
-
-        @Transactional(readOnly = true)
-    public List<QuizResponse> getPendingQuizzes() {
-        return contentItemRepository.findAll().stream()
-            .filter(item -> "QUIZ".equals(item.getType()) && STATUS_PENDING.equals(item.getStatus()))
-                .map(QuizResponse::fromEntity)
-                .collect(Collectors.toList());
-    }
-
-        @Transactional(readOnly = true)
     public QuizResponse getQuizById(UUID id) {
         ContentItem quiz = contentItemRepository.findById(id)
-            .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy Quiz"));
-        return QuizResponse.fromEntity(quiz);
-    }
-
-        @Transactional
-    @SuppressWarnings("unchecked")
-    public QuizResponse reviewQuiz(UUID id, org.fsa_2026.company_fsa_captone_2026.dto.ContentReviewRequest request) {
-        ContentItem quiz = contentItemRepository.findById(id)
-            .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy Quiz"));
-
-        quiz.setStatus(request.getStatus().name());
-
-        if (org.fsa_2026.company_fsa_captone_2026.entity.enums.ContentStatus.REJECTED.name().equals(request.getStatus().name())) {
-            try {
-                java.util.Map<String, Object> metadata = new java.util.HashMap<>();
-                if (quiz.getMetadataJson() != null) {
-                    metadata = objectMapper.readValue(quiz.getMetadataJson(), java.util.Map.class);
-                }
-                metadata.put(META_REJECTION_REASON, request.getRejectionReason());
-                quiz.setMetadataJson(objectMapper.writeValueAsString(metadata));
-            } catch (JsonProcessingException e) {
-                log.debug("Failed to update rejection_reason for quiz {}", quiz.getId(), e);
-            }
-        }
-
-        quiz = contentItemRepository.save(quiz);
-
-        // Record history
-        String contentSnapshot = "";
-        try {
-            contentSnapshot = objectMapper.writeValueAsString(QuizResponse.fromEntity(quiz));
-        } catch (JsonProcessingException e) {
-            log.debug("Failed to serialize quiz snapshot for history: {}", quiz.getId(), e);
-        }
-
-        ContentApprovalHistory history = ContentApprovalHistory.builder()
-                .contentType("QUIZ")
-                .contentId(quiz.getId())
-                .status(request.getStatus())
-                .comment(request.getComment() != null && !request.getComment().isBlank() ? request.getComment()
-                        : request.getRejectionReason())
-                .contentSnapshot(contentSnapshot)
-                .build();
-        contentApprovalHistoryRepository.save(history);
-
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy Quiz"));
         return QuizResponse.fromEntity(quiz);
     }
 
@@ -596,7 +429,7 @@ public class AdminService {
                 .collect(Collectors.toList());
     }
 
-        @Transactional
+    @Transactional
     public void deleteLevel(UUID id) {
         if (!learningUnitRepository.existsById(id)) {
             throw new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND);
@@ -609,7 +442,7 @@ public class AdminService {
      *
      * @return tổng quan analytics toàn hệ thống
      */
-        @Transactional
+    @Transactional
     public AnalyticsOverviewResponse getAnalyticsOverview() {
         LocalDate today = LocalDate.now();
         Optional<DailyAnalytics> analyticsOpt = dailyAnalyticsRepository.findByRecordDate(today);
