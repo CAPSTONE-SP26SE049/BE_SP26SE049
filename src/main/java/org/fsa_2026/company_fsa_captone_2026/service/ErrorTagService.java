@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.fsa_2026.company_fsa_captone_2026.dto.ErrorTagCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.ErrorTagResponse;
 import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
 import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
@@ -38,10 +39,17 @@ public class ErrorTagService {
         if (dialectId == null) {
             return getAllErrorTags();
         }
-        return placementRuleRepository.findByTargetDialectId(dialectId).stream()
+        List<ErrorTagResponse> tags = placementRuleRepository.findByTargetDialectId(dialectId).stream()
                 .map(rule -> ErrorTagResponse.fromEntity(rule.getErrorTag()))
                 .distinct()
                 .collect(Collectors.toList());
+
+        // If no specifically linked tags via placement rules, return all tags
+        // so the teacher can select and create a new rule/assignment.
+        if (tags.isEmpty()) {
+            return getAllErrorTags();
+        }
+        return tags;
     }
 
     @Transactional(readOnly = true)
@@ -52,7 +60,12 @@ public class ErrorTagService {
     }
 
     @Transactional
-    public ErrorTagResponse createErrorTag(String tagCode, String name, String description) {
+    public ErrorTagResponse createErrorTag(ErrorTagCreateRequest request) {
+        String tagCode = request.getTagCode();
+        String name = request.getName();
+        String description = request.getDescription();
+        List<String> regions = request.getRegions();
+
         boolean exists = learningUnitRepository.findByType(TYPE_ERROR_TAG).stream()
                 .anyMatch(u -> {
                     try {
@@ -72,10 +85,11 @@ public class ErrorTagService {
 
         String metadataJson;
         try {
-            Map<String, Object> metadata = Map.of(
-                    META_TAG_CODE, tagCode,
-                    "description", description != null ? description : ""
-            );
+            Map<String, Object> metadata = new java.util.HashMap<>();
+            metadata.put(META_TAG_CODE, tagCode);
+            metadata.put("description", description != null ? description : "");
+            metadata.put("regions", regions != null ? regions : new java.util.ArrayList<String>());
+            
             metadataJson = objectMapper.writeValueAsString(metadata);
         } catch (JsonProcessingException e) {
             metadataJson = "{}";
@@ -92,7 +106,12 @@ public class ErrorTagService {
 
     @Transactional
     @SuppressWarnings("unchecked")
-    public ErrorTagResponse updateErrorTag(UUID id, String tagCode, String name, String description) {
+    public ErrorTagResponse updateErrorTag(UUID id, ErrorTagCreateRequest request) {
+        String tagCode = request.getTagCode();
+        String name = request.getName();
+        String description = request.getDescription();
+        List<String> regions = request.getRegions();
+
         LearningUnit tag = learningUnitRepository.findById(id)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy mã lỗi"));
 
@@ -110,6 +129,9 @@ public class ErrorTagService {
             }
             if (description != null) {
                 metadata.put("description", description);
+            }
+            if (regions != null) {
+                metadata.put("regions", regions);
             }
             tag.setMetadataJson(objectMapper.writeValueAsString(metadata));
         } catch (JsonProcessingException e) {

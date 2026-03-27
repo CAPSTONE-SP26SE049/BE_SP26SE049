@@ -25,7 +25,7 @@ public class EducatorService {
         private static final String CODE_NOT_FOUND = "NOT_FOUND";
         private static final String TYPE_LEVEL = "LEVEL";
         private static final String TYPE_PRONUNCIATION = "PRONUNCIATION";
-        private static final String STATUS_PENDING = "PENDING";
+        private static final String STATUS_APPROVED = "APPROVED";
         private static final String MSG_LEVEL_NOT_FOUND = "Không tìm thấy Level";
 
     private final AccountRepository accountRepository;
@@ -64,22 +64,27 @@ public class EducatorService {
 
         LearningUnit level;
         try {
+            Map<String, Object> metadata = request.getMetadataJson() != null 
+                ? new LinkedHashMap<>(request.getMetadataJson()) 
+                : new LinkedHashMap<>();
+            metadata.put("status", STATUS_APPROVED);
+
             level = LearningUnit.builder()
                     .parent(parent)
                     .name(request.getName())
                     .type(request.getType())
-                    .metadataJson(objectMapper.writeValueAsString(
-                            request.getMetadataJson() != null ? request.getMetadataJson() : new LinkedHashMap<>()))
+                    .metadataJson(objectMapper.writeValueAsString(metadata))
                     .build();
-                } catch (JsonProcessingException e) {
+        } catch (JsonProcessingException e) {
             throw new ApiException("INTERNAL_ERROR", "Không thể tạo Learning Unit");
         }
         level.setCreatedBy(educator.getId().toString());
         level = learningUnitRepository.save(level);
 
         LevelResponse response = LevelResponse.fromEntity(level);
-        saveApprovalHistory(TYPE_LEVEL, level.getId(), educator, ContentStatus.PENDING,
-                "Educator created level",
+        saveApprovalHistory(TYPE_LEVEL, level.getId(), educator, ContentStatus.APPROVED,
+                request.getComment() != null && !request.getComment().isBlank()
+                        ? request.getComment() : "Educator created level (Auto-approved)",
                 response);
         return response;
     }
@@ -104,8 +109,9 @@ public class EducatorService {
             Map<String, Object> metadata = request.getMetadataJson() != null
                     ? new LinkedHashMap<>(request.getMetadataJson())
                     : new LinkedHashMap<>();
+            metadata.put("status", STATUS_APPROVED);
             level.setMetadataJson(objectMapper.writeValueAsString(metadata));
-                } catch (JsonProcessingException e) {
+        } catch (JsonProcessingException e) {
             throw new ApiException("INTERNAL_ERROR", "Không thể cập nhật Level");
         }
 
@@ -113,8 +119,9 @@ public class EducatorService {
         level = learningUnitRepository.save(level);
 
         LevelResponse response = LevelResponse.fromEntity(level);
-        saveApprovalHistory(TYPE_LEVEL, level.getId(), educator, ContentStatus.PENDING,
-                "Educator updated level",
+        saveApprovalHistory(TYPE_LEVEL, level.getId(), educator, ContentStatus.APPROVED,
+                request.getComment() != null && !request.getComment().isBlank()
+                        ? request.getComment() : "Educator updated level (Auto-approved)",
                 response);
         return response;
     }
@@ -175,6 +182,7 @@ public class EducatorService {
                 .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
 
         Map<String, Object> metadata = buildChallengeMetadata(request);
+        metadata.put("status", STATUS_APPROVED);
 
         String title = request.getContentText() != null && request.getContentText().length() > 255
                 ? request.getContentText().substring(0, 252) + "..."
@@ -185,20 +193,20 @@ public class EducatorService {
             challenge = ContentItem.builder()
                     .learningUnit(level)
                     .title(title)
-                                        .type(TYPE_PRONUNCIATION)
-                                        .status(STATUS_PENDING)
+                    .type(TYPE_PRONUNCIATION)
+                    .status(STATUS_APPROVED)
                     .metadataJson(objectMapper.writeValueAsString(metadata))
                     .build();
-                } catch (JsonProcessingException e) {
+        } catch (JsonProcessingException e) {
             throw new ApiException("INTERNAL_ERROR", "Không thể tạo Challenge");
         }
         challenge.setCreatedBy(educator.getId().toString());
         challenge = contentItemRepository.save(challenge);
 
         ChallengeResponse response = ChallengeResponse.fromEntity(challenge);
-        saveApprovalHistory("CHALLENGE", challenge.getId(), educator, ContentStatus.PENDING,
+        saveApprovalHistory("CHALLENGE", challenge.getId(), educator, ContentStatus.APPROVED,
                 request.getComment() != null && !request.getComment().isBlank()
-                        ? request.getComment() : "Educator created challenge",
+                        ? request.getComment() : "Educator created challenge (Auto-approved)",
                 response);
         return response;
     }
@@ -222,18 +230,18 @@ public class EducatorService {
         try {
             challenge.setLearningUnit(level);
             challenge.setTitle(title);
-                        challenge.setStatus(STATUS_PENDING);
+            challenge.setStatus(STATUS_APPROVED);
             challenge.setMetadataJson(objectMapper.writeValueAsString(metadata));
-                } catch (JsonProcessingException e) {
+        } catch (JsonProcessingException e) {
             throw new ApiException("INTERNAL_ERROR", "Không thể cập nhật Challenge");
         }
         challenge.setUpdatedBy(educator.getId().toString());
         challenge = contentItemRepository.save(challenge);
 
         ChallengeResponse response = ChallengeResponse.fromEntity(challenge);
-        saveApprovalHistory("CHALLENGE", challenge.getId(), educator, ContentStatus.PENDING,
+        saveApprovalHistory("CHALLENGE", challenge.getId(), educator, ContentStatus.APPROVED,
                 request.getComment() != null && !request.getComment().isBlank()
-                        ? request.getComment() : "Educator updated challenge",
+                        ? request.getComment() : "Educator updated challenge (Auto-approved)",
                 response);
         return response;
     }
@@ -291,20 +299,20 @@ public class EducatorService {
                     .learningUnit(level)
                     .title(request.getTitle())
                     .type("QUIZ")
-                                        .status(STATUS_PENDING)
+                    .status(STATUS_APPROVED)
                     .metadataJson(objectMapper.writeValueAsString(buildQuizMetadata(request)))
                     .itemsJson(objectMapper.writeValueAsString(buildQuestionsJson(request.getQuestions())))
                     .build();
-                } catch (JsonProcessingException e) {
+        } catch (JsonProcessingException e) {
             throw new ApiException("INTERNAL_ERROR", "Không thể tạo Quiz");
         }
         quiz.setCreatedBy(educator.getId().toString());
         quiz = contentItemRepository.save(quiz);
 
         QuizResponse response = QuizResponse.fromEntity(quiz);
-        saveApprovalHistory("QUIZ", quiz.getId(), educator, ContentStatus.PENDING,
+        saveApprovalHistory("QUIZ", quiz.getId(), educator, ContentStatus.APPROVED,
                 request.getComment() != null && !request.getComment().isBlank()
-                        ? request.getComment() : "Educator created quiz",
+                        ? request.getComment() : "Educator created quiz (Auto-approved)",
                 response);
         return response;
     }
@@ -320,19 +328,19 @@ public class EducatorService {
         try {
             quiz.setLearningUnit(level);
             quiz.setTitle(request.getTitle());
-                        quiz.setStatus(STATUS_PENDING);
+            quiz.setStatus(STATUS_APPROVED);
             quiz.setMetadataJson(objectMapper.writeValueAsString(buildQuizMetadata(request)));
             quiz.setItemsJson(objectMapper.writeValueAsString(buildQuestionsJson(request.getQuestions())));
-                } catch (JsonProcessingException e) {
+        } catch (JsonProcessingException e) {
             throw new ApiException("INTERNAL_ERROR", "Không thể cập nhật Quiz");
         }
         quiz.setUpdatedBy(educator.getId().toString());
         quiz = contentItemRepository.save(quiz);
 
         QuizResponse response = QuizResponse.fromEntity(quiz);
-        saveApprovalHistory("QUIZ", quiz.getId(), educator, ContentStatus.PENDING,
+        saveApprovalHistory("QUIZ", quiz.getId(), educator, ContentStatus.APPROVED,
                 request.getComment() != null && !request.getComment().isBlank()
-                        ? request.getComment() : "Educator updated quiz",
+                        ? request.getComment() : "Educator updated quiz (Auto-approved)",
                 response);
         return response;
     }

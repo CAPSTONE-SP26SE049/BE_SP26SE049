@@ -2,8 +2,6 @@ package org.fsa_2026.company_fsa_captone_2026.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 import org.fsa_2026.company_fsa_captone_2026.entity.enums.RewardType;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -54,7 +52,7 @@ public class RewardCatalog extends BaseEntity {
      * Tiêu chí JSON để mở khóa phần thưởng.
      * Ví dụ: {"type": "streak_days", "threshold": 7}
      * @JdbcTypeCode(SqlTypes.JSON) → tells Hibernate to bind as JSON, not varchar
-     *   so PostgreSQL accepts it into the jsonb column without a cast error.
+     * so PostgreSQL accepts it into the jsonb column without a cast error.
      */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "criteria_json", nullable = false, columnDefinition = "jsonb")

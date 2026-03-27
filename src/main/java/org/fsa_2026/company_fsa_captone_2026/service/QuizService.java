@@ -115,6 +115,44 @@ public class QuizService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public Map<String, Object> getQuizDetails(UUID id) {
+        LearningUnit quiz = learningUnitRepository.findById(id)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Quiz"));
+
+        if (!"QUIZ".equalsIgnoreCase(quiz.getType())) {
+            throw new ApiException("INVALID_TYPE", "Đơn vị học tập không phải là Quiz");
+        }
+
+        return buildQuizResponse(quiz);
+    }
+
+    @Transactional
+    public void deleteQuiz(UUID id) {
+        LearningUnit quiz = learningUnitRepository.findById(id)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Quiz"));
+
+        if (!"QUIZ".equalsIgnoreCase(quiz.getType())) {
+            throw new ApiException("INVALID_TYPE", "Đơn vị học tập không phải là Quiz");
+        }
+
+        learningUnitRepository.delete(quiz);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getQuizzesByChallenge(UUID challengeId) {
+        List<UUID> quizIds = quizChallengeItemRepository.findByChallengeId(challengeId)
+                .stream()
+                .map(item -> item.getQuizId())
+                .distinct()
+                .collect(Collectors.toList());
+
+        return learningUnitRepository.findAllById(quizIds).stream()
+                .filter(u -> "QUIZ".equalsIgnoreCase(u.getType()))
+                .map(this::buildQuizResponse)
+                .collect(Collectors.toList());
+    }
+
     private Map<String, Object> buildQuizMetadata(QuizCreateRequest request) {
         Map<String, Object> metadata = new LinkedHashMap<>();
         metadata.put("description", request.getDescription());
@@ -140,7 +178,8 @@ public class QuizService {
         Map<String, Object> metadata = new LinkedHashMap<>();
         if (quiz.getMetadataJson() != null) {
             try {
-                metadata = objectMapper.readValue(quiz.getMetadataJson(), new TypeReference<Map<String, Object>>() {});
+                metadata = objectMapper.readValue(quiz.getMetadataJson(), new TypeReference<Map<String, Object>>() {
+                });
             } catch (JsonProcessingException e) {
                 throw new ApiException("INVALID_METADATA", "Quiz metadata không hợp lệ");
             }
@@ -155,7 +194,8 @@ public class QuizService {
         response.put("skillType", metadata.get("skill_type"));
 
         List<QuizQuestionRequest> questions = metadata.containsKey("questions")
-                ? objectMapper.convertValue(metadata.get("questions"), new TypeReference<List<QuizQuestionRequest>>() {})
+                ? objectMapper.convertValue(metadata.get("questions"), new TypeReference<List<QuizQuestionRequest>>() {
+                })
                 : List.of();
         response.put("questions", questions);
         response.put("questionCount", metadata.get("question_count"));

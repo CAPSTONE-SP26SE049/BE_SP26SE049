@@ -35,4 +35,7 @@ public class LevelCreateRequest {
     @JsonProperty("metadata_json")
     @Schema(example = "{\"status\":\"APPROVED\",\"audio_url\":null,\"level_order\":2,\"ai_threshold\":75,\"error_tag_id\":\"00000000-0000-0000-0002-000000000001\",\"rejection_reason\":null,\"min_stars_required\":3}")
     private Map<String, Object> metadataJson;
+
+    @Schema(example = "Educator updated content description")
+    private String comment;
 }

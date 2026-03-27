@@ -16,6 +16,8 @@ import lombok.NoArgsConstructor;
 /**
  * Level Response DTO
  */
+import java.time.Instant;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -33,6 +35,8 @@ public class LevelResponse implements Serializable {
     private String audioUrl;
     private String status;
     private String rejectionReason;
+    private Instant createdAt;
+    private Instant updatedAt;
 
     // Progression fields
     private Integer starsEarned;
@@ -57,12 +61,39 @@ public class LevelResponse implements Serializable {
         try {
             if (level.getMetadataJson() != null) {
                 Map<String, Object> metadata = objectMapper.readValue(level.getMetadataJson(), Map.class);
-                levelOrder = (Integer) metadata.get("level_order");
-                description = (String) metadata.get("description");
-                if (metadata.get("min_stars_required") != null) {
-                    minStarsRequired = (Integer) metadata.get("min_stars_required");
+                
+                // Robust parsing for level_order
+                Object lo = metadata.get("level_order");
+                if (lo instanceof Number) {
+                    levelOrder = ((Number) lo).intValue();
+                } else if (lo instanceof String) {
+                    try {
+                        levelOrder = Integer.parseInt((String) lo);
+                    } catch (NumberFormatException ignored) {}
                 }
-                aiThreshold = (Integer) metadata.get("ai_threshold");
+
+                description = (String) metadata.get("description");
+
+                // Robust parsing for min_stars_required
+                Object msr = metadata.get("min_stars_required");
+                if (msr instanceof Number) {
+                    minStarsRequired = ((Number) msr).intValue();
+                } else if (msr instanceof String) {
+                    try {
+                        minStarsRequired = Integer.parseInt((String) msr);
+                    } catch (NumberFormatException ignored) {}
+                }
+
+                // Robust parsing for ai_threshold
+                Object ait = metadata.get("ai_threshold");
+                if (ait instanceof Number) {
+                    aiThreshold = ((Number) ait).intValue();
+                } else if (ait instanceof String) {
+                    try {
+                        aiThreshold = Integer.parseInt((String) ait);
+                    } catch (NumberFormatException ignored) {}
+                }
+
                 audioUrl = (String) metadata.get("audio_url");
                 status = (String) metadata.get("status");
                 rejectionReason = (String) metadata.get("rejection_reason");
@@ -82,6 +113,8 @@ public class LevelResponse implements Serializable {
                 .audioUrl(audioUrl)
                 .status(status)
                 .rejectionReason(rejectionReason)
+                .createdAt(level.getCreatedAt())
+                .updatedAt(level.getUpdatedAt())
                 .starsEarned(0) // Default values, populated by Service
                 .isCompleted(false)
                 .isLocked(true)

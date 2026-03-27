@@ -44,7 +44,6 @@ public class ChallengeExcelService {
     /** Các cột chung cho tất cả kỹ năng */
     private static final String COL_CONTENT_TEXT  = "Tiêu đề / Yêu cầu";
     private static final String COL_DIFFICULTY    = "Độ khó (BEGINNER/INTERMEDIATE/ADVANCED)";
-    private static final String COL_IS_GLOBAL     = "Dùng chung (true/false)";
     private static final String COL_REGION        = "Miền (BAC/TRUNG/NAM)";
 
     /** Cột riêng theo kỹ năng */
@@ -66,13 +65,13 @@ public class ChallengeExcelService {
      * Trả về danh sách headers cho từng skill type.
      */
     private List<String> getHeaders(SkillType skillType) {
-        List<String> headers = new ArrayList<>(List.of(COL_CONTENT_TEXT, COL_DIFFICULTY, COL_IS_GLOBAL, COL_REGION));
+        List<String> headers = new ArrayList<>(List.of(COL_CONTENT_TEXT, COL_DIFFICULTY, COL_REGION));
 
         switch (skillType) {
             case READING -> headers.addAll(List.of(COL_READING_WORDS, COL_READING_ERROR_INDEX, COL_READING_CORRECT_WORD, COL_HINT));
             case LISTENING -> headers.addAll(List.of(COL_AUDIO_URL, COL_OPTIONS, COL_CORRECT_ANSWER, COL_TRANSCRIPT));
             case WRITING -> headers.addAll(List.of(COL_SCRAMBLED, COL_CORRECT_SENTENCE, COL_HINT));
-            case SPEAKING -> headers.addAll(List.of(COL_AUDIO_URL, COL_TRANSCRIPT, COL_HINT));
+            case SPEAKING, ENTRY_TEST -> headers.addAll(List.of(COL_AUDIO_URL, COL_TRANSCRIPT, COL_HINT));
         }
 
         return headers;
@@ -192,28 +191,34 @@ public class ChallengeExcelService {
     private List<List<String>> getSampleData(SkillType skillType) {
         return switch (skillType) {
             case READING -> List.of(
-                List.of("Tìm từ viết SAI trong câu (D/Đ/GI/R)", "BEGINNER", "true", "BAC",
+                List.of("Tìm từ viết SAI trong câu (D/Đ/GI/R)", "BEGINNER", "BAC",
                          "Con|lai|kia|chạy|lên|nương", "1", "nai", "Chú ý âm đầu L/N, lai -> nai"),
-                List.of("Tìm từ viết SAI trong câu", "INTERMEDIATE", "true", "TRUNG",
+                List.of("Tìm từ viết SAI trong câu", "INTERMEDIATE", "TRUNG",
                          "Trời|nạnh|quá|mọi|người|mặc|áo|ấm", "1", "lạnh", "L/N, nạnh -> lạnh")
             );
             case LISTENING -> List.of(
-                List.of("Nghe và chọn từ đúng", "BEGINNER", "true", "BAC",
+                List.of("Nghe và chọn từ đúng", "BEGINNER", "BAC",
                          "https://example.com/audio1.mp3", "Lúa nếp|Lúa nết|Núa nếp", "Lúa nếp", "Lúa nếp là lúa nếp làng"),
-                List.of("Nghe đoạn audio và chọn đáp án", "INTERMEDIATE", "true", "NAM",
+                List.of("Nghe đoạn audio và chọn đáp án", "INTERMEDIATE", "NAM",
                          "https://example.com/audio2.mp3", "Nón lá|Lón lá|Nón nà", "Nón lá", "Chiếc nón lá Việt Nam")
             );
             case WRITING -> List.of(
-                List.of("Sắp xếp lại câu đúng", "BEGINNER", "true", "BAC",
+                List.of("Sắp xếp lại câu đúng", "BEGINNER", "BAC",
                          "Nếp|Lúa|Làng|Là|Nếp|Lúa", "Lúa nếp là lúa nếp làng", "Gợi ý: câu tục ngữ"),
-                List.of("Viết lại câu hoàn chỉnh", "INTERMEDIATE", "true", "TRUNG",
+                List.of("Viết lại câu hoàn chỉnh", "INTERMEDIATE", "TRUNG",
                          "Việt|Nam|Nón|Lá|Chiếc", "Chiếc nón lá Việt Nam", "")
             );
             case SPEAKING -> List.of(
-                List.of("Đọc to câu sau", "BEGINNER", "true", "NAM",
+                List.of("Đọc to câu sau", "BEGINNER", "NAM",
                          "https://example.com/ref1.mp3", "Lúa nếp là lúa nếp làng", "Chú ý phân biệt N và L"),
-                List.of("Phát âm câu sau", "INTERMEDIATE", "true", "BAC",
+                List.of("Phát âm câu sau", "INTERMEDIATE", "BAC",
                          "https://example.com/ref2.mp3", "Con lợn nằm trong chuồng", "Chú ý âm đầu L")
+            );
+            case ENTRY_TEST -> List.of(
+                List.of("Vui lòng đọc câu sau để đánh giá giọng đọc của bạn", "BEGINNER", "BAC",
+                        "", "Lúa nếp là lúa nếp làng", "Hãy đọc chậm và rõ ràng"),
+                List.of("Vui lòng đọc câu sau", "BEGINNER", "TRUNG",
+                        "", "Trời nắng chang chang vườn hoa vẫy gọi", "Chú ý âm sắc")
             );
         };
     }
@@ -281,8 +286,6 @@ public class ChallengeExcelService {
 
                     String diffStr = getCellValue(row, colMap, COL_DIFFICULTY);
                     DifficultyTag difficulty = parseDifficulty(diffStr);
-                    String globalStr = getCellValue(row, colMap, COL_IS_GLOBAL);
-                    boolean isGlobal = globalStr == null || globalStr.isBlank() || "true".equalsIgnoreCase(globalStr.trim());
                     String regionStr = getCellValue(row, colMap, COL_REGION);
                     String region = parseRegion(regionStr);
 
@@ -292,8 +295,7 @@ public class ChallengeExcelService {
                             .contentText(contentText)
                             .skillType(skillType)
                             .difficultyTag(difficulty)
-                            .isGlobal(isGlobal)
-                            .region(region)
+                                    .region(region)
                             .metadataJson(metadata)
                             .createdBy(createdBy)
                             .build();
@@ -388,8 +390,6 @@ public class ChallengeExcelService {
 
                         String diffStr = getCellValue(row, colMap, COL_DIFFICULTY);
                         DifficultyTag difficulty = parseDifficulty(diffStr);
-                        String globalStr = getCellValue(row, colMap, COL_IS_GLOBAL);
-                        boolean isGlobal = globalStr == null || globalStr.isBlank() || "true".equalsIgnoreCase(globalStr.trim());
                         String regionStr = getCellValue(row, colMap, COL_REGION);
                         String region = parseRegion(regionStr);
                         Map<String, Object> metadata = buildMetadata(st, row, colMap);
@@ -398,7 +398,6 @@ public class ChallengeExcelService {
                                 .contentText(contentText)
                                 .skillType(st)
                                 .difficultyTag(difficulty)
-                                .isGlobal(isGlobal)
                                 .region(region)
                                 .metadataJson(metadata)
                                 .createdBy(createdBy)
@@ -478,8 +477,6 @@ public class ChallengeExcelService {
 
                     String diffStr = getCsvValue(cols, colMap, COL_DIFFICULTY);
                     DifficultyTag difficulty = parseDifficulty(diffStr);
-                    String globalStr = getCsvValue(cols, colMap, COL_IS_GLOBAL);
-                    boolean isGlobal = globalStr == null || globalStr.isBlank() || "true".equalsIgnoreCase(globalStr.trim());
                     String regionStr = getCsvValue(cols, colMap, COL_REGION);
                     String region = parseRegion(regionStr);
 
@@ -490,7 +487,6 @@ public class ChallengeExcelService {
                             .contentText(contentText)
                             .skillType(skillType)
                             .difficultyTag(difficulty)
-                            .isGlobal(isGlobal)
                             .region(region)
                             .metadataJson(metadata)
                             .createdBy(createdBy)
@@ -580,7 +576,7 @@ public class ChallengeExcelService {
                 meta.put("correctSentence", getCsvValue(cols, colMap, COL_CORRECT_SENTENCE));
                 meta.put("hint", getCsvValue(cols, colMap, COL_HINT));
             }
-            case SPEAKING -> {
+            case SPEAKING, ENTRY_TEST -> {
                 meta.put("audioUrl", getCsvValue(cols, colMap, COL_AUDIO_URL));
                 meta.put("transcript", getCsvValue(cols, colMap, COL_TRANSCRIPT));
                 meta.put("hint", getCsvValue(cols, colMap, COL_HINT));
@@ -595,6 +591,7 @@ public class ChallengeExcelService {
         if (sheetName.contains("LISTENING")) return SkillType.LISTENING;
         if (sheetName.contains("WRITING")) return SkillType.WRITING;
         if (sheetName.contains("SPEAKING")) return SkillType.SPEAKING;
+        if (sheetName.contains("ENTRY_TEST")) return SkillType.ENTRY_TEST;
         return null;
     }
 
@@ -629,7 +626,7 @@ public class ChallengeExcelService {
                 meta.put("correctSentence", getCellValue(row, colMap, COL_CORRECT_SENTENCE));
                 meta.put("hint", getCellValue(row, colMap, COL_HINT));
             }
-            case SPEAKING -> {
+            case SPEAKING, ENTRY_TEST -> {
                 meta.put("audioUrl", getCellValue(row, colMap, COL_AUDIO_URL));
                 meta.put("transcript", getCellValue(row, colMap, COL_TRANSCRIPT));
                 meta.put("hint", getCellValue(row, colMap, COL_HINT));
@@ -711,11 +708,10 @@ public class ChallengeExcelService {
             // Common columns
             row.createCell(0).setCellValue(cb.getContentText());
             row.createCell(1).setCellValue(cb.getDifficultyTag() != null ? cb.getDifficultyTag().name() : "");
-            row.createCell(2).setCellValue(cb.getIsGlobal() != null ? cb.getIsGlobal().toString() : "true");
-            row.createCell(3).setCellValue(cb.getRegion() != null ? cb.getRegion() : "BAC");
+            row.createCell(2).setCellValue(cb.getRegion() != null ? cb.getRegion() : "BAC");
 
             // Skill-specific columns
-            int col = 4;
+            int col = 3;
             switch (skillType) {
                 case READING -> {
                     row.createCell(col++).setCellValue(joinList(meta.get("words")));
@@ -738,7 +734,7 @@ public class ChallengeExcelService {
                     row.createCell(col++).setCellValue(str(meta.get("correctSentence")));
                     row.createCell(col).setCellValue(str(meta.get("hint")));
                 }
-                case SPEAKING -> {
+                case SPEAKING, ENTRY_TEST -> {
                     row.createCell(col++).setCellValue(str(meta.get("audioUrl")));
                     row.createCell(col++).setCellValue(str(meta.get("transcript")));
                     row.createCell(col).setCellValue(str(meta.get("hint")));
