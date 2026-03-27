@@ -56,7 +56,10 @@ public class ChallengeBank {
     @Column(name = "metadata_json", columnDefinition = "jsonb", nullable = false)
     private Map<String, Object> metadataJson;
 
-    @Column(name = "created_by") // Khớp với cột created_by UUID bạn mới thêm
+    @Column(name = "level_id")
+    private UUID levelId;
+
+    @Column(name = "created_by")
     private UUID createdBy;
 
     @CreationTimestamp

@@ -244,9 +244,14 @@ public class AdminController {
 
     @GetMapping("/content/challenge-bank")
     @Operation(summary = "Get All Challenges from Bank", description = "Retrieves a list of all challenges in the question bank")
-    public ResponseEntity<ApiResponse<List<ChallengeBank>>> getAllChallengeBank() {
-        log.info("Admin retrieving all challenge bank items");
-        List<ChallengeBank> responses = challengeBankService.getAllChallenges();
+    public ResponseEntity<ApiResponse<List<ChallengeBank>>> getAllChallengeBank(
+            @RequestParam(required = false) String skillType,
+            @RequestParam(required = false) String region,
+            @RequestParam(required = false) UUID levelId
+    ) {
+        log.info("Admin retrieving challenge bank items with filters: skillType={}, region={}, levelId={}", 
+                skillType, region, levelId);
+        List<ChallengeBank> responses = challengeBankService.getAllChallenges(skillType, region, levelId);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách câu hỏi thành công", responses));
     }
 

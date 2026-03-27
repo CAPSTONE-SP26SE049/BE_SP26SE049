@@ -18,4 +18,6 @@ public interface SessionDetailRepository extends JpaRepository<SessionDetail, UU
 
     @Query("SELECT sd FROM SessionDetail sd WHERE sd.session.account.id = :accountId ORDER BY sd.createdAt DESC")
     List<SessionDetail> findByAccountIdOrderByCreatedAtDesc(@Param("accountId") UUID accountId);
+
+    boolean existsByContentItemIdAndSessionAccountIdAndIsPassed(UUID contentItemId, UUID accountId, Boolean isPassed);
 }

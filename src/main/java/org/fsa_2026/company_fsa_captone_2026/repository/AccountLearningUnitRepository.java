@@ -16,4 +16,6 @@ public interface AccountLearningUnitRepository extends JpaRepository<AccountLear
     Optional<AccountLearningUnit> findByAccountIdAndLearningUnitId(UUID accountId, UUID learningUnitId);
 
     boolean existsByAccountIdAndLearningUnitId(UUID accountId, UUID learningUnitId);
+
+    void deleteByLearningUnitId(UUID learningUnitId);
 }

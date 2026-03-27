@@ -13,5 +13,10 @@ public interface ChallengeBankRepository extends JpaRepository<ChallengeBank, UU
 
     boolean existsByContentTextAndSkillType(String contentText, SkillType skillType);
 
+    List<ChallengeBank> findBySkillTypeAndRegionAndLevelId(SkillType skillType, String region, UUID levelId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT c FROM ChallengeBank c WHERE c.skillType = :skillType AND c.region = :region AND (c.levelId = :levelId OR c.levelId IS NULL)")
+    List<ChallengeBank> findFiltered(SkillType skillType, String region, UUID levelId);
+
     List<ChallengeBank> findBySkillType(SkillType skillType);
 }

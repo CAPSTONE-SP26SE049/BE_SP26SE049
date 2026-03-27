@@ -38,8 +38,14 @@ public class ChallengeBankController {
 
     @GetMapping("/challenge-bank")
     @Operation(summary = "Lấy danh sách tất cả câu hỏi trong kho")
-    public ResponseEntity<ApiResponse<List<ChallengeBank>>> getAllChallenges() {
-        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách câu hỏi thành công", challengeBankService.getAllChallenges()));
+    public ResponseEntity<ApiResponse<List<ChallengeBank>>> getAllChallenges(
+            @RequestParam(required = false) String skillType,
+            @RequestParam(required = false) String region,
+            @RequestParam(required = false) UUID levelId
+    ) {
+        List<ChallengeBank> challenges = challengeBankService.getAllChallenges(skillType, region, levelId);
+        System.out.println("DEBUG: Found " + challenges.size() + " challenges for filters: skillType=" + skillType + ", region=" + region + ", levelId=" + levelId);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách câu hỏi thành công", challenges));
     }
 
     @PostMapping("/quiz/{quizId}/challenges")

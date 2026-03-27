@@ -43,13 +43,23 @@ public class ChallengeBankService {
                 .skillType(request.getSkillType())
                 .difficultyTag(request.getDifficultyTag())
                 .region(request.getRegion() != null ? request.getRegion() : "BAC")
+                .levelId(request.getLevelId())
                 .metadataJson(request.getMetadataJson())
                 .createdBy(account.getId())
                 .build();
         return challengeBankRepository.save(challenge);
     }
     @Transactional(readOnly = true)
-    public List<ChallengeBank> getAllChallenges() {
+    public List<ChallengeBank> getAllChallenges(String skillType, String region, UUID levelId) {
+        if (skillType != null && region != null && levelId != null) {
+            try {
+                org.fsa_2026.company_fsa_captone_2026.entity.enums.SkillType st = 
+                    org.fsa_2026.company_fsa_captone_2026.entity.enums.SkillType.valueOf(skillType.toUpperCase());
+                return challengeBankRepository.findFiltered(st, region, levelId);
+            } catch (Exception e) {
+                return challengeBankRepository.findAll();
+            }
+        }
         return challengeBankRepository.findAll();
     }
 
@@ -182,6 +192,7 @@ public class ChallengeBankService {
         if (request.getSkillType() != null) challenge.setSkillType(request.getSkillType());
         if (request.getDifficultyTag() != null) challenge.setDifficultyTag(request.getDifficultyTag());
         if (request.getRegion() != null) challenge.setRegion(request.getRegion());
+        if (request.getLevelId() != null) challenge.setLevelId(request.getLevelId());
         if (request.getMetadataJson() != null) challenge.setMetadataJson(request.getMetadataJson());
         
         return challengeBankRepository.save(challenge);

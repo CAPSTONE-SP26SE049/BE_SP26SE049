@@ -42,6 +42,9 @@ public class LevelResponse implements Serializable {
     private Integer starsEarned;
     private Boolean isCompleted;
     private Boolean isLocked;
+    private Integer totalQuizzes;
+    private Integer completedQuizzes;
+    private Integer progressPercentage;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 

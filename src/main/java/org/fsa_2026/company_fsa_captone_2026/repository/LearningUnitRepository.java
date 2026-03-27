@@ -17,9 +17,13 @@ public interface LearningUnitRepository extends JpaRepository<LearningUnit, UUID
 
     List<LearningUnit> findByParentIdAndType(UUID parentId, String type);
 
+    List<LearningUnit> findByParentIdInAndType(List<UUID> parentIds, String type);
+
     List<LearningUnit> findByParentAndType(LearningUnit parent, String type);
 
     boolean existsByParentId(UUID parentId);
 
     Optional<LearningUnit> findByTypeAndNameIgnoreCase(String type, String name);
+
+    void deleteByParentId(UUID parentId);
 }

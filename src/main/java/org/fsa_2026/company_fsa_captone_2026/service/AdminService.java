@@ -31,6 +31,7 @@ import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
 import org.fsa_2026.company_fsa_captone_2026.entity.RewardCatalog;
 import org.fsa_2026.company_fsa_captone_2026.entity.enums.RoleCode;
 import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
+import org.fsa_2026.company_fsa_captone_2026.repository.AccountLearningUnitRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.ContentApprovalHistoryRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.ContentItemRepository;
@@ -75,6 +76,7 @@ public class AdminService {
     private final DailyAnalyticsRepository dailyAnalyticsRepository;
     private final ObjectMapper objectMapper;
     private final RewardCatalogRepository rewardCatalogRepository;
+    private final AccountLearningUnitRepository accountLearningUnitRepository;
 
     /**
      * Create a new Educator account
@@ -338,7 +340,7 @@ public class AdminService {
         if (!learningUnitRepository.existsById(id)) {
             throw new ApiException(CODE_NOT_FOUND, "Không tìm thấy Dialect");
         }
-        learningUnitRepository.deleteById(id);
+        deleteUnit(id);
     }
 
     // ==========================================
@@ -434,6 +436,27 @@ public class AdminService {
         if (!learningUnitRepository.existsById(id)) {
             throw new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND);
         }
+        deleteUnit(id);
+    }
+
+    /**
+     * Recursive deletion of a LearningUnit and all its dependencies
+     */
+    @Transactional
+    private void deleteUnit(UUID id) {
+        // 1. Find all children
+        List<LearningUnit> children = learningUnitRepository.findByParentId(id);
+        for (LearningUnit child : children) {
+            deleteUnit(child.getId());
+        }
+
+        // 2. Delete all ContentItems (Quizzes/Challenges) referencing this unit
+        contentItemRepository.deleteByLearningUnitId(id);
+
+        // 3. Delete all AccountLearningUnit entries (User progress)
+        accountLearningUnitRepository.deleteByLearningUnitId(id);
+
+        // 4. Finally delete the unit itself
         learningUnitRepository.deleteById(id);
     }
 

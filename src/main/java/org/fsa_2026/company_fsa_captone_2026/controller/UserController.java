@@ -12,6 +12,7 @@ import org.fsa_2026.company_fsa_captone_2026.dto.QuizResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.UserProfileResponse;
 import org.fsa_2026.company_fsa_captone_2026.service.AuthService;
 import org.fsa_2026.company_fsa_captone_2026.service.ChallengeBankService;
+import org.fsa_2026.company_fsa_captone_2026.service.GameplayService;
 import org.fsa_2026.company_fsa_captone_2026.service.QuizService;
 import org.fsa_2026.company_fsa_captone_2026.service.UserProfileService;
 import org.fsa_2026.company_fsa_captone_2026.repository.ContentItemRepository;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -45,7 +47,10 @@ public class UserController {
     private final QuizService quizService;
     private final ChallengeBankService challengeBankService;
     private final ContentItemRepository contentItemRepository;
+    private final GameplayService gameplayService;
     private final org.fsa_2026.company_fsa_captone_2026.repository.LearningUnitRepository learningUnitRepository;
+    private final org.fsa_2026.company_fsa_captone_2026.repository.AccountLearningUnitRepository accountLearningUnitRepository;
+    private final org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository accountRepository;
 
     /**
      * Get Current User Profile - GET /api/v1/users/me
@@ -81,9 +86,13 @@ public class UserController {
     @Operation(summary = "Get quizzes in level for user", description = "Get all quizzes belonging to a specific level",
             security = @SecurityRequirement(name = "bearer-jwt"))
     public ResponseEntity<ApiResponse<List<QuizResponse>>> getQuizzesByLevel(
+            Authentication authentication,
             @PathVariable UUID levelId) {
-        log.info("Get quizzes for levelId: {}", levelId);
+        log.info("Get quizzes for levelId: {} by user: {}", levelId, authentication.getName());
         
+        org.fsa_2026.company_fsa_captone_2026.entity.Account account = accountRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new org.fsa_2026.company_fsa_captone_2026.exception.ApiException("NOT_FOUND", "Không tìm thấy người dùng"));
+
         // 1. Quizzes from ContentItem (Modern system)
         List<QuizResponse> contentQuizzes = contentItemRepository
                 .findByLearningUnitIdAndType(levelId, "QUIZ")
@@ -103,7 +112,47 @@ public class UserController {
         allQuizzes.addAll(contentQuizzes);
         allQuizzes.addAll(legacyQuizzes);
 
+        // Fetch progress map
+        Map<UUID, org.fsa_2026.company_fsa_captone_2026.entity.AccountLearningUnit> progressMap = 
+                accountLearningUnitRepository.findByAccountId(account.getId()).stream()
+                .filter(p -> p.getLearningUnit() != null)
+                .collect(java.util.stream.Collectors.toMap(
+                        p -> p.getLearningUnit().getId(),
+                        p -> p,
+                        (p1, p2) -> p1
+                ));
+
+        // Decorate with progress - check by LU.id AND ContentItem.id
+        for (QuizResponse quiz : allQuizzes) {
+            // progress stored against LearningUnit.id
+            org.fsa_2026.company_fsa_captone_2026.entity.AccountLearningUnit progress = progressMap.get(UUID.fromString(quiz.getId()));
+            if (progress != null) {
+                quiz.setIsCompleted(progress.getIsCompleted());
+                quiz.setStarsEarned(progress.getStarsEarned());
+            } else {
+                quiz.setIsCompleted(false);
+                quiz.setStarsEarned(0);
+            }
+        }
+
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách quiz theo level thành công", allQuizzes));
+    }
+
+    /**
+     * Mark quiz as complete - PUT /api/v1/users/quizzes/{quizId}/complete
+     * Frontend gọi sau khi người dùng trả lời xong toàn bộ câu hỏi.
+     */
+    @PutMapping("/quizzes/{quizId}/complete")
+    @Operation(summary = "Mark quiz as complete", description = "Call after user finishes all quiz questions to record progress and unlock next quiz",
+            security = @SecurityRequirement(name = "bearer-jwt"))
+    public ResponseEntity<ApiResponse<Map<String, Object>>> markQuizComplete(
+            Authentication authentication,
+            @PathVariable UUID quizId,
+            @RequestParam(defaultValue = "0") int correctCount,
+            @RequestParam(defaultValue = "0") int totalCount) {
+        log.info("markQuizComplete for user: {} quizId: {} correct: {}/{}", authentication.getName(), quizId, correctCount, totalCount);
+        Map<String, Object> result = gameplayService.markQuizComplete(authentication.getName(), quizId, correctCount, totalCount);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật tiến độ quiz thành công", result));
     }
 
     /**

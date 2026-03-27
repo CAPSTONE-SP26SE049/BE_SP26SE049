@@ -30,5 +30,6 @@ public class ChallengeBankRequest {
     private SkillType skillType;
     private DifficultyTag difficultyTag;
     private String region; // BAC, TRUNG, NAM
+    private java.util.UUID levelId;
     private Map<String, Object> metadataJson;
 }

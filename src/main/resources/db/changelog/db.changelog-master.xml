@@ -64,4 +64,5 @@
         <addUniqueConstraint tableName="account_learning_unit" columnNames="account_id, learning_unit_id" constraintName="uniq_alu_account_unit"/>
     </changeSet>
 
+    <include file="db/changelog/35-add-level-id-to-challenge-bank.xml"/>
 </databaseChangeLog>

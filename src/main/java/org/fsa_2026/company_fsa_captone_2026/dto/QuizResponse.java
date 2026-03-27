@@ -35,6 +35,8 @@ public class QuizResponse implements Serializable {
     private String status;
     private String rejectionReason;
     private List<QuizQuestionResponse> questions;
+    private Boolean isCompleted;
+    private Integer starsEarned;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -106,6 +108,7 @@ public class QuizResponse implements Serializable {
                 .build();
     }
 
+    @SuppressWarnings("unchecked")
     public static QuizResponse fromLearningUnit(org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit lu) {
         if (lu == null) return null;
 

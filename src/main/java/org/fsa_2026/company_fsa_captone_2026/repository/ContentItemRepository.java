@@ -17,8 +17,12 @@ public interface ContentItemRepository extends JpaRepository<ContentItem, UUID> 
     List<ContentItem> findByLearningUnitId(UUID learningUnitId);
 
     List<ContentItem> findByLearningUnitIdAndType(UUID learningUnitId, String type);
+    
+    List<ContentItem> findByLearningUnitIdInAndType(List<UUID> learningUnitIds, String type);
 
     List<ContentItem> findByTypeAndStatus(String type, String status);
 
     List<ContentItem> findByTypeAndCreatedByOrderByCreatedAtDesc(String type, String createdBy);
+
+    void deleteByLearningUnitId(UUID learningUnitId);
 }

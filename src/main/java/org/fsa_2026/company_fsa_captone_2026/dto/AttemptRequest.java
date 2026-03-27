@@ -20,4 +20,5 @@ public class AttemptRequest implements Serializable {
     private String sessionId;
     private String challengeId;
     private String audioUrl;
+    private Boolean isPassed;
 }
