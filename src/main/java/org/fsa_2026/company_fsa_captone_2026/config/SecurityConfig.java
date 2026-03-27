@@ -105,7 +105,7 @@ public class SecurityConfig {
                             .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
                             // Educator endpoints
-                            .requestMatchers("/api/v1/educator/**").hasRole("EDUCATOR")
+                            .requestMatchers("/api/v1/educator/**").hasAnyRole("EDUCATOR", "ADMIN")
 
                             // Learner endpoints
                             .requestMatchers("/api/v1/learner/**").hasRole("USER")

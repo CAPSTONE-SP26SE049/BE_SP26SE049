@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -62,8 +63,8 @@ public class LevelService {
                 .stream()
                 .map(LevelResponse::fromEntity)
                 .filter(r -> r.getStatus() == null || !"REJECTED".equals(r.getStatus()))
-                .sorted(Comparator.comparingInt(r -> r.getLevelOrder() != null ? r.getLevelOrder() : 0))
-                .collect(Collectors.toList());
+                .sorted(java.util.Comparator.comparingInt(r -> r.getLevelOrder() != null ? r.getLevelOrder() : 0))
+                .collect(java.util.stream.Collectors.toList());
     }
 
     @Transactional(readOnly = true)

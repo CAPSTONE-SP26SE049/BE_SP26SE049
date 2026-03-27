@@ -5,10 +5,14 @@ import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeBankRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.QuizChallengeItemResponse;
 import org.fsa_2026.company_fsa_captone_2026.entity.Account;
 import org.fsa_2026.company_fsa_captone_2026.entity.ChallengeBank;
+import org.fsa_2026.company_fsa_captone_2026.entity.ContentItem;
 import org.fsa_2026.company_fsa_captone_2026.entity.QuizChallengeItem;
 import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.ChallengeBankRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.ContentItemRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.LearningUnitRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.QuizChallengeItemRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +27,10 @@ public class ChallengeBankService {
 
     private final ChallengeBankRepository challengeBankRepository;
     private final QuizChallengeItemRepository quizChallengeItemRepository;
+    private final LearningUnitRepository learningUnitRepository;
+    private final ContentItemRepository contentItemRepository;
     private final AccountRepository accountRepository;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public ChallengeBank createChallenge(ChallengeBankRequest request) {
@@ -35,7 +42,6 @@ public class ChallengeBankService {
                 .contentText(request.getContentText())
                 .skillType(request.getSkillType())
                 .difficultyTag(request.getDifficultyTag())
-                .isGlobal(request.getIsGlobal() != null ? request.getIsGlobal() : true)
                 .region(request.getRegion() != null ? request.getRegion() : "BAC")
                 .metadataJson(request.getMetadataJson())
                 .createdBy(account.getId())
@@ -70,6 +76,7 @@ public class ChallengeBankService {
     }
     @Transactional(readOnly = true)
     public List<QuizChallengeItemResponse> getChallengesByQuizId(UUID quizId) {
+        // Primary source: quiz_challenge_item table (explicit assignment)
         List<QuizChallengeItem> items = quizChallengeItemRepository.findByQuizIdOrderByOrderIndex(quizId);
 
         return items.stream()
@@ -96,7 +103,6 @@ public class ChallengeBankService {
         if (request.getContentText() != null) challenge.setContentText(request.getContentText());
         if (request.getSkillType() != null) challenge.setSkillType(request.getSkillType());
         if (request.getDifficultyTag() != null) challenge.setDifficultyTag(request.getDifficultyTag());
-        if (request.getIsGlobal() != null) challenge.setIsGlobal(request.getIsGlobal());
         if (request.getRegion() != null) challenge.setRegion(request.getRegion());
         if (request.getMetadataJson() != null) challenge.setMetadataJson(request.getMetadataJson());
         
