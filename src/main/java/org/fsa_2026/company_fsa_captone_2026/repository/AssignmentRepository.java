@@ -14,6 +14,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface AssignmentRepository extends JpaRepository<Assignment, UUID> {
 
+    void deleteByLearningUnit_Id(UUID learningUnitId);
+
     List<Assignment> findByClassroomId(UUID classroomId);
 
     @Query("""

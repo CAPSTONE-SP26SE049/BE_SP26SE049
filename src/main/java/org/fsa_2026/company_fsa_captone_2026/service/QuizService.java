@@ -4,10 +4,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.fsa_2026.company_fsa_captone_2026.dto.QuizCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.QuizQuestionRequest;
 import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
 import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
+import org.fsa_2026.company_fsa_captone_2026.repository.AccountLearningUnitRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.AssignmentRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.ContentItemRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.LearningUnitRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.QuizChallengeItemRepository;
 import org.springframework.stereotype.Service;
@@ -19,12 +23,16 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class QuizService {
 
     private final LearningUnitRepository learningUnitRepository;
     private final QuizChallengeItemRepository quizChallengeItemRepository;
+    private final ContentItemRepository contentItemRepository;
+    private final AccountLearningUnitRepository accountLearningUnitRepository;
+    private final AssignmentRepository assignmentRepository;
     private final ObjectMapper objectMapper;
 
     @Transactional
@@ -75,7 +83,7 @@ public class QuizService {
 
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getAllQuizzes() {
-        return learningUnitRepository.findByType("QUIZ").stream()
+        return learningUnitRepository.findByTypeWithParentFetched("QUIZ").stream()
                 .map(this::buildQuizResponse)
                 .collect(Collectors.toList());
     }
@@ -115,6 +123,11 @@ public class QuizService {
             throw new ApiException("INVALID_TYPE", "Đơn vị học tập không phải là Quiz");
         }
 
+        UUID quizId = quiz.getId();
+        quizChallengeItemRepository.deleteByQuizId(quizId);
+        assignmentRepository.deleteByLearningUnit_Id(quizId);
+        contentItemRepository.deleteByLearningUnitId(quizId);
+        accountLearningUnitRepository.deleteByLearningUnitId(quizId);
         learningUnitRepository.delete(quiz);
     }
 
@@ -152,14 +165,15 @@ public class QuizService {
         response.put("id", quiz.getId());
         response.put("levelId", quiz.getParent() != null ? quiz.getParent().getId() : null);
         response.put("name", quiz.getName());
+        response.put("title", quiz.getName());
 
         Map<String, Object> metadata = new LinkedHashMap<>();
-        if (quiz.getMetadataJson() != null) {
+        if (quiz.getMetadataJson() != null && !quiz.getMetadataJson().isBlank()) {
             try {
                 metadata = objectMapper.readValue(quiz.getMetadataJson(), new TypeReference<Map<String, Object>>() {
                 });
             } catch (JsonProcessingException e) {
-                throw new ApiException("INVALID_METADATA", "Quiz metadata không hợp lệ");
+                log.warn("Quiz {} metadata JSON không đọc được, trả về trường tối thiểu: {}", quiz.getId(), e.getMessage());
             }
         }
 
@@ -168,14 +182,40 @@ public class QuizService {
         response.put("timeLimitMinutes", metadata.get("time_limit_minutes"));
         response.put("passingScore", metadata.get("passing_score"));
         response.put("pointsPerQuestion", metadata.get("points_per_question"));
-        response.put("difficulty", metadata.get("difficulty"));
+        Object difficulty = metadata.get("difficulty");
+        response.put("difficulty", difficulty);
+        response.put("difficultyTag", difficulty);
 
-        List<QuizQuestionRequest> questions = metadata.containsKey("questions")
-                ? objectMapper.convertValue(metadata.get("questions"), new TypeReference<List<QuizQuestionRequest>>() {
-                })
-                : List.of();
+        List<QuizQuestionRequest> questions = List.of();
+        if (metadata.containsKey("questions") && metadata.get("questions") != null) {
+            try {
+                questions = objectMapper.convertValue(metadata.get("questions"), new TypeReference<List<QuizQuestionRequest>>() {
+                });
+            } catch (IllegalArgumentException e) {
+                log.warn("Quiz {} trường questions không chuyển được sang DTO: {}", quiz.getId(), e.getMessage());
+            }
+        }
         response.put("questions", questions);
-        response.put("questionCount", metadata.get("question_count"));
+
+        long assignedChallengeCount = quizChallengeItemRepository.countByQuizId(quiz.getId());
+        int metaQuestionCount = 0;
+        Object qcRaw = metadata.get("question_count");
+        if (qcRaw instanceof Number) {
+            metaQuestionCount = Math.max(0, ((Number) qcRaw).intValue());
+        } else if (qcRaw instanceof String) {
+            try {
+                metaQuestionCount = Math.max(0, Integer.parseInt(((String) qcRaw).trim()));
+            } catch (NumberFormatException ignored) {
+                metaQuestionCount = 0;
+            }
+        }
+        int listSize = questions.size();
+        int effectiveCount =
+                assignedChallengeCount > 0
+                        ? (int) assignedChallengeCount
+                        : Math.max(metaQuestionCount, listSize);
+        response.put("questionCount", effectiveCount);
+
         response.put("comment", metadata.get("comment"));
         response.put("skillType", metadata.get("skill_type"));
 

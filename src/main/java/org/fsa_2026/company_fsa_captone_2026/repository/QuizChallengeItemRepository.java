@@ -9,10 +9,14 @@ import java.util.UUID;
 
 @Repository
 public interface QuizChallengeItemRepository extends JpaRepository<QuizChallengeItem, UUID> {
+    long countByQuizId(UUID quizId);
+
     List<QuizChallengeItem> findByQuizIdOrderByOrderIndex(UUID quizId);
     List<QuizChallengeItem> findByChallengeId(UUID challengeId);
     void deleteByChallengeBankId(UUID challengeBankId);
     void deleteByChallengeId(UUID challengeId);
     void deleteByQuizIdAndChallengeBankId(UUID quizId, UUID challengeBankId);
     void deleteByQuizIdAndChallengeId(UUID quizId, UUID challengeId);
+
+    void deleteByQuizId(UUID quizId);
 }

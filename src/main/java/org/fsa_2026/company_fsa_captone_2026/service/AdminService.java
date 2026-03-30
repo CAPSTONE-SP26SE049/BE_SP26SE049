@@ -2,6 +2,7 @@ package org.fsa_2026.company_fsa_captone_2026.service;
 
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -16,6 +17,7 @@ import org.fsa_2026.company_fsa_captone_2026.dto.DialectCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.DialectResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.EducatorCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.LevelCreateRequest;
+import org.fsa_2026.company_fsa_captone_2026.dto.LevelEngagementStatsResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.LevelResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.QuizResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.RegisterResponse;
@@ -145,7 +147,7 @@ public class AdminService {
     public List<UserManagementResponse> getAllUsers() {
         // Filter tại DB thay vì load toàn bộ rồi filter bằng Java
         return accountRepository
-                .findAllActiveByRoleCodeIn(List.of(RoleCode.USER, RoleCode.EDUCATOR))
+                .findByRoleCodeInOrderByCreatedAtDesc(List.of(RoleCode.USER, RoleCode.EDUCATOR, RoleCode.ADMIN))
                 .stream()
                 .map(UserManagementResponse::fromEntity)
                 .collect(Collectors.toList());
@@ -179,6 +181,9 @@ public class AdminService {
         }
         if (request.getFullName() != null) {
             account.setFullName(request.getFullName());
+        }
+        if (request.getRegion() != null) {
+            account.setRegion(request.getRegion());
         }
 
         account = accountRepository.save(account);
@@ -353,6 +358,45 @@ public class AdminService {
                 .filter(unit -> TYPE_LEVEL.equals(unit.getType()))
                 .map(LevelResponse::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Thống kê theo học phần: số học viên distinct có tiến độ trên ít nhất một quiz con;
+     * tỉ lệ đạt trên tổng số cặp (tài khoản × quiz) có bản ghi account_learning_unit.
+     */
+    /**
+     * Số bài kiểm tra (QUIZ) trực tiếp theo từng học phần — truy vấn SQL, khớp thẻ admin.
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getLevelQuizCounts() {
+        List<Object[]> rows = learningUnitRepository.countQuizzesGroupedByParentId();
+        return rows.stream().map(r -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            UUID levelId = (UUID) r[0];
+            long cnt = r[1] != null ? ((Number) r[1]).longValue() : 0L;
+            m.put("levelId", levelId.toString());
+            m.put("quizCount", cnt);
+            return m;
+        }).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<LevelEngagementStatsResponse> getLevelEngagementStats() {
+        List<Object[]> rows = accountLearningUnitRepository.aggregateQuizProgressByLevelParent();
+        return rows.stream().map(r -> {
+            UUID levelId = (UUID) r[0];
+            long learnerCount = r[1] != null ? ((Number) r[1]).longValue() : 0L;
+            long passedCount = r[2] != null ? ((Number) r[2]).longValue() : 0L;
+            long totalProgress = r[3] != null ? ((Number) r[3]).longValue() : 0L;
+            int successRate = totalProgress > 0 ? (int) Math.round(100.0 * passedCount / totalProgress) : 0;
+            int failRate = totalProgress > 0 ? Math.max(0, Math.min(100, 100 - successRate)) : 0;
+            return LevelEngagementStatsResponse.builder()
+                    .levelId(levelId.toString())
+                    .learnerCount(learnerCount)
+                    .successRate(successRate)
+                    .failRate(failRate)
+                    .build();
+        }).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)

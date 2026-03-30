@@ -17,6 +17,7 @@ import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.DialectCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.DialectResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.LevelCreateRequest;
+import org.fsa_2026.company_fsa_captone_2026.dto.LevelEngagementStatsResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.LevelResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.UserManagementResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.UserStatusUpdateRequest;
@@ -200,6 +201,22 @@ public class AdminController {
         log.info("Admin retrieving all levels");
         List<LevelResponse> responses = adminService.getAllLevels(); // Assuming this exists or needed
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách cấp độ thành công", responses));
+    }
+
+    @GetMapping("/content/levels/engagement-stats")
+    @Operation(summary = "Level quiz engagement stats", description = "Learner count and pass/fail rates per level from account_learning_unit on child quizzes")
+    public ResponseEntity<ApiResponse<List<LevelEngagementStatsResponse>>> getLevelEngagementStats() {
+        log.info("Admin retrieving level engagement stats");
+        return ResponseEntity.ok(ApiResponse.success("Lấy thống kê tham gia học phần thành công",
+                adminService.getLevelEngagementStats()));
+    }
+
+    @GetMapping("/content/levels/quiz-counts")
+    @Operation(summary = "Quiz count per level", description = "Count of QUIZ learning units per level (parent_id) for admin cards")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getLevelQuizCounts() {
+        log.info("Admin retrieving quiz counts per level");
+        return ResponseEntity.ok(ApiResponse.success("Lấy số bài kiểm tra theo học phần thành công",
+                adminService.getLevelQuizCounts()));
     }
 
     @GetMapping("/content/levels/{id}")

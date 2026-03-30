@@ -31,6 +31,12 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
     @Query("SELECT a FROM Account a WHERE a.roleCode IN :roleCodes AND a.isActive = true")
     List<Account> findAllActiveByRoleCodeIn(List<RoleCode> roleCodes);
 
+    /**
+     * Danh sách quản trị: tất cả tài khoản theo role (kể cả đã khóa), mới nhất trước.
+     */
+    @Query("SELECT a FROM Account a WHERE a.roleCode IN :roleCodes ORDER BY a.createdAt DESC")
+    List<Account> findByRoleCodeInOrderByCreatedAtDesc(List<RoleCode> roleCodes);
+
     List<Account> findTop10ByIsActiveTrueOrderByTotalExperienceDesc();
 
     List<Account> findTop10ByRegionIgnoreCaseAndIsActiveTrueOrderByTotalExperienceDesc(String region);
