@@ -3,12 +3,16 @@ package org.fsa_2026.company_fsa_captone_2026.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.fsa_2026.company_fsa_captone_2026.common.Constants;
+import org.fsa_2026.company_fsa_captone_2026.dto.AccountBadgeResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.ApiResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.LevelProgressResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.QuizChallengeItemResponse;
-
+import org.fsa_2026.company_fsa_captone_2026.dto.QuizCompleteRequest;
+import org.fsa_2026.company_fsa_captone_2026.dto.QuizCompleteResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.UserProfileResponse;
 import org.fsa_2026.company_fsa_captone_2026.service.AuthService;
 import org.fsa_2026.company_fsa_captone_2026.service.ChallengeBankService;
@@ -19,6 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -118,5 +123,63 @@ public class UserController {
 
         List<QuizChallengeItemResponse> challenges = challengeBankService.getChallengesByQuizId(quizId);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách câu hỏi trong quiz thành công", challenges));
+    }
+
+    // ==========================================
+    // Quiz Completion & Progress
+    // ==========================================
+
+    /**
+     * POST /api/v1/users/quizzes/{quizId}/complete
+     * Người chơi gửi kết quả quiz → backend tự động trao thành tựu nếu đạt.
+     */
+    @PostMapping("/quizzes/{quizId}/complete")
+    @Operation(
+            summary = "Complete Quiz",
+            description = "Submit quiz results. Auto-grants the attached reward if score >= passing_score.",
+            security = @SecurityRequirement(name = "bearer-jwt")
+    )
+    public ResponseEntity<ApiResponse<QuizCompleteResponse>> completeQuiz(
+            @PathVariable UUID quizId,
+            @Valid @RequestBody QuizCompleteRequest request,
+            Authentication authentication) {
+        log.info("User {} completing quiz {}", authentication.getName(), quizId);
+        QuizCompleteResponse response = quizService.completeQuiz(quizId, request, authentication.getName());
+        return ResponseEntity.ok(ApiResponse.success("Hoàn thành quiz", response));
+    }
+
+    /**
+     * GET /api/v1/users/levels/{levelId}/progress
+     * Xem tiến trình quiz trong 1 level: quiz nào đã hoàn thành, điểm, sao, thành tựu.
+     */
+    @GetMapping("/levels/{levelId}/progress")
+    @Operation(
+            summary = "Get Level Progress",
+            description = "View quiz progress within a level: which quizzes completed, scores, stars, rewards earned.",
+            security = @SecurityRequirement(name = "bearer-jwt")
+    )
+    public ResponseEntity<ApiResponse<LevelProgressResponse>> getLevelProgress(
+            @PathVariable UUID levelId,
+            Authentication authentication) {
+        log.info("User {} getting progress for level {}", authentication.getName(), levelId);
+        LevelProgressResponse response = quizService.getLevelProgress(levelId, authentication.getName());
+        return ResponseEntity.ok(ApiResponse.success("Lấy tiến trình level thành công", response));
+    }
+
+    /**
+     * GET /api/v1/users/my-rewards
+     * Xem tất cả thành tựu đã nhận của user hiện tại.
+     */
+    @GetMapping("/my-rewards")
+    @Operation(
+            summary = "Get My Rewards",
+            description = "View all rewards/achievements earned by the current user.",
+            security = @SecurityRequirement(name = "bearer-jwt")
+    )
+    public ResponseEntity<ApiResponse<List<AccountBadgeResponse>>> getMyRewards(
+            Authentication authentication) {
+        log.info("User {} getting rewards", authentication.getName());
+        return ResponseEntity.ok(ApiResponse.success("Lấy thành tựu thành công",
+                quizService.getUserRewards(authentication.getName())));
     }
 }

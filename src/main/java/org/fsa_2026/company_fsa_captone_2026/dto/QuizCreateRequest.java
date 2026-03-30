@@ -46,4 +46,7 @@ public class QuizCreateRequest implements Serializable {
 
     @jakarta.validation.Valid
     private java.util.List<QuizQuestionRequest> questions;
+
+    /** ID thành tựu gắn cho quiz (nullable — không bắt buộc) */
+    private UUID rewardCatalogId;
 }

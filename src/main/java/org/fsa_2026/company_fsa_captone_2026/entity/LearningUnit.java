@@ -37,4 +37,13 @@ public class LearningUnit extends BaseEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "metadata_json", columnDefinition = "jsonb")
     private String metadataJson;
+
+    /**
+     * Thành tựu gắn cho Quiz (chỉ dùng khi type = QUIZ).
+     * Nullable — quiz có thể không gắn thành tựu.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reward_catalog_id",
+            foreignKey = @ForeignKey(name = "fk_learning_unit_reward"))
+    private RewardCatalog rewardCatalog;
 }

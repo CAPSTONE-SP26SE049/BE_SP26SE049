@@ -6,11 +6,15 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.fsa_2026.company_fsa_captone_2026.dto.ApiResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.LevelProgressResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.QuizCompleteRequest;
+import org.fsa_2026.company_fsa_captone_2026.dto.QuizCompleteResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.QuizCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
 import org.fsa_2026.company_fsa_captone_2026.service.QuizService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -50,3 +54,4 @@ public class QuizController {
     }
 
 }
+
