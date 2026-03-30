@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Add sort_by column to leaderboard table -->
+    <changeSet id="37-add-sort-by-to-leaderboard" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="leaderboard" columnName="sort_by"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="leaderboard">
+            <column name="sort_by" type="VARCHAR(30)" defaultValue="TOTAL_XP">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <createIndex indexName="idx_leaderboard_scope_period_region_sort"
+                     tableName="leaderboard">
+            <column name="scope"/>
+            <column name="period_type"/>
+            <column name="region_code"/>
+            <column name="sort_by"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

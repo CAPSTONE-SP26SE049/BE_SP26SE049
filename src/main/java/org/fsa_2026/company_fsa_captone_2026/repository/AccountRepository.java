@@ -34,4 +34,26 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
     List<Account> findTop10ByIsActiveTrueOrderByTotalExperienceDesc();
 
     List<Account> findTop10ByRegionIgnoreCaseAndIsActiveTrueOrderByTotalExperienceDesc(String region);
+
+    // ─── Leaderboard: Top 50 queries ─────────────────────────────────
+
+    /**
+     * Top 50 active accounts globally, ordered by totalExperience DESC.
+     */
+    List<Account> findTop50ByIsActiveTrueOrderByTotalExperienceDesc();
+
+    /**
+     * Top 50 active accounts globally, ordered by totalStars DESC.
+     */
+    List<Account> findTop50ByIsActiveTrueOrderByTotalStarsDesc();
+
+    /**
+     * Top 50 active accounts for a region, ordered by totalExperience DESC.
+     */
+    List<Account> findTop50ByRegionIgnoreCaseAndIsActiveTrueOrderByTotalExperienceDesc(String region);
+
+    /**
+     * Top 50 active accounts for a region, ordered by totalStars DESC.
+     */
+    List<Account> findTop50ByRegionIgnoreCaseAndIsActiveTrueOrderByTotalStarsDesc(String region);
 }

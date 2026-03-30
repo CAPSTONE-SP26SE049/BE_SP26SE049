@@ -351,12 +351,30 @@ public class QuizService {
 
     /**
      * Gắn hoặc bỏ reward cho quiz.
+     * Validation: 1 reward chỉ được gắn cho 1 quiz duy nhất.
      */
     private void attachRewardToQuiz(LearningUnit quiz, UUID rewardCatalogId) {
         if (rewardCatalogId != null) {
             RewardCatalog reward = rewardCatalogRepository.findById(rewardCatalogId)
                     .orElseThrow(() -> new ApiException("NOT_FOUND",
                             "Không tìm thấy thành tựu với ID: " + rewardCatalogId));
+
+            // Check if this reward is already linked to another quiz
+            Optional<LearningUnit> existingQuiz;
+            if (quiz.getId() != null) {
+                // Update case: exclude current quiz from check
+                existingQuiz = learningUnitRepository.findByRewardCatalogIdAndIdNot(rewardCatalogId, quiz.getId());
+            } else {
+                // Create case: check all quizzes
+                existingQuiz = learningUnitRepository.findByRewardCatalogId(rewardCatalogId);
+            }
+
+            if (existingQuiz.isPresent()) {
+                throw new ApiException("BAD_REQUEST",
+                        "Thành tựu '" + reward.getName() + "' đã được gắn cho quiz '"
+                                + existingQuiz.get().getName() + "'. Mỗi thành tựu chỉ được gắn cho 1 quiz.");
+            }
+
             quiz.setRewardCatalog(reward);
         } else {
             quiz.setRewardCatalog(null);

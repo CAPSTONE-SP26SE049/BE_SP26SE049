@@ -9,10 +9,11 @@ import org.fsa_2026.company_fsa_captone_2026.entity.RewardCatalog;
 
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * RewardResponse — DTO trả về thông tin của một huy hiệu (dùng cho Admin)
- * Không còn xpReward và rewardType — mọi phần thưởng đều là Huy hiệu
+ * Bao gồm thông tin quiz/level đang liên kết (nếu có).
  */
 @Data
 @NoArgsConstructor
@@ -24,9 +25,7 @@ public class RewardResponse implements Serializable {
     private String code;
     private String name;
     private String description;
-    private String category;
     private String iconUrl;
-    private String criteriaJson;
 
     /**
      * FIX: Lombok boolean `isActive` → getter `isActive()` → Jackson serializes as `active`.
@@ -37,6 +36,12 @@ public class RewardResponse implements Serializable {
     private Instant createdAt;
     private Instant updatedAt;
 
+    /** Quiz đang liên kết với thành tựu này (null nếu chưa gắn) */
+    private UUID linkedQuizId;
+    private String linkedQuizName;
+    /** Level chứa quiz đang liên kết */
+    private String linkedLevelName;
+
     public static RewardResponse fromEntity(RewardCatalog entity) {
         if (entity == null) return null;
         return RewardResponse.builder()
@@ -44,12 +49,11 @@ public class RewardResponse implements Serializable {
                 .code(entity.getCode())
                 .name(entity.getName())
                 .description(entity.getDescription())
-                .category(entity.getCategory())
                 .iconUrl(entity.getIconUrl())
-                .criteriaJson(entity.getCriteriaJson())
                 .isActive(entity.isActive())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();
     }
 }
+

@@ -66,4 +66,8 @@
 
     <include file="db/changelog/35-add-notification-table.xml"/>
 
+    <include file="db/changelog/36-simplify-reward-catalog.xml"/>
+
+    <include file="db/changelog/37-add-sort-by-to-leaderboard.xml"/>
+
 </databaseChangeLog>

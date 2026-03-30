@@ -493,14 +493,16 @@ public class AdminService {
     @Transactional(readOnly = true)
     public List<RewardResponse> getAllRewards() {
         return rewardCatalogRepository.findAll()
-                .stream().map(RewardResponse::fromEntity).collect(Collectors.toList());
+                .stream()
+                .map(this::enrichRewardResponse)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public RewardResponse getRewardById(UUID id) {
         RewardCatalog reward = rewardCatalogRepository.findById(id)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy phần thưởng"));
-        return RewardResponse.fromEntity(reward);
+        return enrichRewardResponse(reward);
     }
 
     @Transactional
@@ -510,13 +512,11 @@ public class AdminService {
                 .name(request.getName())
                 .description(request.getDescription())
                 .rewardType(org.fsa_2026.company_fsa_captone_2026.entity.enums.RewardType.BADGE)
-                .category(request.getCategory())
                 .iconUrl(request.getIconUrl())
-                .criteriaJson(request.getCriteriaJson())
                 .xpReward(0)
                 .isActive(request.isActive())
                 .build();
-        return RewardResponse.fromEntity(rewardCatalogRepository.save(reward));
+        return enrichRewardResponse(rewardCatalogRepository.save(reward));
     }
 
     @Transactional
@@ -526,11 +526,9 @@ public class AdminService {
         reward.setCode(request.getCode());
         reward.setName(request.getName());
         reward.setDescription(request.getDescription());
-        reward.setCategory(request.getCategory());
         reward.setIconUrl(request.getIconUrl());
-        reward.setCriteriaJson(request.getCriteriaJson());
         reward.setActive(request.isActive());
-        return RewardResponse.fromEntity(rewardCatalogRepository.save(reward));
+        return enrichRewardResponse(rewardCatalogRepository.save(reward));
     }
 
     @Transactional
@@ -538,7 +536,7 @@ public class AdminService {
         RewardCatalog reward = rewardCatalogRepository.findById(id)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy phần thưởng"));
         reward.setActive(!reward.isActive());
-        return RewardResponse.fromEntity(rewardCatalogRepository.save(reward));
+        return enrichRewardResponse(rewardCatalogRepository.save(reward));
     }
 
     @Transactional
@@ -547,5 +545,27 @@ public class AdminService {
             throw new ApiException("NOT_FOUND", "Không tìm thấy phần thưởng");
         }
         rewardCatalogRepository.deleteById(id);
+    }
+
+    /**
+     * Enrich RewardResponse with linked quiz/level information.
+     */
+    private RewardResponse enrichRewardResponse(RewardCatalog reward) {
+        RewardResponse response = RewardResponse.fromEntity(reward);
+
+        // Find the quiz that this reward is linked to
+        Optional<LearningUnit> linkedQuiz = learningUnitRepository.findByRewardCatalogId(reward.getId());
+        if (linkedQuiz.isPresent()) {
+            LearningUnit quiz = linkedQuiz.get();
+            response.setLinkedQuizId(quiz.getId());
+            response.setLinkedQuizName(quiz.getName());
+
+            // Get the parent level name
+            if (quiz.getParent() != null) {
+                response.setLinkedLevelName(quiz.getParent().getName());
+            }
+        }
+
+        return response;
     }
 }
