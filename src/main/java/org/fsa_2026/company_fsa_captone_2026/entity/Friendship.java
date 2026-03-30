@@ -2,6 +2,7 @@ package org.fsa_2026.company_fsa_captone_2026.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.fsa_2026.company_fsa_captone_2026.entity.enums.FriendshipStatus;
 
 import java.time.Instant;
 
@@ -41,9 +42,10 @@ public class Friendship {
      * Friendship status.
      * Values: PENDING / ACCEPTED / DECLINED / BLOCKED
      */
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     @Builder.Default
-    private String status = "PENDING";
+    private FriendshipStatus status = FriendshipStatus.PENDING;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
