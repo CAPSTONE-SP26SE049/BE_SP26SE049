@@ -38,7 +38,7 @@ import java.util.UUID;
  */
 @Slf4j
 @RestController
-@RequestMapping(Constants.API_PREFIX + "/badges")
+@RequestMapping(Constants.API_PREFIX)
 @RequiredArgsConstructor
 @Tag(name = "Badge", description = "Badge APIs — Public catalog, My Badges, and Admin CRUD")
 public class BadgeController {
@@ -54,11 +54,11 @@ public class BadgeController {
      * GET /badges/catalog — Danh sách huy hiệu đang hiển thị (cho learner)
      * Không cần đăng nhập.
      */
-    @GetMapping("/catalog")
+    @GetMapping("/public/badges/catalog")
     @Operation(summary = "Get Public Badge Catalog",
                description = "Returns all active badges for the learner view")
     public ResponseEntity<ApiResponse<List<BadgeResponse>>> getPublicCatalog() {
-        log.info("GET /badges/catalog — public badge catalog");
+        log.info("GET /public/badges/catalog — public badge catalog");
         return ResponseEntity.ok(
                 ApiResponse.success("Badges retrieved successfully", badgeService.getAllBadges()));
     }
@@ -67,12 +67,12 @@ public class BadgeController {
      * GET /badges/my-badges — Huy hiệu đã mở khóa của tôi
      * Yêu cầu đăng nhập (bất kỳ role).
      */
-    @GetMapping("/my-badges")
+    @GetMapping("/learner/my-badges")
     @Operation(summary = "Get My Badges",
                description = "Returns all badges unlocked by the currently authenticated user",
                security = @SecurityRequirement(name = "bearer-jwt"))
     public ResponseEntity<ApiResponse<List<AccountBadgeResponse>>> getMyBadges(Authentication authentication) {
-        log.info("GET /badges/my-badges — user: {}", authentication.getName());
+        log.info("GET /learner/my-badges — user: {}", authentication.getName());
         return ResponseEntity.ok(
                 ApiResponse.success("My badges retrieved successfully",
                         badgeService.getMyBadges(authentication.getName())));
@@ -85,7 +85,7 @@ public class BadgeController {
     /**
      * GET /badges — Toàn bộ huy hiệu (kể cả đang ẩn), dùng cho trang quản lý Admin
      */
-    @GetMapping
+    @GetMapping("/admin/rewards")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "[Admin] Get All Badges",
                description = "Returns all badges including hidden ones — for Admin management page",
@@ -99,7 +99,7 @@ public class BadgeController {
     /**
      * GET /badges/{id} — Chi tiết một huy hiệu (admin)
      */
-    @GetMapping("/{id}")
+    @GetMapping("/admin/rewards/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "[Admin] Get Badge by ID",
                description = "Returns detailed information of a badge by its ID",
@@ -113,7 +113,7 @@ public class BadgeController {
     /**
      * POST /badges — Tạo huy hiệu mới (admin)
      */
-    @PostMapping
+    @PostMapping("/admin/rewards")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "[Admin] Create Badge",
                description = "Creates a new badge with the specified category, criteria, and unlock conditions",
@@ -129,7 +129,7 @@ public class BadgeController {
     /**
      * PUT /badges/{id} — Cập nhật huy hiệu (admin)
      */
-    @PutMapping("/{id}")
+    @PutMapping("/admin/rewards/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "[Admin] Update Badge",
                description = "Updates an existing badge by its ID",
@@ -145,7 +145,7 @@ public class BadgeController {
     /**
      * PATCH /badges/{id}/toggle — Bật/Tắt hiển thị huy hiệu (admin)
      */
-    @PatchMapping("/{id}/toggle")
+    @PatchMapping("/admin/rewards/{id}/toggle")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "[Admin] Toggle Badge Visibility",
                description = "Toggles the badge active status (hidden ↔ visible to players)",
@@ -159,7 +159,7 @@ public class BadgeController {
     /**
      * DELETE /badges/{id} — Xóa huy hiệu vĩnh viễn (admin)
      */
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/admin/rewards/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "[Admin] Delete Badge",
                description = "Permanently deletes a badge. Prefer using toggle to hide instead of deleting.",

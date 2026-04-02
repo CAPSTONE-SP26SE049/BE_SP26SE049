@@ -251,6 +251,65 @@ public class QuizService {
     }
 
     // ==========================================
+    // Quiz Scoring Recalculation (for admin/educator updates)
+    // ==========================================
+
+    /**
+     * Recalculate quiz scoring metadata whenever question assignments change.
+     *
+     * total_points = question_count * points_per_question
+     * passing_score_points = ceil(total_points * passing_score_percent / 100)
+     */
+    @Transactional
+    public Map<String, Object> recalculateQuizScoring(UUID quizId) {
+        LearningUnit quiz = learningUnitRepository.findById(quizId)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Quiz"));
+
+        if (!"QUIZ".equalsIgnoreCase(quiz.getType())) {
+            throw new ApiException("INVALID_TYPE", "Đơn vị học tập không phải là Quiz");
+        }
+
+        int questionCount = (int) quizChallengeItemRepository.countByQuizId(quizId);
+        int pointsPerQuestion = getPointsPerQuestionFromMetadata(quiz);
+        int passingPercent = getPassingScoreFromMetadata(quiz);
+
+        int totalPoints = questionCount * pointsPerQuestion;
+        int passingScorePoints = (int) Math.ceil(totalPoints * (passingPercent / 100.0));
+
+        Map<String, Object> metadata;
+        try {
+            metadata = quiz.getMetadataJson() != null
+                    ? objectMapper.readValue(quiz.getMetadataJson(), new TypeReference<Map<String, Object>>() {})
+                    : new LinkedHashMap<>();
+        } catch (Exception e) {
+            metadata = new LinkedHashMap<>();
+        }
+
+        metadata.put("question_count", questionCount);
+        metadata.put("points_per_question", pointsPerQuestion);
+        metadata.put("total_points", totalPoints);
+        metadata.put("passing_score", passingPercent);
+        metadata.put("passing_score_points", passingScorePoints);
+
+        try {
+            quiz.setMetadataJson(objectMapper.writeValueAsString(metadata));
+        } catch (JsonProcessingException e) {
+            throw new ApiException("INVALID_METADATA", "Quiz metadata không hợp lệ");
+        }
+        learningUnitRepository.save(quiz);
+
+        Map<String, Object> scoring = new LinkedHashMap<>();
+        scoring.put("quizId", quizId);
+        scoring.put("questionCount", questionCount);
+        scoring.put("pointsPerQuestion", pointsPerQuestion);
+        scoring.put("totalPoints", totalPoints);
+        scoring.put("passingScorePercent", passingPercent);
+        scoring.put("passingScorePoints", passingScorePoints);
+        scoring.put("starRule", Map.of("oneStar", 30, "twoStars", 60, "threeStars", 85));
+        return scoring;
+    }
+
+    // ==========================================
     // User Progress & Rewards Retrieval
     // ==========================================
 
@@ -398,18 +457,32 @@ public class QuizService {
         return 70;
     }
 
+    private int getPointsPerQuestionFromMetadata(LearningUnit quiz) {
+        if (quiz.getMetadataJson() == null) return 10; // default
+        try {
+            Map<String, Object> metadata = objectMapper.readValue(
+                    quiz.getMetadataJson(), new TypeReference<Map<String, Object>>() {});
+            Object ppq = metadata.get("points_per_question");
+            if (ppq instanceof Number) return ((Number) ppq).intValue();
+            if (ppq instanceof String) return Integer.parseInt((String) ppq);
+        } catch (Exception e) {
+            log.warn("Cannot parse points_per_question from quiz metadata, using default 10");
+        }
+        return 10;
+    }
+
     /**
-     * Tính số sao dựa trên score và passing_score.
-     * 1 sao: >= passing_score
-     * 2 sao: >= passing_score + (100 - passing_score) * 0.5
-     * 3 sao: >= 90% hoặc full score
+     * Tính số sao theo yêu cầu mới:
+     * - >= 85%: 3 sao
+     * - >= 60%: 2 sao
+     * - >= 30%: 1 sao
+     * - < 30%: 0 sao
      */
     private int calculateStars(int score, int passingScore) {
-        if (score < passingScore) return 0;
-        if (score >= 90) return 3;
-        int range = 100 - passingScore;
-        if (range > 0 && score >= passingScore + range * 0.6) return 2;
-        return 1;
+        if (score >= 85) return 3;
+        if (score >= 60) return 2;
+        if (score >= 30) return 1;
+        return 0;
     }
 
     /**
@@ -457,6 +530,7 @@ public class QuizService {
         metadata.put("question_count", request.getQuestionCount());
         metadata.put("comment", request.getComment());
         metadata.put("skill_type", request.getSkillType());
+        metadata.put("orderIndex", request.getOrderIndex());
         return metadata;
     }
 
@@ -505,6 +579,8 @@ public class QuizService {
             response.put("rewardName", null);
             response.put("rewardIconUrl", null);
         }
+
+        response.put("orderIndex", metadata.get("orderIndex"));
 
         return response;
     }

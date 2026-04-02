@@ -70,4 +70,6 @@
 
     <include file="db/changelog/37-add-sort-by-to-leaderboard.xml"/>
 
+    <include file="db/changelog/38-data-cleanup.xml"/>
+
 </databaseChangeLog>

@@ -49,4 +49,5 @@ public class QuizCreateRequest implements Serializable {
 
     /** ID thành tựu gắn cho quiz (nullable — không bắt buộc) */
     private UUID rewardCatalogId;
+    private Integer orderIndex;
 }

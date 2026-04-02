@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -44,10 +45,10 @@ public class ChallengeBankController {
 
     @PostMapping("/quiz/{quizId}/challenges")
     @Operation(summary = "Gán câu hỏi vào quiz")
-    public ResponseEntity<ApiResponse<List<QuizChallengeItem>>> assignChallengesToQuiz(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> assignChallengesToQuiz(
             @PathVariable UUID quizId,
             @RequestBody ChallengeAssignRequest request) {
-        return ResponseEntity.ok(ApiResponse.success("Gán câu hỏi vào quiz thành công", 
+        return ResponseEntity.ok(ApiResponse.success("Gán câu hỏi vào quiz thành công",
                 challengeBankService.assignChallengesToQuiz(quizId, request.getChallengeIds())));
     }
     @GetMapping("/quiz/{quizId}/challenges")
@@ -76,10 +77,10 @@ public class ChallengeBankController {
 
     @DeleteMapping("/quiz/{quizId}/challenges/{challengeId}")
     @Operation(summary = "Gỡ câu hỏi khỏi một quiz nhưng vẫn giữ trong kho")
-    public ResponseEntity<ApiResponse<Void>> removeChallengeFromQuiz(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> removeChallengeFromQuiz(
             @PathVariable UUID quizId,
             @PathVariable UUID challengeId) {
-        challengeBankService.removeChallengeFromQuiz(quizId, challengeId);
-        return ResponseEntity.ok(ApiResponse.success("Gỡ câu hỏi khỏi quiz thành công", null));
+        return ResponseEntity.ok(ApiResponse.success("Gỡ câu hỏi khỏi quiz thành công",
+                challengeBankService.removeChallengeFromQuiz(quizId, challengeId)));
     }
 }

@@ -415,24 +415,24 @@ public class AdminController {
     }
 
     @PostMapping("/content/quizzes/{id}/challenges")
-    @Operation(summary = "Assign Challenges to Quiz", description = "Assign challenges to a quiz")
-    public ResponseEntity<ApiResponse<List<org.fsa_2026.company_fsa_captone_2026.entity.QuizChallengeItem>>> assignChallengesToQuiz(
+    @Operation(summary = "Assign Challenges to Quiz", description = "Assign challenges to a quiz and return updated scoring")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> assignChallengesToQuiz(
             @PathVariable UUID id,
             @RequestBody Map<String, List<UUID>> request) {
         List<UUID> challengeIds = request.get("challengeIds");
         log.info("Admin assigning challenges to quiz ID: {}", id);
-        return ResponseEntity.ok(ApiResponse.success("Gán thử thách vào quiz thành công", 
+        return ResponseEntity.ok(ApiResponse.success("Gán thử thách vào quiz thành công",
                 challengeBankService.assignChallengesToQuiz(id, challengeIds)));
     }
 
     @DeleteMapping("/content/quizzes/{id}/challenges/{challengeId}")
-    @Operation(summary = "Remove Challenge from Quiz", description = "Remove a challenge from a quiz")
-    public ResponseEntity<ApiResponse<Void>> removeChallengeFromQuiz(
+    @Operation(summary = "Remove Challenge from Quiz", description = "Remove a challenge from a quiz and return updated scoring")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> removeChallengeFromQuiz(
             @PathVariable UUID id,
             @PathVariable UUID challengeId) {
         log.info("Admin removing challenge ID: {} from quiz ID: {}", challengeId, id);
-        challengeBankService.removeChallengeFromQuiz(id, challengeId);
-        return ResponseEntity.ok(ApiResponse.success("Xóa thử thách khỏi quiz thành công", null));
+        return ResponseEntity.ok(ApiResponse.success("Xóa thử thách khỏi quiz thành công",
+                challengeBankService.removeChallengeFromQuiz(id, challengeId)));
     }
 
 }

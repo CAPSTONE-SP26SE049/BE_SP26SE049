@@ -17,7 +17,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -31,6 +33,7 @@ public class ChallengeBankService {
     private final ContentItemRepository contentItemRepository;
     private final AccountRepository accountRepository;
     private final ObjectMapper objectMapper;
+    private final QuizService quizService;
 
     @Transactional
     public ChallengeBank createChallenge(ChallengeBankRequest request) {
@@ -54,25 +57,27 @@ public class ChallengeBankService {
     }
 
     @Transactional
-    public List<QuizChallengeItem> assignChallengesToQuiz(UUID quizId, List<UUID> challengeIds) {
-        // Remove existing items if we want to overwrite, or just append.
-        // For simplicity and based on most common use cases, we'll append or just add new ones.
-        // But usually "assign" might mean "set the list of challenges".
-        
-        // Let's just create new items for each challengeId provided.
+    public Map<String, Object> assignChallengesToQuiz(UUID quizId, List<UUID> challengeIds) {
+        // Create assignment items (append behavior kept as-is)
         List<QuizChallengeItem> items = challengeIds.stream().map(cid -> QuizChallengeItem.builder()
                 .quizId(quizId)
                 .challengeBankId(cid)
                 .challengeId(cid) // Map to both columns to satisfy legacy DB constraint
                 .build()).collect(Collectors.toList());
-        
-        // Find current max order index if appending, or start from 1.
-        // For now, let's just use the index in the provided list.
+
         for (int i = 0; i < items.size(); i++) {
             items.get(i).setOrderIndex(i + 1);
         }
 
-        return quizChallengeItemRepository.saveAll(items);
+        List<QuizChallengeItem> saved = quizChallengeItemRepository.saveAll(items);
+
+        // Recalculate quiz scoring metadata right after question update
+        Map<String, Object> scoring = quizService.recalculateQuizScoring(quizId);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("assignedItems", saved);
+        response.put("scoring", scoring);
+        return response;
     }
     @Transactional(readOnly = true)
     public List<QuizChallengeItemResponse> getChallengesByQuizId(UUID quizId) {
@@ -118,8 +123,14 @@ public class ChallengeBankService {
     }
 
     @Transactional
-    public void removeChallengeFromQuiz(UUID quizId, UUID challengeId) {
+    public Map<String, Object> removeChallengeFromQuiz(UUID quizId, UUID challengeId) {
         quizChallengeItemRepository.deleteByQuizIdAndChallengeBankId(quizId, challengeId);
         quizChallengeItemRepository.deleteByQuizIdAndChallengeId(quizId, challengeId);
+
+        Map<String, Object> scoring = quizService.recalculateQuizScoring(quizId);
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("removedChallengeId", challengeId);
+        response.put("scoring", scoring);
+        return response;
     }
 }

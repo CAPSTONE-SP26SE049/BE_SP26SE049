@@ -98,7 +98,8 @@ public class SecurityConfig {
                                     "/favicon.ico",
 
                                     // Public badge catalog (learners can view without login)
-                                    "/api/v1/badges/catalog",
+                                    "/api/v1/public/badges/catalog",
+                                    "/api/v1/learner/my-badges",
 
                                     // Leaderboard public endpoints (optional auth for myRank)
                                     "/api/v1/leaderboards/global",
