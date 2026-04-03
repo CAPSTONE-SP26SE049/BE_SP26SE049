@@ -34,4 +34,11 @@ public class QuizCompleteResponse implements Serializable {
 
     /** true nếu đã nhận thành tựu này trước đó */
     private boolean rewardAlreadyEarned;
+
+    /** TỔNG số sao hiện tại của user sau khi cộng */
+    private int newTotalStars;
+
+    /** TỔNG số XP hiện tại của user */
+    private int newTotalXP;
 }
+

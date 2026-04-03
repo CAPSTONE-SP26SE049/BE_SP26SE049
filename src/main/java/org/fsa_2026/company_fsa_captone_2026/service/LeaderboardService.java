@@ -39,10 +39,12 @@ public class LeaderboardService {
     /**
      * Get global leaderboard with optional authenticated user's rank.
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public LeaderboardResponse getGlobalLeaderboard(LeaderboardPeriodType period,
                                                      LeaderboardSortBy sortBy,
                                                      String userEmail) {
+        refreshLeaderboard(LeaderboardScope.GLOBAL, null, period, sortBy);
+
         Optional<Leaderboard> lbOpt = leaderboardRepository
                 .findByScopeAndPeriodTypeAndSortByAndRegionCodeIsNullAndIsFinalizedFalse(
                         LeaderboardScope.GLOBAL, period, sortBy);
@@ -75,12 +77,14 @@ public class LeaderboardService {
     /**
      * Get regional leaderboard with optional authenticated user's rank.
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public LeaderboardResponse getRegionalLeaderboard(String regionCode,
                                                        LeaderboardPeriodType period,
                                                        LeaderboardSortBy sortBy,
                                                        String userEmail) {
         String normalizedRegion = regionCode.toUpperCase();
+        refreshLeaderboard(LeaderboardScope.REGIONAL, normalizedRegion, period, sortBy);
+
         Optional<Leaderboard> lbOpt = leaderboardRepository
                 .findByScopeAndPeriodTypeAndRegionCodeAndSortByAndIsFinalizedFalse(
                         LeaderboardScope.REGIONAL, period, normalizedRegion, sortBy);
@@ -140,10 +144,6 @@ public class LeaderboardService {
 
     // ─── Refresh / Snapshot Logic ────────────────────────────────────────
 
-    /**
-     * Refresh all leaderboard combinations.
-     * Called by the scheduler every 15 minutes.
-     */
     @Transactional
     public void refreshAllLeaderboards() {
         log.info("Starting leaderboard refresh...");
@@ -155,7 +155,8 @@ public class LeaderboardService {
                 refreshLeaderboard(LeaderboardScope.GLOBAL, null, period, sortBy);
 
                 // Regional leaderboards
-                for (String region : new String[]{"NORTH", "CENTRAL", "SOUTH"}) {
+                String[] regions = {"NORTH", "CENTRAL", "SOUTH", "MIEN_BAC", "MIEN_TRUNG", "MIEN_NAM", "BAC", "TRUNG", "NAM"};
+                for (String region : regions) {
                     refreshLeaderboard(LeaderboardScope.REGIONAL, region, period, sortBy);
                 }
             }
@@ -182,7 +183,9 @@ public class LeaderboardService {
         List<Account> top50 = getAccountsForScope(scope, regionCode, sortBy);
 
         // Delete old entries and insert new ones
+        // Flush ngay sau delete để tránh unique constraint khi insert cùng (leaderboard_id, account_id)
         leaderboardEntryRepository.deleteByLeaderboard(leaderboard);
+        leaderboardEntryRepository.flush();
 
         AtomicInteger rank = new AtomicInteger(1);
         List<LeaderboardEntry> entries = top50.stream()

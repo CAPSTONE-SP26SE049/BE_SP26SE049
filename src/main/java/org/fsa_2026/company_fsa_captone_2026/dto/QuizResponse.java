@@ -30,7 +30,7 @@ public class QuizResponse implements Serializable {
     private String description;
     private String instructions;
     private Integer passingScore;
-    private Integer timeLimitMinutes;
+    private Integer timeLimitSeconds;
     private Integer questionCount;
     private String status;
     private String rejectionReason;
@@ -45,7 +45,7 @@ public class QuizResponse implements Serializable {
         String description = "";
         String instructions = "";
         Integer passingScore = 0;
-        Integer timeLimitMinutes = 0;
+        Integer timeLimitSeconds = 0;
         String rejectionReason = "";
 
         try {
@@ -63,12 +63,17 @@ public class QuizResponse implements Serializable {
                     try { passingScore = Integer.parseInt((String) ps); } catch (NumberFormatException ignored) {}
                 }
 
-                // Robust parsing for time_limit_minutes
+                // Robust parsing for time_limit_seconds (fallback to minutes)
+                Object tls = metadata.get("time_limit_seconds");
                 Object tlm = metadata.get("time_limit_minutes");
-                if (tlm instanceof Number) {
-                    timeLimitMinutes = ((Number) tlm).intValue();
+                if (tls instanceof Number) {
+                    timeLimitSeconds = ((Number) tls).intValue();
+                } else if (tls instanceof String) {
+                    try { timeLimitSeconds = Integer.parseInt((String) tls); } catch (NumberFormatException ignored) {}
+                } else if (tlm instanceof Number) {
+                    timeLimitSeconds = ((Number) tlm).intValue() * 60;
                 } else if (tlm instanceof String) {
-                    try { timeLimitMinutes = Integer.parseInt((String) tlm); } catch (NumberFormatException ignored) {}
+                    try { timeLimitSeconds = Integer.parseInt((String) tlm) * 60; } catch (NumberFormatException ignored) {}
                 }
             }
         } catch (JsonProcessingException | ClassCastException ignored) {
@@ -99,7 +104,7 @@ public class QuizResponse implements Serializable {
                 .description(description)
                 .instructions(instructions)
                 .passingScore(passingScore)
-                .timeLimitMinutes(timeLimitMinutes)
+                .timeLimitSeconds(timeLimitSeconds)
                 .status(entity.getStatus())
                 .rejectionReason(rejectionReason)
                 .questions(questions)
@@ -112,7 +117,7 @@ public class QuizResponse implements Serializable {
         String description = "";
         String instructions = "";
         Integer passingScore = 0;
-        Integer timeLimitMinutes = 0;
+        Integer timeLimitSeconds = 0;
         List<QuizQuestionResponse> questions = new ArrayList<>();
 
         try {
@@ -129,12 +134,17 @@ public class QuizResponse implements Serializable {
                     try { passingScore = Integer.parseInt((String) ps); } catch (NumberFormatException ignored) {}
                 }
 
-                // Robust parsing for time_limit_minutes
+                // Robust parsing for time_limit_seconds (fallback to minutes)
+                Object tls = metadata.get("time_limit_seconds");
                 Object tlm = metadata.get("time_limit_minutes");
-                if (tlm instanceof Number) {
-                    timeLimitMinutes = ((Number) tlm).intValue();
+                if (tls instanceof Number) {
+                    timeLimitSeconds = ((Number) tls).intValue();
+                } else if (tls instanceof String) {
+                    try { timeLimitSeconds = Integer.parseInt((String) tls); } catch (NumberFormatException ignored) {}
+                } else if (tlm instanceof Number) {
+                    timeLimitSeconds = ((Number) tlm).intValue() * 60;
                 } else if (tlm instanceof String) {
-                    try { timeLimitMinutes = Integer.parseInt((String) tlm); } catch (NumberFormatException ignored) {}
+                    try { timeLimitSeconds = Integer.parseInt((String) tlm) * 60; } catch (NumberFormatException ignored) {}
                 }
 
                 // Map questions from questions array in metadataJson
@@ -159,7 +169,7 @@ public class QuizResponse implements Serializable {
                 .description(description)
                 .instructions(instructions)
                 .passingScore(passingScore)
-                .timeLimitMinutes(timeLimitMinutes)
+                .timeLimitSeconds(timeLimitSeconds)
                 .status("APPROVED") // Default for LU quizzes
                 .questions(questions)
                 .build();

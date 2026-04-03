@@ -84,7 +84,9 @@ public class BadgeController {
 
     /**
      * GET /badges — Toàn bộ huy hiệu (kể cả đang ẩn), dùng cho trang quản lý Admin
+     * MIGRATED to AdminController.java to fix security routing issues
      */
+    /*
     @GetMapping("/admin/rewards")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "[Admin] Get All Badges",
@@ -95,78 +97,6 @@ public class BadgeController {
         return ResponseEntity.ok(
                 ApiResponse.success("All badges retrieved successfully", adminService.getAllRewards()));
     }
+    */
 
-    /**
-     * GET /badges/{id} — Chi tiết một huy hiệu (admin)
-     */
-    @GetMapping("/admin/rewards/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "[Admin] Get Badge by ID",
-               description = "Returns detailed information of a badge by its ID",
-               security = @SecurityRequirement(name = "bearer-jwt"))
-    public ResponseEntity<ApiResponse<RewardResponse>> getById(@PathVariable UUID id) {
-        log.info("[Admin] GET /badges/{} — detail", id);
-        return ResponseEntity.ok(
-                ApiResponse.success("Badge retrieved successfully", adminService.getRewardById(id)));
-    }
-
-    /**
-     * POST /badges — Tạo huy hiệu mới (admin)
-     */
-    @PostMapping("/admin/rewards")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "[Admin] Create Badge",
-               description = "Creates a new badge with the specified category, criteria, and unlock conditions",
-               security = @SecurityRequirement(name = "bearer-jwt"))
-    public ResponseEntity<ApiResponse<RewardResponse>> create(
-            @Valid @RequestBody RewardCreateRequest request) {
-        log.info("[Admin] POST /badges — create: {}", request.getCode());
-        RewardResponse created = adminService.createReward(request);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Badge created successfully", created));
-    }
-
-    /**
-     * PUT /badges/{id} — Cập nhật huy hiệu (admin)
-     */
-    @PutMapping("/admin/rewards/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "[Admin] Update Badge",
-               description = "Updates an existing badge by its ID",
-               security = @SecurityRequirement(name = "bearer-jwt"))
-    public ResponseEntity<ApiResponse<RewardResponse>> update(
-            @PathVariable UUID id,
-            @Valid @RequestBody RewardCreateRequest request) {
-        log.info("[Admin] PUT /badges/{} — update", id);
-        return ResponseEntity.ok(
-                ApiResponse.success("Badge updated successfully", adminService.updateReward(id, request)));
-    }
-
-    /**
-     * PATCH /badges/{id}/toggle — Bật/Tắt hiển thị huy hiệu (admin)
-     */
-    @PatchMapping("/admin/rewards/{id}/toggle")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "[Admin] Toggle Badge Visibility",
-               description = "Toggles the badge active status (hidden ↔ visible to players)",
-               security = @SecurityRequirement(name = "bearer-jwt"))
-    public ResponseEntity<ApiResponse<RewardResponse>> toggle(@PathVariable UUID id) {
-        log.info("[Admin] PATCH /badges/{}/toggle", id);
-        return ResponseEntity.ok(
-                ApiResponse.success("Badge visibility updated", adminService.toggleRewardActive(id)));
-    }
-
-    /**
-     * DELETE /badges/{id} — Xóa huy hiệu vĩnh viễn (admin)
-     */
-    @DeleteMapping("/admin/rewards/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "[Admin] Delete Badge",
-               description = "Permanently deletes a badge. Prefer using toggle to hide instead of deleting.",
-               security = @SecurityRequirement(name = "bearer-jwt"))
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
-        log.info("[Admin] DELETE /badges/{}", id);
-        adminService.deleteReward(id);
-        return ResponseEntity.ok(ApiResponse.success("Badge deleted successfully", null));
-    }
 }

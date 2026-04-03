@@ -16,11 +16,7 @@ public class LeaderboardScheduler {
 
     private final LeaderboardService leaderboardService;
 
-    /**
-     * Refresh all leaderboard combinations every 15 minutes (900,000 ms).
-     * Also runs on startup after a 10-second delay.
-     */
-    @Scheduled(fixedRate = 900000, initialDelay = 10000)
+    @Scheduled(fixedRate = 60000, initialDelay = 10000)
     public void refreshLeaderboards() {
         try {
             leaderboardService.refreshAllLeaderboards();

@@ -14,6 +14,7 @@ import org.fsa_2026.company_fsa_captone_2026.dto.QuizChallengeItemResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.QuizCompleteRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.QuizCompleteResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.UserProfileResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.UserRegionProgressResponse;
 import org.fsa_2026.company_fsa_captone_2026.service.AuthService;
 import org.fsa_2026.company_fsa_captone_2026.service.ChallengeBankService;
 import org.fsa_2026.company_fsa_captone_2026.service.QuizService;
@@ -125,6 +126,23 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách câu hỏi trong quiz thành công", challenges));
     }
 
+    @GetMapping("/quizzes/{quizId}")
+    @Operation(
+            summary = "Get quiz details for user",
+            description = "Lấy thông tin chi tiết quiz (tên, mô tả, thời gian, điểm sàn...) cho User",
+            security = @SecurityRequirement(name = "bearer-jwt")
+    )
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getQuizDetailsForUser(
+            @PathVariable UUID quizId,
+            Authentication authentication) {
+
+        log.info("User {} lấy thông tin chi tiết quiz: {}", authentication.getName(), quizId);
+
+        Map<String, Object> quiz = quizService.getQuizDetails(quizId);
+        return ResponseEntity.ok(ApiResponse.success("Lấy thông tin quiz thành công", quiz));
+    }
+
+
     // ==========================================
     // Quiz Completion & Progress
     // ==========================================
@@ -181,5 +199,12 @@ public class UserController {
         log.info("User {} getting rewards", authentication.getName());
         return ResponseEntity.ok(ApiResponse.success("Lấy thành tựu thành công",
                 quizService.getUserRewards(authentication.getName())));
+    }
+
+    @GetMapping("/me/progress")
+    public ResponseEntity<ApiResponse<UserRegionProgressResponse>> getMyProgress(Authentication authentication) {
+        log.info("Getting progress for user: {}", authentication.getName());
+        UserRegionProgressResponse progress = quizService.getMyProgressSummary(authentication.getName());
+        return ResponseEntity.ok(ApiResponse.success("Lấy tiến trình thành công", progress));
     }
 }

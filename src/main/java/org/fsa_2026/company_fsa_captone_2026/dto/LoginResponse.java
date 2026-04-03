@@ -34,6 +34,11 @@ public class LoginResponse implements Serializable {
         private String avatar;
         /** Current consecutive login streak in days */
         private int currentStreakDays;
+        /** Total stars earned across all quizzes */
+        private int totalStars;
+        /** Total XP earned */
+        private int totalExperience;
     }
 }
+
 

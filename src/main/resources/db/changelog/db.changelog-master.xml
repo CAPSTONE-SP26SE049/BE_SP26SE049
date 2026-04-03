@@ -72,4 +72,6 @@
 
     <include file="db/changelog/38-data-cleanup.xml"/>
 
+    <include file="db/changelog/39-drop-reward-catalog-data.xml"/>
+    <include file="db/changelog/40-seed-achievements.xml"/>
 </databaseChangeLog>

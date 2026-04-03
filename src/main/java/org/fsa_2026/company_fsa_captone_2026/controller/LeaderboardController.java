@@ -90,4 +90,14 @@ public class LeaderboardController {
         }
         return ResponseEntity.ok(ApiResponse.success("Lấy thứ hạng thành công", myRank));
     }
+
+    // ─── Manual Refresh ─────────────────────────────────────────────────
+
+    @PostMapping("/refresh")
+    @Operation(summary = "Manual Refresh Leaderboards", description = "Force all leaderboard snapshots to update immediately.")
+    public ResponseEntity<ApiResponse<Void>> refreshLeaderboards() {
+        log.info("Manual leaderboard refresh requested");
+        leaderboardService.refreshAllLeaderboards();
+        return ResponseEntity.ok(ApiResponse.success("Đã làm mới bảng xếp hạng", null));
+    }
 }

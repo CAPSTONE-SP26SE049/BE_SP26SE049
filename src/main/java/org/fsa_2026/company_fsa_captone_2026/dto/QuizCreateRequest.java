@@ -32,7 +32,7 @@ public class QuizCreateRequest implements Serializable {
     @NotNull(message = "Passing score is required")
     private Integer passingScore;
 
-    private Integer timeLimitMinutes;
+    private Integer timeLimitSeconds;
 
     private Integer questionCount;
 

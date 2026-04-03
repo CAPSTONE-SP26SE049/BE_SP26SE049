@@ -23,6 +23,7 @@ import org.fsa_2026.company_fsa_captone_2026.dto.UserStatusUpdateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.UserUpdateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.AnalyticsOverviewResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.SystemHealthResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.RewardResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -286,6 +287,68 @@ public class AdminController {
         List<org.fsa_2026.company_fsa_captone_2026.dto.ContentApprovalHistoryResponse> responses = adminService
                 .getContentApprovalHistory(id);
         return ResponseEntity.ok(ApiResponse.success("Lấy lịch sử duyệt thành công", responses));
+    }
+
+    // ==========================================
+    // 1e. Content Management: Rewards/Achievements
+    // ==========================================
+
+    @GetMapping("/rewards")
+    @Operation(summary = "Get All Rewards", description = "Retrieves a list of all rewards/badges for admin")
+    public ResponseEntity<ApiResponse<List<RewardResponse>>> getAllRewards() {
+        log.info("Admin retrieving all rewards");
+        List<RewardResponse> responses = adminService.getAllRewards();
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách thành tựu thành công", responses));
+    }
+
+    @GetMapping("/rewards/{id}")
+    @Operation(summary = "Get Reward by ID", description = "Get details of a specific reward/badge by ID")
+    public ResponseEntity<ApiResponse<RewardResponse>> getRewardById(@PathVariable UUID id) {
+        log.info("Admin retrieving reward detail ID: {}", id);
+        return ResponseEntity.ok(ApiResponse.success("Lấy thông tin thành tựu thành công", adminService.getRewardById(id)));
+    }
+
+    @PostMapping("/rewards")
+    @Operation(summary = "Create Reward", description = "Create a new reward/badge")
+    public ResponseEntity<ApiResponse<RewardResponse>> createReward(
+            @Valid @RequestBody org.fsa_2026.company_fsa_captone_2026.dto.RewardCreateRequest request) {
+        log.info("Admin creating a new reward: {}", request.getCode());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Tạo thành tựu thành công", adminService.createReward(request)));
+    }
+
+    @PutMapping("/rewards/{id}")
+    @Operation(summary = "Update Reward", description = "Update an existing reward/badge by ID")
+    public ResponseEntity<ApiResponse<RewardResponse>> updateReward(
+            @PathVariable UUID id,
+            @Valid @RequestBody org.fsa_2026.company_fsa_captone_2026.dto.RewardCreateRequest request) {
+        log.info("Admin updating reward ID: {}", id);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật thành tựu thành công", adminService.updateReward(id, request)));
+    }
+
+    @DeleteMapping("/rewards/{id}")
+    @Operation(summary = "Delete Reward", description = "Delete a reward/badge by ID")
+    public ResponseEntity<ApiResponse<Void>> deleteReward(@PathVariable UUID id) {
+        log.info("Admin deleting reward ID: {}", id);
+        adminService.deleteReward(id);
+        return ResponseEntity.ok(ApiResponse.success("Xóa thành tựu thành công", null));
+    }
+
+    @PatchMapping("/rewards/{id}/toggle")
+    @Operation(summary = "Toggle Reward Status", description = "Turn a reward active status on or off")
+    public ResponseEntity<ApiResponse<RewardResponse>> toggleReward(@PathVariable UUID id) {
+        log.info("Admin toggling reward status ID: {}", id);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái thành tựu thành công", adminService.toggleRewardActive(id)));
+    }
+
+    @PostMapping("/rewards/{rewardId}/attach/{quizId}")
+    @Operation(summary = "Attach Reward to Quiz", description = "Link a reward/badge to a specific quiz")
+    public ResponseEntity<ApiResponse<Void>> attachRewardToQuiz(
+            @PathVariable UUID rewardId,
+            @PathVariable UUID quizId) {
+        log.info("Admin attaching reward ID: {} to quiz ID: {}", rewardId, quizId);
+        adminService.attachRewardToQuiz(rewardId, quizId);
+        return ResponseEntity.ok(ApiResponse.success("Gán thành tựu cho quiz thành công", null));
     }
 
     // ==========================================

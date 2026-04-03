@@ -12,6 +12,7 @@ import org.fsa_2026.company_fsa_captone_2026.dto.QuizCompleteResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.QuizCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.QuizQuestionRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.RewardResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.UserRegionProgressResponse;
 import org.fsa_2026.company_fsa_captone_2026.entity.Account;
 import org.fsa_2026.company_fsa_captone_2026.entity.AccountLearningUnit;
 import org.fsa_2026.company_fsa_captone_2026.entity.AccountReward;
@@ -67,6 +68,18 @@ public class QuizService {
                 .name(request.getTitle())
                 .type("QUIZ")
                 .build();
+
+        // Tính toán orderIndex tự động nếu trống
+        if (request.getOrderIndex() == null) {
+            // Sử dụng ID để tránh các vấn đề liên quan đến Hibernate Proxy/Persistence Context
+            List<LearningUnit> existingQuizzes = learningUnitRepository.findByParentIdAndType(level.getId(), "QUIZ");
+            
+            int maxOrder = existingQuizzes.stream()
+                    .mapToInt(this::extractOrderIndexFromMetadata)
+                    .max()
+                    .orElse(0);
+            request.setOrderIndex(maxOrder + 1);
+        }
 
         Map<String, Object> metadata = buildQuizMetadata(request);
         try {
@@ -202,15 +215,20 @@ public class QuizService {
         Account account = accountRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy người dùng"));
 
-        // 3. Lấy passing_score từ metadata
-        int passingScore = getPassingScoreFromMetadata(quiz);
-        boolean passed = request.getScore() >= passingScore;
+        // 4. Tính toán tỷ lệ phần trăm đúng
+        int total = request.getTotalQuestions() != null ? request.getTotalQuestions() : 10;
+        int correct = request.getCorrectAnswers() != null ? request.getCorrectAnswers() : 0;
+        double percentage = (double) correct / total * 100.0;
 
-        // 4. Tính stars (1-3 sao)
-        int stars = calculateStars(request.getScore(), passingScore);
+        // 5. Tính số sao dựa trên phần trăm: >=40% (1 sao), >=60% (2 sao), >=80% (3 sao)
+        int stars = calculateStarsBasedOnPercentage(percentage);
 
-        // 5. Lưu progress vào AccountLearningUnit
-        saveProgress(account, quiz, stars, passed, request.getScore());
+        // 6. Theo yêu cầu: Chỉ coi là hoàn thành (để mở quiz sau) nếu đạt >= 2 sao (tức >= 60%)
+        boolean passed = stars >= 2;
+
+        // 7. Lưu progress vào AccountLearningUnit (Lưu score là phần trăm)
+        saveProgress(account, quiz, stars, passed, (int) Math.round(percentage));
+
 
         // 6. Nếu ĐẠT và quiz có gắn reward → trao reward tự động
         RewardResponse earnedReward = null;
@@ -240,15 +258,21 @@ public class QuizService {
             }
         }
 
+        int percentageInt = (int) Math.round(percentage);
         return QuizCompleteResponse.builder()
                 .passed(passed)
-                .score(request.getScore())
-                .passingScore(passingScore)
+                .score(percentageInt)
+                .passingScore(60) // Theo yêu cầu mới: Cần đạt 60% để tính là Pass (mở màn tiếp)
                 .starsEarned(stars)
                 .earnedReward(earnedReward)
                 .rewardAlreadyEarned(alreadyEarned)
+                .newTotalStars(account.getTotalStars() != null ? account.getTotalStars() : 0)
+                .newTotalXP(account.getTotalExperience() != null ? account.getTotalExperience() : 0)
                 .build();
     }
+
+
+
 
     // ==========================================
     // Quiz Scoring Recalculation (for admin/educator updates)
@@ -305,7 +329,8 @@ public class QuizService {
         scoring.put("totalPoints", totalPoints);
         scoring.put("passingScorePercent", passingPercent);
         scoring.put("passingScorePoints", passingScorePoints);
-        scoring.put("starRule", Map.of("oneStar", 30, "twoStars", 60, "threeStars", 85));
+        scoring.put("starRule", Map.of("oneStar", 40, "twoStars", 60, "threeStars", 80));
+
         return scoring;
     }
 
@@ -331,8 +356,9 @@ public class QuizService {
         Account account = accountRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy người dùng"));
 
-        // 3. Lấy tất cả quiz trong level
+        // 3. Lấy tất cả quiz trong level và sắp xếp theo orderIndex
         List<LearningUnit> quizzes = learningUnitRepository.findByParentAndType(level, "QUIZ");
+        quizzes.sort(java.util.Comparator.comparingInt(this::extractOrderIndexFromMetadata));
 
         // 4. Lấy progress của user cho tất cả quiz
         List<AccountLearningUnit> progressList = accountLearningUnitRepository.findByAccountId(account.getId());
@@ -343,12 +369,18 @@ public class QuizService {
                         (existing, replacement) -> existing
                 ));
 
-        // 5. Lấy rewards đã nhận
+        // 5. Lấy rewards đã nhận (AccountReward)
         List<AccountReward> userRewards = accountRewardRepository.findByAccountId(account.getId());
+        log.info("Checking rewards for user {}: found {} records in account_reward", userEmail, userRewards.size());
+        
         java.util.Set<UUID> earnedRewardIds = userRewards.stream()
-                .filter(ar -> "UNLOCKED".equals(ar.getStatus()))
+                .filter(ar -> "UNLOCKED".equalsIgnoreCase(ar.getStatus()))
                 .map(ar -> ar.getRewardCatalog().getId())
                 .collect(Collectors.toSet());
+        
+        if (!earnedRewardIds.isEmpty()) {
+            log.info("User {} has earned {} unique reward IDs: {}", userEmail, earnedRewardIds.size(), earnedRewardIds);
+        }
 
         // 6. Build response
         int completedCount = 0;
@@ -360,11 +392,18 @@ public class QuizService {
             if (completed) completedCount++;
 
             RewardCatalog reward = quiz.getRewardCatalog();
-            boolean rewardEarned = reward != null && earnedRewardIds.contains(reward.getId());
+            boolean rewardEarned = false;
+            
+            if (reward != null) {
+                rewardEarned = earnedRewardIds.contains(reward.getId());
+                log.debug("Quiz '{}' ({}): Reward '{}' (ID={}) earned? {}", 
+                    quiz.getName(), quiz.getId(), reward.getName(), reward.getId(), rewardEarned);
+            }
 
             LevelProgressResponse.QuizProgressItem item = LevelProgressResponse.QuizProgressItem.builder()
                     .quizId(quiz.getId())
                     .quizName(quiz.getName())
+                    .orderIndex(extractOrderIndexFromMetadata(quiz))
                     .passingScore(getPassingScoreFromMetadata(quiz))
                     .completed(completed)
                     .highestScore(progress != null && progress.getHighestScore() != null
@@ -473,16 +512,75 @@ public class QuizService {
 
     /**
      * Tính số sao theo yêu cầu mới:
-     * - >= 85%: 3 sao
+     * - >= 80%: 3 sao
      * - >= 60%: 2 sao
-     * - >= 30%: 1 sao
-     * - < 30%: 0 sao
+     * - >= 40%: 1 sao
+     * - < 40%: 0 sao
      */
-    private int calculateStars(int score, int passingScore) {
-        if (score >= 85) return 3;
-        if (score >= 60) return 2;
-        if (score >= 30) return 1;
+    private int calculateStarsBasedOnPercentage(double percentage) {
+        if (percentage >= 80) return 3;
+        if (percentage >= 60) return 2;
+        if (percentage >= 40) return 1;
         return 0;
+    }
+
+
+    /**
+     * Lấy tóm tắt tiến trình theo từng vùng miền (MIEN_BAC, MIEN_TRUNG, MIEN_NAM).
+     */
+    @Transactional(readOnly = true)
+    public UserRegionProgressResponse getMyProgressSummary(String email) {
+        Account account = accountRepository.findByEmail(email)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Người dùng không tồn tại"));
+
+        // Lấy tất cả dialects (levels cha)
+        List<LearningUnit> dialects = learningUnitRepository.findByType("DIALECT");
+        List<AccountLearningUnit> allProgress = accountLearningUnitRepository.findByAccountId(account.getId());
+        
+        java.util.Map<UUID, AccountLearningUnit> progressMap = allProgress.stream()
+                .collect(Collectors.toMap(
+                        al -> al.getLearningUnit().getId(),
+                        al -> al,
+                        (e, r) -> e
+                ));
+
+        List<UserRegionProgressResponse.RegionProgress> regionList = new java.util.ArrayList<>();
+
+        for (LearningUnit dialect : dialects) {
+            // Lấy tất cả các levels thuộc dialect này
+            List<LearningUnit> levels = learningUnitRepository.findByParentId(dialect.getId());
+            int totalStars = 0;
+            int totalQuizzes = 0;
+            int completedQuizzes = 0;
+
+            for (LearningUnit level : levels) {
+                List<LearningUnit> quizzes = learningUnitRepository.findByParentIdAndType(level.getId(), "QUIZ");
+                totalQuizzes += quizzes.size();
+                for (LearningUnit quiz : quizzes) {
+                    AccountLearningUnit p = progressMap.get(quiz.getId());
+                    if (p != null) {
+                        totalStars += p.getStarsEarned();
+                        if (Boolean.TRUE.equals(p.getIsCompleted())) {
+                            completedQuizzes++;
+                        }
+                    }
+                }
+            }
+
+            double percentage = totalQuizzes > 0 ? (double) completedQuizzes / totalQuizzes * 100 : 0;
+
+            regionList.add(UserRegionProgressResponse.RegionProgress.builder()
+                    .regionName(dialect.getName())
+                    .totalStars(totalStars)
+                    .totalQuizzes(totalQuizzes)
+                    .completedQuizzes(completedQuizzes)
+                    .completionPercentage(percentage)
+                    .build());
+        }
+
+        return UserRegionProgressResponse.builder()
+                .regions(regionList)
+                .build();
     }
 
     /**
@@ -493,15 +591,21 @@ public class QuizService {
                 accountLearningUnitRepository.findByAccountIdAndLearningUnitId(account.getId(), quiz.getId());
 
         AccountLearningUnit progress;
+        int oldStars = 0;
+        
         if (existingOpt.isPresent()) {
             progress = existingOpt.get();
-            // Chỉ cập nhật nếu score/stars mới cao hơn
-            if (stars > progress.getStarsEarned()) {
+            oldStars = progress.getStarsEarned() != null ? progress.getStarsEarned() : 0;
+            
+            // Update stars if higher
+            if (stars > oldStars) {
                 progress.setStarsEarned(stars);
             }
-            if (passed && !progress.getIsCompleted()) {
+            // Update completion if passed
+            if (passed) {
                 progress.setIsCompleted(true);
             }
+            
             BigDecimal newScore = BigDecimal.valueOf(score);
             if (progress.getHighestScore() == null || newScore.compareTo(progress.getHighestScore()) > 0) {
                 progress.setHighestScore(newScore);
@@ -515,14 +619,31 @@ public class QuizService {
                     .highestScore(BigDecimal.valueOf(score))
                     .build();
         }
+        
+        // Update Account total stars & XP (only the delta if new score is higher)
+        if (stars > oldStars) {
+            int delta = stars - oldStars;
+            
+            int currentTotalStars = account.getTotalStars() != null ? account.getTotalStars() : 0;
+            account.setTotalStars(currentTotalStars + delta);
+            
+            // Give 10 XP per NEW star
+            int currentTotalXp = account.getTotalExperience() != null ? account.getTotalExperience() : 0;
+            account.setTotalExperience(currentTotalXp + (delta * 10));
+            
+            accountRepository.save(account);
+        }
+
+
         accountLearningUnitRepository.save(progress);
     }
+
 
     private Map<String, Object> buildQuizMetadata(QuizCreateRequest request) {
         Map<String, Object> metadata = new LinkedHashMap<>();
         metadata.put("description", request.getDescription());
         metadata.put("instructions", request.getInstructions());
-        metadata.put("time_limit_minutes", request.getTimeLimitMinutes());
+        metadata.put("time_limit_seconds", request.getTimeLimitSeconds());
         metadata.put("passing_score", request.getPassingScore());
         metadata.put("points_per_question", request.getPointsPerQuestion());
         metadata.put("difficulty", request.getDifficulty());
@@ -544,44 +665,61 @@ public class QuizService {
         Map<String, Object> metadata = new LinkedHashMap<>();
         if (quiz.getMetadataJson() != null) {
             try {
-                metadata = objectMapper.readValue(quiz.getMetadataJson(), new TypeReference<Map<String, Object>>() {
-                });
-            } catch (JsonProcessingException e) {
-                throw new ApiException("INVALID_METADATA", "Quiz metadata không hợp lệ");
+                metadata = objectMapper.readValue(quiz.getMetadataJson(), new TypeReference<Map<String, Object>>() {});
+            } catch (Exception e) {
+                log.warn("Failed to parse quiz metadata for {}: {}", quiz.getId(), e.getMessage());
             }
         }
 
-        response.put("description", metadata.get("description"));
-        response.put("instructions", metadata.get("instructions"));
-        response.put("timeLimitMinutes", metadata.get("time_limit_minutes"));
-        response.put("passingScore", metadata.get("passing_score"));
-        response.put("pointsPerQuestion", metadata.get("points_per_question"));
-        response.put("difficulty", metadata.get("difficulty"));
-        response.put("skillType", metadata.get("skill_type"));
+        response.put("description", metadata.getOrDefault("description", ""));
+        response.put("instructions", metadata.getOrDefault("instructions", ""));
 
-        List<QuizQuestionRequest> questions = metadata.containsKey("questions")
-                ? objectMapper.convertValue(metadata.get("questions"), new TypeReference<List<QuizQuestionRequest>>() {
-                })
-                : List.of();
-        response.put("questions", questions);
-        response.put("questionCount", metadata.get("question_count"));
-        response.put("comment", metadata.get("comment"));
-        response.put("skillType", metadata.get("skill_type"));
+        // Robust parsing for timeLimitSeconds
+        Object tls = metadata.get("time_limit_seconds");
+        Object tlm = metadata.get("time_limit_minutes");
+        Integer timeLimitSeconds = 0;
+        try {
+            if (tls instanceof Number) timeLimitSeconds = ((Number) tls).intValue();
+            else if (tlm instanceof Number) timeLimitSeconds = ((Number) tlm).intValue() * 60;
+            else if (tls instanceof String) timeLimitSeconds = Integer.parseInt((String) tls);
+            else if (tlm instanceof String) timeLimitSeconds = Integer.parseInt((String) tlm) * 60;
+        } catch (Exception ignored) {}
+        
+        response.put("timeLimitSeconds", timeLimitSeconds);
+        response.put("passingScore", metadata.getOrDefault("passing_score", 60));
+        response.put("difficulty", metadata.getOrDefault("difficulty", "BEGINNER"));
+        response.put("questionCount", metadata.getOrDefault("question_count", 0));
+        response.put("orderIndex", metadata.getOrDefault("orderIndex", 0));
+        response.put("skillType", metadata.getOrDefault("skill_type", "READING"));
+        response.put("comment", metadata.getOrDefault("comment", ""));
 
-        // Thêm thông tin reward
+        // Reward Info
         RewardCatalog reward = quiz.getRewardCatalog();
         if (reward != null) {
             response.put("rewardCatalogId", reward.getId());
             response.put("rewardName", reward.getName());
             response.put("rewardIconUrl", reward.getIconUrl());
-        } else {
-            response.put("rewardCatalogId", null);
-            response.put("rewardName", null);
-            response.put("rewardIconUrl", null);
         }
-
-        response.put("orderIndex", metadata.get("orderIndex"));
 
         return response;
     }
+
+    private int extractOrderIndexFromMetadata(LearningUnit quiz) {
+        if (quiz.getMetadataJson() == null || quiz.getMetadataJson().isBlank()) return 0;
+        try {
+            Map<String, Object> metadata = objectMapper.readValue(
+                    quiz.getMetadataJson(), new TypeReference<Map<String, Object>>() {});
+            Object oi = metadata.get("orderIndex");
+            if (oi instanceof Number) return ((Number) oi).intValue();
+            if (oi instanceof String) {
+                try {
+                    return Integer.parseInt((String) oi);
+                } catch (NumberFormatException ignored) {
+                    return 0;
+                }
+            }
+        } catch (Exception ignored) {}
+        return 0;
+    }
+
 }

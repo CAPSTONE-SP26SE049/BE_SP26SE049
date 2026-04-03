@@ -202,8 +202,11 @@ public class AuthService {
                         .region(account.getRegion())
                         .avatar(account.getAvatarUrl())
                         .currentStreakDays(account.getCurrentStreakDays())
+                        .totalStars(account.getTotalStars() != null ? account.getTotalStars() : 0)
+                        .totalExperience(account.getTotalExperience() != null ? account.getTotalExperience() : 0)
                         .build())
                 .build();
+
     }
 
     /**

@@ -61,5 +61,8 @@ public class LevelProgressResponse implements Serializable {
 
         /** Người chơi đã nhận thành tựu này chưa */
         private boolean rewardEarned;
+
+        /** Số thứ tự bài quiz trong level (1-indexed) */
+        private Integer orderIndex;
     }
 }

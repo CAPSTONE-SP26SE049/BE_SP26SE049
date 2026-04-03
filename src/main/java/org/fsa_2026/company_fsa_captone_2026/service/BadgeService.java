@@ -38,7 +38,7 @@ public class BadgeService {
         Account account = accountRepository.findByEmail(email)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Người dùng không tồn tại"));
 
-        return accountRewardRepository.findByAccountIdAndRewardType(account.getId(), RewardType.BADGE)
+        return accountRewardRepository.findByAccountIdAndStatusIgnoreCase(account.getId(), "UNLOCKED")
                 .stream()
                 .map(AccountBadgeResponse::fromEntity)
                 .collect(Collectors.toList());

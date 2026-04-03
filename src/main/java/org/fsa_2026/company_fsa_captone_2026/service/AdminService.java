@@ -548,6 +548,35 @@ public class AdminService {
     }
 
     /**
+     * Attach/Detach a reward to a quiz.
+     */
+    @Transactional
+    public void attachRewardToQuiz(UUID rewardId, UUID quizId) {
+        LearningUnit quiz = learningUnitRepository.findById(quizId)
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy bài kiểm tra"));
+        
+        RewardCatalog reward = rewardCatalogRepository.findById(rewardId)
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy thành tựu"));
+
+        // Rule: Each reward can only be assigned to one quiz
+        Optional<LearningUnit> otherQuiz = learningUnitRepository.findByRewardCatalogId(rewardId);
+        if (otherQuiz.isPresent() && !otherQuiz.get().getId().equals(quizId)) {
+            throw new ApiException("CONFLICT", "Thành tựu này đã được gán cho bài kiểm tra: " + otherQuiz.get().getName());
+        }
+
+        // Toggle logic
+        if (quiz.getRewardCatalog() != null && quiz.getRewardCatalog().getId().equals(rewardId)) {
+            quiz.setRewardCatalog(null);
+            log.info("Detached reward {} from quiz {}", rewardId, quizId);
+        } else {
+            quiz.setRewardCatalog(reward);
+            log.info("Attached reward {} to quiz {}", rewardId, quizId);
+        }
+
+        learningUnitRepository.save(quiz);
+    }
+
+    /**
      * Enrich RewardResponse with linked quiz/level information.
      */
     private RewardResponse enrichRewardResponse(RewardCatalog reward) {

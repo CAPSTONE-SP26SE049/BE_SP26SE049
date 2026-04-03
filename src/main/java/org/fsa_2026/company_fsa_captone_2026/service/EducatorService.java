@@ -350,7 +350,7 @@ public class EducatorService {
         metadata.put("description", request.getDescription());
         metadata.put("instructions", request.getInstructions());
         metadata.put("passing_score", request.getPassingScore());
-        metadata.put("time_limit_minutes", request.getTimeLimitMinutes());
+        metadata.put("time_limit_seconds", request.getTimeLimitSeconds());
         metadata.put("rejection_reason", "");
         return metadata;
     }
