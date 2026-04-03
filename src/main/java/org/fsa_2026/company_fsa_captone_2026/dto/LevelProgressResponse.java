@@ -62,6 +62,9 @@ public class LevelProgressResponse implements Serializable {
         /** Người chơi đã nhận thành tựu này chưa */
         private boolean rewardEarned;
 
+        /** Loại kĩ năng (READING, LISTENING, SPEAKING, WRITING, MIXED) */
+        private String skillType;
+
         /** Số thứ tự bài quiz trong level (1-indexed) */
         private Integer orderIndex;
     }
