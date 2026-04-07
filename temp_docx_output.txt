@@ -1,0 +1,79 @@
+ 
+ 
+CAPSTONE PROJECT REGISTER 
+ 
+Class:            Duration time:  from 01/01/2026 To 30/04/2026
+(*) Profession: <Software Engineer>                   Specialty: <ES>    <IS>     <JS>                              
+(*) Kinds of person make registers:              Lecturer                Students  
+ 
+1. Register information for supervisor (if have) 
+No.
+Fullname
+Phone
+E-Mail 
+Title 
+  Supervisor 
+Lại Đức Hùng
+hungld5@fe.edu.vn
+ 
+  Supervisor 
+2. Register information for students (if have) 
+ 
+Full name 
+Student code 
+Phone 
+E-mail 
+Role in Group 
+Nguyễn Đức Tuấn 
+SE173318
+0387050243
+tuanndse173318@fpt.edu.vn
+Leader
+Lê Quốc Bảo
+SE181942
+0915243557
+Baolqse181942@fpt.edu.vn
+Member
+Nguyễn Viết Hậu
+SE180516
+0975519659
+haunvse180516@fpt.edu.vn
+Member
+Phan Hoàng Duy Kha
+SE172604
+0913676651
+Khaphdse172604@fpt.edu.vn
+Member
+ 
+3. Register content of Capstone Project 
+(*) 3.1. Capstone Project name: 
+English: SpeakVN Journey - AI-Powered Vietnamese Pronunciation Correction Game
+Vietnamese: Hành Trình Nói Chuẩn - Game Rèn Luyện Phát Âm Tiếng Việt Với AI
+Abbreviation: SP26SE049
+Context: 
+Vietnamese regional accents create pronunciation challenges, especially N/L confusion in Northern regions (Hải Phòng, Hải Dương), S/X in Central, and D/GI/R in Southern areas. These patterns create communication barriers in professional contexts.Traditional speech therapy costs 500,000-1,000,000 VND per session and is inaccessible to most citizens. Current apps focus on foreign languages, leaving a gap for Vietnamese pronunciation correction. AI speech recognition and gamification enable scalable solutions for millions of speakers.
+Proposed Solutions 
+•Gamified journey mapping Vietnam (North to South) with region-specific pronunciation challenges•AI speech recognition detecting regional pronunciation errors in real-time•Adaptive difficulty personalizing practice based on individual error patterns•Visual phonetic feedback showing tongue/mouth positioning•Multi-modal learning: audio recognition, visual cues, interactive mini-games  
+Functional requirement 
+Player Mobile & Web Application•Character creation with pronunciation assessment (identify regional accent)•Map progression: 3 regions (North/Central/South), 15 levels, 5 pronunciation pairs (N/L, S/X, D/GI/R, TR/CH)•Mini-games: word challenges, sentence completion, conversation simulation•Real-time AI analysis with visual/audio feedback, star-based scoring (1-3 stars)•Achievement system (50+ badges), daily challenges, streak tracking•Interactive phonetic guide with 3D mouth/tongue animations•Progress analytics dashboard, personalized recommendations•Friend system, regional leaderboards, weekly tournamentsAI-Powered Intelligence Features•Vietnamese phoneme classification using Wav2Vec 2.0 fine-tuned on Vietnamese dataset•Regional accent detection (Northern/Central/Southern dialects)•Consonant confusion detection (N/L, S/X, D/R/GI, TR/CH pairs)•Tone accuracy measurement (6 Vietnamese tones) via pitch contour analysis•Real-time feedback latency < 500ms•Adaptive learning: dynamic difficulty adjustment, personalized word selection•Audio processing: noise reduction, voice activity detection, MFCC feature extractionAdmin Dashboard (Web)•Content management: upload pronunciation training content by region/difficulty•User analytics: aggregate statistics, error pattern heat maps, engagement metrics•System monitoring: AI model performance, server health, user feedback managementEducator Portal (Web)•Student account management with custom learning paths•Progress monitoring with detailed pronunciation analytics•Custom lesson plans, achievement goals, feedback delivery
+   Non-functional requirement: 
+•Performance: AI inference < 500ms, app load < 3s, support 5,000 concurrent users, 99.5% uptime•Compatibility: iOS 13.0+, Android 8.0+, modern browsers (Chrome 90+, Firefox 88+)•Accessibility: volume controls, visual-only mode, font customization, offline mode (50 words)•Security: AES-256 encryption, GDPR compliance (30-day retention), parental consent for under 16
+(*) 3.2. Main proposal content (including result and product)   
+Theory and practice (document):
+Students apply agile development with UML 2.0 modeling. Documents include: User Requirements, SRS, Architecture Design, Database Schema, AI Model Report, Testing Strategy, User Manual, API Documentation, source code, and deployable packages.Server-side technologies:•Backend: Python FastAPI / Node.js Express / Go Gin•Database: PostgreSQL + Redis (cache) / MongoDB•AI/ML: Wav2Vec 2.0, Whisper, or Google Speech-to-Text API; PyTorch/TensorFlow; ONNX Runtime•Cloud: GCP (Vertex AI) / AWS (SageMaker) / Azure (Cognitive Services)•Audio: FFmpeg, Librosa, Celery/Bull for background jobsClient-side technologies:•Mobile: Flutter / React Native / Native (Swift + Kotlin)•Web: React.js (Next.js) / Vue.js (Nuxt); Tailwind CSS + shadcn/ui•Game: Phaser 3 (2D engine), Three.js (3D visualization)•Audio: RecordRTC, Flutter Sound, Web Audio API•Visualization: Chart.js, D3.jsAI/ML Development:•Dataset: 10,000+ voice samples from 3 regions, linguistic expert annotations•Model: Fine-tune Wav2Vec 2.0, custom CNN-LSTM architecture•Training: Google Colab Pro / AWS GPU, MLflow versioning, data augmentation•Optimization: INT8 quantization for mobile, model pruning (30-50% size reduction)
+Products:
+•Mobile App (iOS & Android): Full game with offline mode, on-device ML model•Web App: Browser-based with identical features, responsive design•Backend API: RESTful + WebSocket for real-time features•AI Model Suite: Pronunciation accuracy, accent classifier, tone detector•Admin Dashboard & Educator Portal: Content management, analytics, student tracking•Documentation: Architecture diagrams, API docs, user manuals, deployment guides
+Proposed Tasks:
+•Package 1 (Week 1-2): Core infrastructure, database design, authentication, API structure•Package 2 (Week 3-4): Game engine, map UI, level progression, mini-game templates, achievements•Package 3 (Week 5-7): AI integration - audio recording, model integration, phoneme extraction, scoring, fine-tuning•Package 4 (Week 8-10): Adaptive difficulty, personalized recommendations, analytics dashboard, 3D visualization•Package 5 (Week 11-12): Social features - friend system, leaderboards, tournaments, educator messaging•Package 6 (Week 13-14): Testing (unit/integration/E2E), optimization, beta testing, deployment, documentation
+ 
+4. Other comments (propose all relative things if have). 
+ 
+            
+Supervisor (If have) 
+ (Sign and full name) 
+Lại Đức Hùng
+HCM, date 21/11/2025
+On behalf of Registers  
+(Sign and full name) 
+Nguyễn Đức Tuấn
+ 
