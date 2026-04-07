@@ -69,7 +69,7 @@ public class AdminExcelController {
 
     @GetMapping("/levels/template")
     @Operation(summary = "Tải template Excel tạo chương học (Level)",
-            description = "Cột: name,parent_id,level_order,ai_threshold,min_stars_required,description,comment")
+            description = "Cột: Tên chương học, Phương ngữ, Mô tả")
     public ResponseEntity<byte[]> downloadLevelsTemplate() {
         byte[] file = adminLevelExcelService.generateTemplate();
         return asAttachment(file, "template_levels.xlsx");

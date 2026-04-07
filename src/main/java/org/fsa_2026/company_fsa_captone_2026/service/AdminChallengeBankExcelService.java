@@ -30,7 +30,6 @@ public class AdminChallengeBankExcelService {
     // Fixed columns
     private static final String COL_CONTENT_TEXT = "contentText";
     private static final String COL_SKILL_TYPE = "skillType";
-    private static final String COL_DIFFICULTY = "difficultyTag";
     private static final String COL_REGION = "region";
     private static final String COL_HINT = "hint";
 
@@ -76,8 +75,6 @@ public class AdminChallengeBankExcelService {
             // Việc thêm validation không làm thay đổi header/styling hay sample rows bên dưới.
             addDropdownValidation(sheet, headers, COL_SKILL_TYPE,
                     new String[]{"Đọc hiểu", "Nghe hiểu", "Viết", "Nói", "Kiểm tra đầu vào"});
-            addDropdownValidation(sheet, headers, COL_DIFFICULTY,
-                    new String[]{"Cơ bản", "Trung bình", "Nâng cao"});
             addDropdownValidation(sheet, headers, COL_REGION,
                     new String[]{"Miền Bắc", "Miền Trung", "Miền Nam"});
 
@@ -86,7 +83,6 @@ public class AdminChallengeBankExcelService {
             setRow(r1, headers, Map.of(
                     COL_CONTENT_TEXT, "Chọn từ đúng để điền vào chỗ trống: \"Con ... đang ăn cỏ\"",
                     COL_SKILL_TYPE, "Đọc hiểu",
-                    COL_DIFFICULTY, "Cơ bản",
                     COL_REGION, "Miền Bắc",
                     COL_HINT, "Chú ý phân biệt dấu và âm cuối.",
                     COL_WORDS, "Con, lợn, đang, ăn, cỏ",
@@ -98,7 +94,6 @@ public class AdminChallengeBankExcelService {
             setRow(r2, headers, Map.of(
                     COL_CONTENT_TEXT, "Nghe và chọn câu đúng với âm thanh.",
                     COL_SKILL_TYPE, "Nghe hiểu",
-                    COL_DIFFICULTY, "Trung bình",
                     COL_REGION, "Miền Trung",
                     COL_AUDIO_URL, "https://example.com/audio/listening_001.mp3",
                     COL_OPTIONS, "Lúa nếp là lúa nếp làng, Lúa nết là lúa nết làng, Núa nếp là núa nếp làng",
@@ -110,7 +105,6 @@ public class AdminChallengeBankExcelService {
             setRow(r3, headers, Map.of(
                     COL_CONTENT_TEXT, "Sắp xếp lại câu đúng.",
                     COL_SKILL_TYPE, "Viết",
-                    COL_DIFFICULTY, "Cơ bản",
                     COL_REGION, "Miền Nam",
                     COL_HINT, "Sắp xếp theo ngữ nghĩa.",
                     COL_SCRAMBLED_WORDS, "Lúa, nếp, là, lúa, nếp, làng",
@@ -198,16 +192,6 @@ public class AdminChallengeBankExcelService {
                     continue;
                 }
 
-                // Map tiếng Việt -> Enum DifficultyTag nội bộ
-                DifficultyTag difficulty;
-                try {
-                    difficulty = mapDifficultyFromVietnamese(get(row, colMap, COL_DIFFICULTY));
-                } catch (Exception e) {
-                    error++;
-                    messages.add("Dòng " + (r + 1) + ": Cột Độ khó có giá trị không hợp lệ");
-                    continue;
-                }
-
                 // Map tiếng Việt -> string code nội bộ (BAC/TRUNG/NAM)
                 // TUYỆT ĐỐI không dùng RegionCode enum ở đây (theo yêu cầu).
                 String region;
@@ -234,7 +218,6 @@ public class AdminChallengeBankExcelService {
                     ChallengeBankRequest req = ChallengeBankRequest.builder()
                             .contentText(contentText)
                             .skillType(skillType)
-                            .difficultyTag(difficulty)
                             .region(region)
                             .metadataJson(metadata)
                             .build();
@@ -280,7 +263,6 @@ public class AdminChallengeBankExcelService {
                 put(row, headers, COL_CONTENT_TEXT, cb.getContentText());
                 // Export: map enum/code nội bộ -> tiếng Việt để user nhìn dễ hiểu
                 put(row, headers, COL_SKILL_TYPE, cb.getSkillType() != null ? mapSkillTypeToVietnamese(cb.getSkillType()) : "");
-                put(row, headers, COL_DIFFICULTY, cb.getDifficultyTag() != null ? mapDifficultyToVietnamese(cb.getDifficultyTag()) : "");
                 put(row, headers, COL_REGION, cb.getRegion() != null ? mapRegionToVietnamese(cb.getRegion()) : "Miền Bắc");
 
                 // hint
@@ -310,7 +292,7 @@ public class AdminChallengeBankExcelService {
 
     private List<String> headers() {
         return List.of(
-                COL_CONTENT_TEXT, COL_SKILL_TYPE, COL_DIFFICULTY, COL_REGION, COL_HINT,
+                COL_CONTENT_TEXT, COL_SKILL_TYPE, COL_REGION, COL_HINT,
                 COL_WORDS, COL_ERROR_INDEX, COL_CORRECT_WORD,
                 COL_AUDIO_URL, COL_OPTIONS, COL_CORRECT_ANSWER, COL_TRANSCRIPT,
                 COL_SCRAMBLED_WORDS, COL_CORRECT_SENTENCE
@@ -412,34 +394,6 @@ public class AdminChallengeBankExcelService {
         };
     }
 
-    /**
-     * Map cột Độ khó từ tiếng Việt -> Enum DifficultyTag.
-     * Ví dụ: "Cơ bản" -> DifficultyTag.BEGINNER
-     */
-    private DifficultyTag mapDifficultyFromVietnamese(String input) {
-        String s = normalizeExcelText(input);
-        if (s.isBlank()) {
-            throw new IllegalArgumentException("Độ khó bị trống");
-        }
-        return switch (s) {
-            case "cơ bản" -> DifficultyTag.BEGINNER;
-            case "trung bình" -> DifficultyTag.INTERMEDIATE;
-            case "nâng cao" -> DifficultyTag.ADVANCED;
-            default -> throw new IllegalArgumentException("Độ khó không hợp lệ: " + input);
-        };
-    }
-
-    /**
-     * Map Enum DifficultyTag -> tiếng Việt để ghi ra Excel.
-     */
-    private String mapDifficultyToVietnamese(DifficultyTag tag) {
-        if (tag == null) return "";
-        return switch (tag) {
-            case BEGINNER -> "Cơ bản";
-            case INTERMEDIATE -> "Trung bình";
-            case ADVANCED -> "Nâng cao";
-        };
-    }
 
     /**
      * Map cột Vùng miền từ tiếng Việt -> String code hệ thống dùng trong ChallengeBankRequest.
@@ -491,7 +445,7 @@ public class AdminChallengeBankExcelService {
             if (!name.isBlank()) map.put(name, i);
         }
         // Validate required fixed columns
-        for (String required : List.of(COL_CONTENT_TEXT, COL_SKILL_TYPE, COL_DIFFICULTY, COL_REGION)) {
+        for (String required : List.of(COL_CONTENT_TEXT, COL_SKILL_TYPE, COL_REGION)) {
             if (!map.containsKey(required)) throw new RuntimeException("Thiếu cột bắt buộc: " + required);
         }
         return map;

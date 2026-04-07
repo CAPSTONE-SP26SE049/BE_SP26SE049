@@ -33,10 +33,6 @@ public class AdminLevelExcelService {
     private static final String COL_NAME_VN = "Tên chương học";
     private static final String COL_DIALECT_VN = "Phương ngữ";
     private static final String COL_DESCRIPTION_VN = "Mô tả";
-    private static final String COL_LEVEL_ORDER_VN = "Thứ tự level";
-    private static final String COL_AI_THRESHOLD_VN = "Ngưỡng AI";
-    private static final String COL_MIN_STARS_VN = "Số sao tối thiểu";
-    private static final String COL_COMMENT_VN = "Ghi chú";
 
     // Dropdown list cố định cho "Phương ngữ" theo yêu cầu (có thể nâng cấp thành query DB động sau)
     private static final String DIALECT_NORTH_VN = "Miền Bắc";
@@ -58,14 +54,10 @@ public class AdminLevelExcelService {
             List<String> headers = List.of(
                     COL_NAME_VN,
                     COL_DIALECT_VN,
-                    COL_DESCRIPTION_VN,
-                    COL_LEVEL_ORDER_VN,
-                    COL_AI_THRESHOLD_VN,
-                    COL_MIN_STARS_VN,
-                    COL_COMMENT_VN
+                    COL_DESCRIPTION_VN
             );
 
-            // Tạo header + style như hiện tại (không thay đổi logic cũ)
+            // Tạo header + style
             Row headerRow = sheet.createRow(0);
             CellStyle headerStyle = headerStyle(workbook);
             for (int i = 0; i < headers.size(); i++) {
@@ -74,33 +66,20 @@ public class AdminLevelExcelService {
                 cell.setCellStyle(headerStyle);
             }
 
-            // =========================
             // Data Validation (Dropdown list) cho cột "Phương ngữ"
-            // - Người dùng chọn tiếng Việt (Miền Bắc/Trung/Nam)
-            // - Khi import, backend sẽ map tiếng Việt -> tên dialect trong DB -> UUID parentId
-            // Áp dụng phạm vi row 2..1000 để nhập liệu thoải mái.
-            // =========================
             addDropdownValidationIfPresent(sheet, headers, COL_DIALECT_VN,
                     new String[]{DIALECT_NORTH_VN, DIALECT_CENTRAL_VN, DIALECT_SOUTH_VN});
 
-            // Sample rows (Phương ngữ là tiếng Việt, KHÔNG yêu cầu UUID)
+            // Sample rows
             Row r1 = sheet.createRow(1);
             r1.createCell(0).setCellValue("Nhóm âm L/N - Cơ bản");
             r1.createCell(1).setCellValue(DIALECT_SOUTH_VN);
             r1.createCell(2).setCellValue("Luyện phân biệt L/N qua từ vựng cơ bản.");
-            r1.createCell(3).setCellValue(1);
-            r1.createCell(4).setCellValue(75);
-            r1.createCell(5).setCellValue(3);
-            r1.createCell(6).setCellValue("Có thể để trống các cột tuỳ chọn");
 
             Row r2 = sheet.createRow(2);
             r2.createCell(0).setCellValue("Nhóm âm CH/TR - Trung bình");
             r2.createCell(1).setCellValue(DIALECT_CENTRAL_VN);
             r2.createCell(2).setCellValue("Bài tập nghe-nói để phân biệt CH/TR.");
-            r2.createCell(3).setCellValue(2);
-            r2.createCell(4).setCellValue(80);
-            r2.createCell(5).setCellValue(4);
-            r2.createCell(6).setCellValue("");
 
             autosize(sheet, headers.size());
 
@@ -143,12 +122,7 @@ public class AdminLevelExcelService {
         int error = 0;
         List<String> messages = new ArrayList<>();
 
-        // Quan trọng: KHÔNG dùng @Transactional cho cả hàm import.
-        // Lý do: chỉ cần 1 dòng gặp lỗi DB (duplicate/constraint) là toàn bộ transaction bị rollback-only,
-        // dẫn tới lỗi "Transaction silently rolled back..." và làm mất các dòng đã import thành công.
-        // Giải pháp: check-before-insert bằng Repository để hạn chế tối đa lỗi DB.
-
-        // Dùng để tránh tạo trùng theo (dialectId + name) trong chính file import (tối ưu giảm query)
+        // Dùng để tránh tạo trùng theo (dialectId + name) trong chính file import
         Set<String> existingKeys = new HashSet<>();
         try {
             for (LevelResponse lr : adminService.getAllLevels()) {
@@ -156,7 +130,6 @@ public class AdminLevelExcelService {
                 existingKeys.add(key);
             }
         } catch (Exception ignored) {
-            // nếu lỗi export danh sách level thì vẫn cho import, backend sẽ tự xử lý trùng nếu có
         }
 
         try (InputStream is = file.getInputStream(); Workbook workbook = new XSSFWorkbook(is)) {
@@ -166,14 +139,10 @@ public class AdminLevelExcelService {
             Row header = sheet.getRow(0);
             if (header == null) throw new RuntimeException("File Excel không có header");
 
-            // Đồng bộ header tiếng Việt: tìm index theo tên cột tiếng Việt
+            // Chỉ 3 cột bắt buộc — khớp với form "Tạo chương học mới"
             int nameCol = findColumnIndex(header, COL_NAME_VN);
             int dialectCol = findColumnIndex(header, COL_DIALECT_VN);
             int descCol = findColumnIndex(header, COL_DESCRIPTION_VN);
-            int orderCol = findOptionalColumnIndex(header, COL_LEVEL_ORDER_VN);
-            int aiCol = findOptionalColumnIndex(header, COL_AI_THRESHOLD_VN);
-            int minStarsCol = findOptionalColumnIndex(header, COL_MIN_STARS_VN);
-            int commentCol = findOptionalColumnIndex(header, COL_COMMENT_VN);
 
             for (int r = 1; r <= sheet.getLastRowNum(); r++) {
                 Row row = sheet.getRow(r);
@@ -185,42 +154,28 @@ public class AdminLevelExcelService {
 
                 if (name.isBlank() && dialectText.isBlank() && description.isBlank()) continue;
 
-                // UI chỉ bắt buộc: Tên + Phương ngữ + Mô tả
-                if (name.isBlank() || dialectText.isBlank() || description.isBlank()) {
+                // Bắt buộc: Tên + Phương ngữ (Mô tả có thể trống)
+                if (name.isBlank() || dialectText.isBlank()) {
                     error++;
-                    messages.add("Dòng " + (r + 1) + ": Thiếu Tên chương học hoặc Phương ngữ hoặc Mô tả");
+                    messages.add("Dòng " + (r + 1) + ": Thiếu Tên chương học hoặc Phương ngữ");
                     continue;
                 }
 
-                // Parse các cột tuỳ chọn (có thể trống → set default)
-                Integer levelOrder = orderCol >= 0 ? parseInt(cellString(row.getCell(orderCol)), 1) : 1;
-                Integer aiThreshold = aiCol >= 0 ? parseInt(cellString(row.getCell(aiCol)), 75) : 75;
-                Integer minStars = minStarsCol >= 0 ? parseInt(cellString(row.getCell(minStarsCol)), 3) : 3;
-                String comment = commentCol >= 0 ? cellString(row.getCell(commentCol)).trim() : "";
-
                 try {
-                    // =========================
                     // Mapping "Phương ngữ" (Tiếng Việt) -> UUID dialect trong DB
-                    // =========================
-                    // 1) Người dùng chọn: Miền Bắc/Miền Trung/Miền Nam (tiếng Việt).
-                    // 2) Backend map sang "mã dialect" đang lưu trong DB (ví dụ: NORTH/CENTRAL/SOUTH).
-                    // 3) Query LearningUnitRepository để lấy dialect entity và UUID thật.
-                    // Nếu không tìm thấy dialect tương ứng → báo lỗi "Phương ngữ không hợp lệ".
                     String dialectKey = mapDialectVietnameseToDbName(dialectText);
                     UUID parentId = learningUnitRepository.findByTypeAndNameIgnoreCase(TYPE_DIALECT, dialectKey)
                             .orElseThrow(() -> new RuntimeException("Phương ngữ không hợp lệ: " + dialectText))
                             .getId();
 
-                    // 1) Check-before-insert tại DB: tránh lỗi duplicate key/constraint
-                    // Quy tắc: level được xem là trùng nếu (type=LEVEL + name) trùng (ignore case).
-                    // Lưu ý: nếu business muốn trùng theo (parentId+name) thì cần thêm method repo tương ứng.
+                    // Check trùng tại DB
                     if (learningUnitRepository.findByTypeAndNameIgnoreCase(TYPE_LEVEL, name).isPresent()) {
                         skip++;
                         messages.add("Dòng " + (r + 1) + ": Bỏ qua - Tên chương đã tồn tại (" + name + ")");
                         continue;
                     }
 
-                    // Check trùng ngay trong batch theo (dialectId + name) để không gọi create dư thừa
+                    // Check trùng trong batch
                     String key = parentId.toString() + "|" + name.toLowerCase();
                     if (existingKeys.contains(key)) {
                         skip++;
@@ -228,15 +183,15 @@ public class AdminLevelExcelService {
                         continue;
                     }
 
+                    // Dùng default values cho các trường ẩn (giống form tạo mới)
                     Map<String, Object> metadataJson = new LinkedHashMap<>();
-                    // logic hiện tại: adminService.createLevel() luôn ép status = APPROVED
                     metadataJson.put("status", "APPROVED");
                     metadataJson.put("audio_url", null);
-                    metadataJson.put("level_order", levelOrder != null ? levelOrder : 1);
-                    metadataJson.put("ai_threshold", aiThreshold);
+                    metadataJson.put("level_order", 1);
+                    metadataJson.put("ai_threshold", 75);
                     metadataJson.put("error_tag_id", null);
                     metadataJson.put("rejection_reason", null);
-                    metadataJson.put("min_stars_required", minStars != null ? minStars : 3);
+                    metadataJson.put("min_stars_required", 3);
                     metadataJson.put("description", description);
 
                     LevelCreateRequest req = LevelCreateRequest.builder()
@@ -244,7 +199,6 @@ public class AdminLevelExcelService {
                             .type(TYPE_LEVEL)
                             .parentId(parentId)
                             .metadataJson(metadataJson)
-                            .comment(comment != null && !comment.isBlank() ? comment : null)
                             .build();
 
                     adminService.createLevel(req);
@@ -254,8 +208,6 @@ public class AdminLevelExcelService {
                     error++;
                     messages.add("Dòng " + (r + 1) + ": Dữ liệu không hợp lệ");
                 } catch (Exception e) {
-                    // 2) Vẫn bọc try-catch để bắt các lỗi rủi ro hệ thống khác.
-                    // Mục tiêu chính: không để lỗi duplicate/constraint quăng ra bằng check-before-insert phía trên.
                     error++;
                     messages.add("Dòng " + (r + 1) + ": Lỗi — " + (e.getMessage() != null ? e.getMessage() : "Không xác định"));
                 }
@@ -270,7 +222,6 @@ public class AdminLevelExcelService {
 
     @Transactional(readOnly = true)
     public byte[] exportToExcel() {
-        // Export TOÀN BỘ danh sách Level hiện có trong DB
         List<LevelResponse> levels = adminService.getAllLevels();
 
         try (Workbook workbook = new XSSFWorkbook()) {
@@ -278,11 +229,7 @@ public class AdminLevelExcelService {
             List<String> headers = List.of(
                     COL_NAME_VN,
                     COL_DIALECT_VN,
-                    COL_DESCRIPTION_VN,
-                    COL_LEVEL_ORDER_VN,
-                    COL_AI_THRESHOLD_VN,
-                    COL_MIN_STARS_VN,
-                    COL_COMMENT_VN
+                    COL_DESCRIPTION_VN
             );
 
             Row headerRow = sheet.createRow(0);
@@ -298,12 +245,7 @@ public class AdminLevelExcelService {
                 Row row = sheet.createRow(i + 1);
                 row.createCell(0).setCellValue(l.getName() != null ? l.getName() : "");
 
-                // =========================
                 // Mapping UUID dialectId -> Tên Phương ngữ tiếng Việt khi export
-                // =========================
-                // 1) LevelResponse chỉ có dialectId (UUID dạng string).
-                // 2) Query LearningUnitRepository để lấy dialect entity (type=DIALECT).
-                // 3) Dựa vào dialect.name trong DB (NORTH/CENTRAL/SOUTH) -> map ra "Miền Bắc/Trung/Nam".
                 String dialectLabel = "";
                 if (l.getDialectId() != null && !l.getDialectId().isBlank()) {
                     try {
@@ -318,10 +260,6 @@ public class AdminLevelExcelService {
                 row.createCell(1).setCellValue(dialectLabel);
 
                 row.createCell(2).setCellValue(l.getDescription() != null ? l.getDescription() : "");
-                if (l.getLevelOrder() != null) row.createCell(3).setCellValue(l.getLevelOrder());
-                if (l.getAiThreshold() != null) row.createCell(4).setCellValue(l.getAiThreshold());
-                if (l.getMinStarsRequired() != null) row.createCell(5).setCellValue(l.getMinStarsRequired());
-                row.createCell(6).setCellValue(""); // comment: không lưu trong entity hiện tại
             }
 
             autosize(sheet, headers.size());
@@ -394,23 +332,9 @@ public class AdminLevelExcelService {
         };
     }
 
-    private Integer parseInt(String raw, Integer fallback) {
-        if (raw == null) return fallback;
-        String s = raw.trim();
-        if (s.isBlank()) return fallback;
-        try {
-            // Excel numeric may come as "75.0"
-            return (int) Double.parseDouble(s);
-        } catch (NumberFormatException e) {
-            return fallback;
-        }
-    }
-
     // =========================================================
     // Mapper Phương ngữ (Tiếng Việt) <-> Dialect name trong DB
     // =========================================================
-    // Vì DB đang lưu dialect theo "name" dạng code (NORTH/CENTRAL/SOUTH),
-    // nên import/export sẽ map qua lại để Excel thân thiện.
 
     /**
      * Map tiếng Việt trong Excel -> dialect.name trong DB.
@@ -439,4 +363,3 @@ public class AdminLevelExcelService {
         };
     }
 }
-
