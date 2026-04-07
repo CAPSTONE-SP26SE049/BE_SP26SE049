@@ -413,6 +413,7 @@ public class QuizService {
                     .rewardIconUrl(reward != null ? reward.getIconUrl() : null)
                     .rewardCatalogId(reward != null ? reward.getId() : null)
                     .rewardEarned(rewardEarned)
+                    .skillType(getSkillTypeFromMetadata(quiz))
                     .build();
 
             quizItems.add(item);
@@ -476,6 +477,18 @@ public class QuizService {
             quiz.setRewardCatalog(reward);
         } else {
             quiz.setRewardCatalog(null);
+        }
+    }
+
+    private String getSkillTypeFromMetadata(LearningUnit quiz) {
+        if (quiz.getMetadataJson() == null) return "MIXED";
+        try {
+            Map<String, Object> metadata = objectMapper.readValue(
+                    quiz.getMetadataJson(), new TypeReference<Map<String, Object>>() {});
+            return (String) metadata.getOrDefault("skill_type", "MIXED");
+        } catch (Exception e) {
+            log.warn("Cannot parse skill_type from quiz metadata, using default MIXED");
+            return "MIXED";
         }
     }
 

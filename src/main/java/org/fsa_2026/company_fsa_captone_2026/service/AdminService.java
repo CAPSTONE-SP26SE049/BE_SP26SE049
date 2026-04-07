@@ -514,7 +514,7 @@ public class AdminService {
                 .rewardType(org.fsa_2026.company_fsa_captone_2026.entity.enums.RewardType.BADGE)
                 .iconUrl(request.getIconUrl())
                 .xpReward(0)
-                .isActive(request.isActive())
+                .isActive(request.getIsActive() != null ? request.getIsActive() : true)
                 .build();
         return enrichRewardResponse(rewardCatalogRepository.save(reward));
     }
@@ -527,7 +527,7 @@ public class AdminService {
         reward.setName(request.getName());
         reward.setDescription(request.getDescription());
         reward.setIconUrl(request.getIconUrl());
-        reward.setActive(request.isActive());
+        reward.setActive(request.getIsActive() != null ? request.getIsActive() : reward.isActive());
         return enrichRewardResponse(rewardCatalogRepository.save(reward));
     }
 

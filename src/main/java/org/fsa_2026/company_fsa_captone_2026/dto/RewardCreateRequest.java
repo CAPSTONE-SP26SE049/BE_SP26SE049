@@ -29,9 +29,9 @@ public class RewardCreateRequest implements Serializable {
 
     private String iconUrl;
 
-    /** FIX: @JsonProperty ensures FE sends 'isActive' and backend receives it correctly */
+    /** FIX: Use Boolean (wrapper) instead of boolean (primitive) to allow null from FE */
     @JsonProperty("isActive")
     @Builder.Default
-    private boolean isActive = true;
+    private Boolean isActive = true;
 }
 
