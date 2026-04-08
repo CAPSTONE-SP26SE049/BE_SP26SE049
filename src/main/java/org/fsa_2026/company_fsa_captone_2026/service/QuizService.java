@@ -413,7 +413,7 @@ public class QuizService {
                     .rewardIconUrl(reward != null ? reward.getIconUrl() : null)
                     .rewardCatalogId(reward != null ? reward.getId() : null)
                     .rewardEarned(rewardEarned)
-                    .skillType(getSkillTypeFromMetadata(quiz))
+                    .skillType(extractSkillTypeFromMetadata(quiz))
                     .build();
 
             quizItems.add(item);
@@ -477,18 +477,6 @@ public class QuizService {
             quiz.setRewardCatalog(reward);
         } else {
             quiz.setRewardCatalog(null);
-        }
-    }
-
-    private String getSkillTypeFromMetadata(LearningUnit quiz) {
-        if (quiz.getMetadataJson() == null) return "MIXED";
-        try {
-            Map<String, Object> metadata = objectMapper.readValue(
-                    quiz.getMetadataJson(), new TypeReference<Map<String, Object>>() {});
-            return (String) metadata.getOrDefault("skill_type", "MIXED");
-        } catch (Exception e) {
-            log.warn("Cannot parse skill_type from quiz metadata, using default MIXED");
-            return "MIXED";
         }
     }
 
@@ -733,6 +721,17 @@ public class QuizService {
             }
         } catch (Exception ignored) {}
         return 0;
+    }
+
+    private String extractSkillTypeFromMetadata(LearningUnit quiz) {
+        if (quiz.getMetadataJson() == null || quiz.getMetadataJson().isBlank()) return "READING";
+        try {
+            Map<String, Object> metadata = objectMapper.readValue(
+                    quiz.getMetadataJson(), new TypeReference<Map<String, Object>>() {});
+            Object st = metadata.get("skill_type");
+            if (st instanceof String) return (String) st;
+        } catch (Exception ignored) {}
+        return "READING";
     }
 
 }
