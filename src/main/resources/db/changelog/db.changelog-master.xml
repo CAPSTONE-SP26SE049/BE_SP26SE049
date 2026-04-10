@@ -74,4 +74,6 @@
 
     <include file="db/changelog/39-drop-reward-catalog-data.xml"/>
     <include file="db/changelog/40-seed-achievements.xml"/>
+    <include file="db/changelog/41-create-speaking-attempt.xml"/>
 </databaseChangeLog>
+

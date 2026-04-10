@@ -28,6 +28,10 @@ public interface LeaderboardEntryRepository extends JpaRepository<LeaderboardEnt
 
     /**
      * Delete all entries for a leaderboard (used during refresh).
+     * Using bulk delete to avoid fetching entities and optimistic locking issues.
      */
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("DELETE FROM LeaderboardEntry le WHERE le.leaderboard = :leaderboard")
     void deleteByLeaderboard(Leaderboard leaderboard);
+
 }

@@ -144,8 +144,13 @@ public class LeaderboardService {
 
     // ─── Refresh / Snapshot Logic ────────────────────────────────────────
 
-    @Transactional
+    /**
+     * Scheduled job to refresh all snapshots. 
+     * We don't use @Transactional here so that each leaderboard is refreshed 
+     * in its own transaction, avoiding long-running locks.
+     */
     public void refreshAllLeaderboards() {
+
         log.info("Starting leaderboard refresh...");
         long start = System.currentTimeMillis();
 
@@ -155,10 +160,15 @@ public class LeaderboardService {
                 refreshLeaderboard(LeaderboardScope.GLOBAL, null, period, sortBy);
 
                 // Regional leaderboards
-                String[] regions = {"NORTH", "CENTRAL", "SOUTH", "MIEN_BAC", "MIEN_TRUNG", "MIEN_NAM", "BAC", "TRUNG", "NAM"};
+                String[] regions = {"NORTH", "CENTRAL", "SOUTH"};
                 for (String region : regions) {
-                    refreshLeaderboard(LeaderboardScope.REGIONAL, region, period, sortBy);
+                    try {
+                        refreshLeaderboard(LeaderboardScope.REGIONAL, region, period, sortBy);
+                    } catch (Exception e) {
+                        log.error("Failed to refresh regional leaderboard for {}: {}", region, e.getMessage());
+                    }
                 }
+
             }
         }
 

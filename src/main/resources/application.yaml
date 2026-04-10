@@ -20,6 +20,14 @@ spring:
     username: ${PGUSER:postgres}
     password: ${PGPASSWORD:Pen1112003@}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      connection-timeout: 20000
+      leak-detection-threshold: 2000
+
 
   # Liquibase Configuration
   liquibase:
@@ -114,5 +122,12 @@ social:
   facebook:
     app-id: ${FACEBOOK_APP_ID:1169205748542841}
     app-secret: ${FACEBOOK_APP_SECRET:}
+
+gemini:
+  api:
+    key: ${GEMINI_API_KEY:AIzaSyC37ZwA4OehnM3KAJFqOaEB3u3OhQgMlJM}
+
+
+
 
 

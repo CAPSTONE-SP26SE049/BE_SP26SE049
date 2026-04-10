@@ -10,8 +10,10 @@ import org.fsa_2026.company_fsa_captone_2026.dto.EducatorCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.RegisterResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeBankRequest;
 import org.fsa_2026.company_fsa_captone_2026.entity.ChallengeBank;
+import org.fsa_2026.company_fsa_captone_2026.entity.SpeakingAttempt;
 import org.fsa_2026.company_fsa_captone_2026.service.AdminService;
 import org.fsa_2026.company_fsa_captone_2026.service.ChallengeBankService;
+import org.fsa_2026.company_fsa_captone_2026.service.SpeakingAttemptService;
 import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.DialectCreateRequest;
@@ -24,6 +26,9 @@ import org.fsa_2026.company_fsa_captone_2026.dto.UserUpdateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.AnalyticsOverviewResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.SystemHealthResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.RewardResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -48,6 +53,8 @@ public class AdminController {
     private final AdminService adminService;
     private final ChallengeBankService challengeBankService;
     private final org.fsa_2026.company_fsa_captone_2026.service.QuizService quizService;
+    private final SpeakingAttemptService speakingAttemptService;
+
 
     /**
      * Create Educator Account - POST /api/v1/admin/educators
@@ -157,7 +164,6 @@ public class AdminController {
                         .message("Quyền xóa thử thách đã được chuyển sang Educator")
                         .build());
     }
-
 
     // ==========================================
     // 1c. Content Management: Dialects
@@ -498,5 +504,28 @@ public class AdminController {
                 challengeBankService.removeChallengeFromQuiz(id, challengeId)));
     }
 
-}
+    // ==========================================
+    // 5. Speaking Dataset APIs (Admin Only)
+    // ==========================================
 
+    @GetMapping("/dataset/speaking")
+    @Operation(summary = "Get Speaking Attempts", description = "Get all speaking attempts for dataset review. Filter by dialect (NORTH, CENTRAL, SOUTH)")
+    public ResponseEntity<ApiResponse<Page<SpeakingAttempt>>> getSpeakingAttempts(
+            @RequestParam(value = "dialect", required = false) String dialect,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "20") int size) {
+        log.info("Admin retrieving speaking attempts. Dialect: {}, Page: {}, Size: {}", dialect, page, size);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<SpeakingAttempt> result = speakingAttemptService.getAttempts(dialect, pageable);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách mẫu giọng nói thành công", result));
+    }
+
+    @GetMapping("/dataset/speaking/stats")
+    @Operation(summary = "Get Speaking Dataset Stats", description = "Get total count of collected voice samples, grouped by dialect")
+    public ResponseEntity<ApiResponse<Map<String, Long>>> getSpeakingStats() {
+        log.info("Admin retrieving speaking dataset stats");
+        Map<String, Long> stats = speakingAttemptService.getStats();
+        return ResponseEntity.ok(ApiResponse.success("Thống kê dataset giọng nói thành công", stats));
+    }
+
+}
