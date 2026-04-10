@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="42-create-account-dashboard-summary" author="antigravity">
+        <!-- 1. Create the Aggregation Table -->
+        <createTable tableName="account_dashboard_summary">
+            <column name="account_id" type="VARCHAR(36)">
+                <constraints primaryKey="true" nullable="false" foreignKeyName="fk_dashboard_account" referencedTableName="account" referencedColumnNames="id" />
+            </column>
+            <column name="total_xp" type="INTEGER" defaultValueNumeric="0"/>
+            <column name="current_streak" type="INTEGER" defaultValueNumeric="0"/>
+            <column name="total_lives" type="INTEGER" defaultValueNumeric="5"/>
+            <column name="listening_score" type="DECIMAL(4,2)" defaultValueNumeric="0.0"/>
+            <column name="speaking_score" type="DECIMAL(4,2)" defaultValueNumeric="0.0"/>
+            <column name="reading_score" type="DECIMAL(4,2)" defaultValueNumeric="0.0"/>
+            <column name="vocabulary_score" type="DECIMAL(4,2)" defaultValueNumeric="0.0"/>
+            <column name="pronunciation_score" type="DECIMAL(4,2)" defaultValueNumeric="0.0"/>
+            <column name="current_lesson_title" type="VARCHAR(255)"/>
+            <column name="current_lesson_desc" type="VARCHAR(255)"/>
+            <column name="current_lesson_progress" type="INTEGER" defaultValueNumeric="0"/>
+            <column name="last_updated" type="TIMESTAMP WITHOUT TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+
+        <!-- 2. Populate missing rows for existing accounts -->
+        <sql>
+            INSERT INTO account_dashboard_summary (account_id, total_xp, current_streak)
+            SELECT id, total_experience, current_streak_days FROM account;
+        </sql>
+
+        <!-- 3. Create Trigger Function to sync XP and Streak from Account -->
+        <sql endDelimiter="$$">
+            CREATE OR REPLACE FUNCTION tf_sync_account_to_dashboard()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                IF (TG_OP = 'INSERT') THEN
+                    INSERT INTO account_dashboard_summary (account_id, total_xp, current_streak)
+                    VALUES (NEW.id, NEW.total_experience, NEW.current_streak_days);
+                ELSIF (TG_OP = 'UPDATE') THEN
+                    UPDATE account_dashboard_summary 
+                    SET total_xp = NEW.total_experience, 
+                        current_streak = NEW.current_streak_days,
+                        last_updated = CURRENT_TIMESTAMP
+                    WHERE account_id = NEW.id;
+                END IF;
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql;
+        </sql>
+
+        <!-- 4. Attach Trigger to Account table -->
+        <sql>
+            DROP TRIGGER IF EXISTS trg_sync_account_dashboard ON account;
+            CREATE TRIGGER trg_sync_account_dashboard
+            AFTER INSERT OR UPDATE OF total_experience, current_streak_days ON account
+            FOR EACH ROW
+            EXECUTE FUNCTION tf_sync_account_to_dashboard();
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>
