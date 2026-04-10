@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -15,7 +16,7 @@ public class LearnerDashboardService {
 
     private final AccountDashboardSummaryRepository dashboardSummaryRepository;
 
-    public LearnerDashboardResponse getDashboardData(String accountId) {
+    public LearnerDashboardResponse getDashboardData(UUID accountId) {
         // Fetch O(1) from materialized summary table
         AccountDashboardSummary summary = dashboardSummaryRepository.findByAccountId(accountId)
                 .orElseGet(() -> AccountDashboardSummary.builder()

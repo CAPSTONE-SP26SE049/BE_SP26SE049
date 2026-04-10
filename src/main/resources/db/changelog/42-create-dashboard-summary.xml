@@ -8,7 +8,7 @@
     <changeSet id="42-create-account-dashboard-summary" author="antigravity">
         <!-- 1. Create the Aggregation Table -->
         <createTable tableName="account_dashboard_summary">
-            <column name="account_id" type="VARCHAR(36)">
+            <column name="account_id" type="UUID">
                 <constraints primaryKey="true" nullable="false" foreignKeyName="fk_dashboard_account" referencedTableName="account" referencedColumnNames="id" />
             </column>
             <column name="total_xp" type="INTEGER" defaultValueNumeric="0"/>
@@ -32,7 +32,7 @@
         </sql>
 
         <!-- 3. Create Trigger Function to sync XP and Streak from Account -->
-        <sql endDelimiter="$$">
+        <sql splitStatements="false">
             CREATE OR REPLACE FUNCTION tf_sync_account_to_dashboard()
             RETURNS TRIGGER AS $$
             BEGIN
@@ -52,7 +52,7 @@
         </sql>
 
         <!-- 4. Attach Trigger to Account table -->
-        <sql>
+        <sql splitStatements="false">
             DROP TRIGGER IF EXISTS trg_sync_account_dashboard ON account;
             CREATE TRIGGER trg_sync_account_dashboard
             AFTER INSERT OR UPDATE OF total_experience, current_streak_days ON account

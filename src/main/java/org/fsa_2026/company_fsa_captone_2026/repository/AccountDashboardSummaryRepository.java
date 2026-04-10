@@ -5,8 +5,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface AccountDashboardSummaryRepository extends JpaRepository<AccountDashboardSummary, String> {
-    Optional<AccountDashboardSummary> findByAccountId(String accountId);
+public interface AccountDashboardSummaryRepository extends JpaRepository<AccountDashboardSummary, UUID> {
+    Optional<AccountDashboardSummary> findByAccountId(UUID accountId);
 }
