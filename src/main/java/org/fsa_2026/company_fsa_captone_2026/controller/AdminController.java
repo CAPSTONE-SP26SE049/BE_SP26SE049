@@ -75,6 +75,28 @@ public class AdminController {
                         response));
     }
 
+    /**
+     * Create User Account (with role selection) - POST /api/v1/admin/users
+     */
+    @PostMapping("/users")
+    @Operation(summary = "Create User Account", description = "Create a new user or educator account with role selection")
+    public ResponseEntity<ApiResponse<RegisterResponse>> createUser(
+            @RequestBody Map<String, String> request) {
+
+        String email = request.get("email");
+        String fullName = request.get("fullName");
+        String role = request.getOrDefault("role", "USER");
+
+        log.info("Admin creating {} account for email: {}", role, email);
+
+        RegisterResponse response = adminService.createUserWithRole(email, fullName, role);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Tạo tài khoản thành công. Mật khẩu đã được gửi qua email.", response));
+    }
+
+
     // ==========================================
     // 1. User Management APIs
     // ==========================================

@@ -361,7 +361,7 @@ public class QuizService {
         quizzes.sort(java.util.Comparator.comparingInt(this::extractOrderIndexFromMetadata));
 
         // 4. Lấy progress của user cho tất cả quiz
-        List<AccountLearningUnit> progressList = accountLearningUnitRepository.findByAccountId(account.getId());
+        List<AccountLearningUnit> progressList = accountLearningUnitRepository.findByAccountIdWithLearningUnit(account.getId());
         Map<UUID, AccountLearningUnit> progressMap = progressList.stream()
                 .collect(Collectors.toMap(
                         al -> al.getLearningUnit().getId(),
@@ -536,7 +536,7 @@ public class QuizService {
 
         // Lấy tất cả dialects (levels cha)
         List<LearningUnit> dialects = learningUnitRepository.findByType("DIALECT");
-        List<AccountLearningUnit> allProgress = accountLearningUnitRepository.findByAccountId(account.getId());
+        List<AccountLearningUnit> allProgress = accountLearningUnitRepository.findByAccountIdWithLearningUnit(account.getId());
         
         java.util.Map<UUID, AccountLearningUnit> progressMap = allProgress.stream()
                 .collect(Collectors.toMap(

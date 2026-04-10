@@ -55,7 +55,7 @@ public class Leaderboard extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "sort_by", nullable = false, length = 30)
     @Builder.Default
-    private LeaderboardSortBy sortBy = LeaderboardSortBy.TOTAL_XP;
+    private LeaderboardSortBy sortBy = LeaderboardSortBy.TOTAL_STARS;
 
     @Column(name = "period_start", nullable = false)
     private LocalDate periodStart;

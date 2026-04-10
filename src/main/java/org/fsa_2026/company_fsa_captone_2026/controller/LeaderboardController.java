@@ -36,7 +36,7 @@ public class LeaderboardController {
                     + "If authenticated, the response includes the user's own rank.")
     public ResponseEntity<ApiResponse<LeaderboardResponse>> getGlobalLeaderboard(
             @RequestParam(defaultValue = "ALL_TIME") LeaderboardPeriodType period,
-            @RequestParam(defaultValue = "TOTAL_XP") LeaderboardSortBy sortBy,
+            @RequestParam(defaultValue = "TOTAL_STARS") LeaderboardSortBy sortBy,
             Authentication authentication) {
         String userEmail = authentication != null ? authentication.getName() : null;
         log.info("Fetching global leaderboard: period={}, sortBy={}, user={}", period, sortBy, userEmail);
@@ -56,7 +56,7 @@ public class LeaderboardController {
     public ResponseEntity<ApiResponse<LeaderboardResponse>> getRegionalLeaderboard(
             @PathVariable String regionCode,
             @RequestParam(defaultValue = "ALL_TIME") LeaderboardPeriodType period,
-            @RequestParam(defaultValue = "TOTAL_XP") LeaderboardSortBy sortBy,
+            @RequestParam(defaultValue = "TOTAL_STARS") LeaderboardSortBy sortBy,
             Authentication authentication) {
         String userEmail = authentication != null ? authentication.getName() : null;
         log.info("Fetching regional leaderboard: region={}, period={}, sortBy={}, user={}",
@@ -78,7 +78,7 @@ public class LeaderboardController {
             @RequestParam(defaultValue = "GLOBAL") LeaderboardScope scope,
             @RequestParam(required = false) String region,
             @RequestParam(defaultValue = "ALL_TIME") LeaderboardPeriodType period,
-            @RequestParam(defaultValue = "TOTAL_XP") LeaderboardSortBy sortBy,
+            @RequestParam(defaultValue = "TOTAL_STARS") LeaderboardSortBy sortBy,
             Authentication authentication) {
         String userEmail = authentication.getName();
         log.info("Fetching my rank: scope={}, region={}, period={}, sortBy={}, user={}",

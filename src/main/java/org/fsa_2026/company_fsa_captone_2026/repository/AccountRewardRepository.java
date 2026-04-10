@@ -17,13 +17,15 @@ import java.util.UUID;
 @Repository
 public interface AccountRewardRepository extends JpaRepository<AccountReward, UUID> {
 
-    List<AccountReward> findByAccountId(UUID accountId);
+    @Query("SELECT ar FROM AccountReward ar JOIN FETCH ar.rewardCatalog WHERE ar.account.id = :accountId")
+    List<AccountReward> findByAccountId(@Param("accountId") UUID accountId);
 
-    @Query("SELECT ar FROM AccountReward ar JOIN ar.rewardCatalog rc WHERE ar.account.id = :accountId AND rc.rewardType = :rewardType")
+    @Query("SELECT ar FROM AccountReward ar JOIN FETCH ar.rewardCatalog rc WHERE ar.account.id = :accountId AND rc.rewardType = :rewardType")
     List<AccountReward> findByAccountIdAndRewardType(@Param("accountId") UUID accountId,
                                                      @Param("rewardType") RewardType rewardType);
 
-    List<AccountReward> findByAccountIdAndStatusIgnoreCase(UUID accountId, String status);
+    @Query("SELECT ar FROM AccountReward ar JOIN FETCH ar.rewardCatalog WHERE ar.account.id = :accountId AND UPPER(ar.status) = UPPER(:status)")
+    List<AccountReward> findByAccountIdAndStatusIgnoreCase(@Param("accountId") UUID accountId, @Param("status") String status);
 
     Optional<AccountReward> findByAccountIdAndRewardCatalogId(UUID accountId, UUID rewardCatalogId);
 }
