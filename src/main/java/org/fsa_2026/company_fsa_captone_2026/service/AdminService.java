@@ -135,6 +135,62 @@ public class AdminService {
         return response;
     }
 
+    /**
+     * Create a new user account with a specified role (USER or EDUCATOR)
+     *
+     * @param email    email của user mới
+     * @param fullName họ tên
+     * @param roleCode vai trò: USER hoặc EDUCATOR
+     * @return thông tin tài khoản sau khi tạo
+     */
+    @Transactional
+    public RegisterResponse createUserWithRole(String email, String fullName, String roleCode) {
+        if (accountRepository.existsByEmail(email)) {
+            throw new ApiException("CONFLICT", "Email đã tồn tại trong hệ thống");
+        }
+
+        RoleCode role;
+        try {
+            role = RoleCode.valueOf(roleCode.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new ApiException("BAD_REQUEST", "Vai trò không hợp lệ: " + roleCode);
+        }
+
+        // Do not allow creating ADMIN via this endpoint
+        if (role == RoleCode.ADMIN) {
+            throw new ApiException("FORBIDDEN", "Không thể tạo tài khoản Admin qua chức năng này");
+        }
+
+        String prefix = email.split("@")[0];
+        int randomNum = 1000 + SECURE_RANDOM.nextInt(9000);
+        String generatedPassword = prefix + randomNum + "@";
+
+        Account account = Account.createUserAccount(email, passwordEncoder.encode(generatedPassword), null, null);
+        account.setRoleCode(role);
+        account.setEmailVerified(true);
+        account.setFullName(fullName);
+        account.setAvatarUrl(generateDefaultAvatar(fullName));
+        account = accountRepository.save(account);
+
+        log.info("Admin created {} account: email={}", role, email);
+
+        RegisterResponse response = RegisterResponse.builder()
+                .id(account.getId().toString())
+                .email(account.getEmail())
+                .fullName(fullName)
+                .role(account.getRoleCode().name())
+                .build();
+
+        try {
+            emailService.sendEducatorAccountCreatedEmail(email, fullName, generatedPassword);
+        } catch (Exception e) {
+            log.error("Lỗi khi gửi email mật khẩu: {} - {}", email, e.getMessage(), e);
+        }
+
+        return response;
+    }
+
+
     // ==========================================
     // User Management
     // ==========================================

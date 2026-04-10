@@ -36,14 +36,12 @@ public class LevelService {
     }
 
     private void fetchAllDescendantLevels(UUID parentId, List<LearningUnit> accumulator) {
-        // Direct children that are levels
+        // Direct children that are levels (Optimized: removes N+1 recursive calls for Quizzes/Sub-units)
         List<LearningUnit> children = learningUnitRepository.findByParentId(parentId);
         for (LearningUnit child : children) {
             if ("LEVEL".equals(child.getType())) {
                 accumulator.add(child);
             }
-            // Continue searching recursively in this child's subtree
-            fetchAllDescendantLevels(child.getId(), accumulator);
         }
     }
 
@@ -72,7 +70,7 @@ public class LevelService {
         List<LevelResponse> levels = getLevelsByDialect(dialectId);
         
         java.util.List<org.fsa_2026.company_fsa_captone_2026.entity.AccountLearningUnit> progressList = 
-                accountLearningUnitRepository.findByAccountId(account.getId());
+                accountLearningUnitRepository.findByAccountIdWithLearningUnit(account.getId());
                 
         java.util.Map<UUID, org.fsa_2026.company_fsa_captone_2026.entity.AccountLearningUnit> progressMap = progressList.stream()
                 .collect(java.util.stream.Collectors.toMap(

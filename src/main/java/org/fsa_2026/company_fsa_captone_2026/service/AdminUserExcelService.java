@@ -24,6 +24,7 @@ public class AdminUserExcelService {
 
     private static final String COL_EMAIL = "Email";
     private static final String COL_FULL_NAME = "FullName";
+    private static final String COL_ROLE = "RoleCode";
 
     private final AdminService adminService;
     private final AccountRepository accountRepository;
@@ -38,7 +39,7 @@ public class AdminUserExcelService {
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("Teachers");
 
-            List<String> headers = List.of(COL_EMAIL, COL_FULL_NAME);
+            List<String> headers = List.of(COL_EMAIL, COL_FULL_NAME, COL_ROLE);
 
             Row headerRow = sheet.createRow(0);
             CellStyle headerStyle = headerStyle(workbook);
@@ -51,9 +52,11 @@ public class AdminUserExcelService {
             // sample rows
             sheet.createRow(1).createCell(0).setCellValue("teacher.lan1@speakvn.edu.vn");
             sheet.getRow(1).createCell(1).setCellValue("Trần Thị Lan");
+            sheet.getRow(1).createCell(2).setCellValue("EDUCATOR");
 
-            sheet.createRow(2).createCell(0).setCellValue("teacher.minh2@speakvn.edu.vn");
+            sheet.createRow(2).createCell(0).setCellValue("student.minh2@speakvn.edu.vn");
             sheet.getRow(2).createCell(1).setCellValue("Nguyễn Hoàng Minh");
+            sheet.getRow(2).createCell(2).setCellValue("USER");
 
             autosize(sheet, headers.size());
 
@@ -85,6 +88,12 @@ public class AdminUserExcelService {
 
             int emailCol = findColumnIndex(header, COL_EMAIL);
             int fullNameCol = findColumnIndex(header, COL_FULL_NAME);
+            int roleCol;
+            try {
+                roleCol = findColumnIndex(header, COL_ROLE);
+            } catch (Exception e) {
+                roleCol = -1; // Fallback if old template
+            }
 
             for (int r = 1; r <= sheet.getLastRowNum(); r++) {
                 Row row = sheet.getRow(r);
@@ -92,6 +101,8 @@ public class AdminUserExcelService {
 
                 String email = cellString(row.getCell(emailCol)).trim();
                 String fullName = cellString(row.getCell(fullNameCol)).trim();
+                String roleCode = roleCol >= 0 ? cellString(row.getCell(roleCol)).trim().toUpperCase() : "EDUCATOR";
+                if (roleCode.isBlank()) roleCode = "USER";
 
                 if (email.isBlank() && fullName.isBlank()) continue;
                 if (email.isBlank() || fullName.isBlank()) {
@@ -115,10 +126,7 @@ public class AdminUserExcelService {
                 }
 
                 try {
-                    adminService.createEducatorAccount(EducatorCreateRequest.builder()
-                            .email(email)
-                            .fullName(fullName)
-                            .build());
+                    adminService.createUserWithRole(email, fullName, roleCode);
                     success++;
                 } catch (Exception e) {
                     // 3) Vẫn bọc try-catch để bắt các lỗi rủi ro hệ thống khác (mail, mapping, ...)
@@ -138,13 +146,10 @@ public class AdminUserExcelService {
     @Transactional(readOnly = true)
     public byte[] exportToExcel() {
         List<UserManagementResponse> users = adminService.getAllUsers();
-        List<UserManagementResponse> educators = users.stream()
-                .filter(u -> u.getRoleCode() != null && u.getRoleCode().equalsIgnoreCase("EDUCATOR"))
-                .toList();
 
         try (Workbook workbook = new XSSFWorkbook()) {
-            Sheet sheet = workbook.createSheet("Teachers");
-            List<String> headers = List.of(COL_EMAIL, COL_FULL_NAME);
+            Sheet sheet = workbook.createSheet("Users");
+            List<String> headers = List.of(COL_EMAIL, COL_FULL_NAME, COL_ROLE);
 
             Row headerRow = sheet.createRow(0);
             CellStyle headerStyle = headerStyle(workbook);
@@ -154,11 +159,12 @@ public class AdminUserExcelService {
                 cell.setCellStyle(headerStyle);
             }
 
-            for (int i = 0; i < educators.size(); i++) {
-                UserManagementResponse u = educators.get(i);
+            for (int i = 0; i < users.size(); i++) {
+                UserManagementResponse u = users.get(i);
                 Row row = sheet.createRow(i + 1);
                 row.createCell(0).setCellValue(u.getEmail() != null ? u.getEmail() : "");
                 row.createCell(1).setCellValue(u.getFullName() != null ? u.getFullName() : "");
+                row.createCell(2).setCellValue(u.getRoleCode() != null ? u.getRoleCode() : "USER");
             }
 
             autosize(sheet, headers.size());

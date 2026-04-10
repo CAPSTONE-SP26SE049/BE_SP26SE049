@@ -21,7 +21,7 @@ public interface FriendshipRepository extends JpaRepository<Friendship, UUID> {
     /**
      * Find existing friendship between two users (in either direction).
      */
-    @Query("SELECT f FROM Friendship f WHERE " +
+    @Query("SELECT f FROM Friendship f JOIN FETCH f.requester JOIN FETCH f.addressee WHERE " +
            "(f.requester = :user1 AND f.addressee = :user2) OR " +
            "(f.requester = :user2 AND f.addressee = :user1)")
     Optional<Friendship> findByUsers(@Param("user1") Account user1, @Param("user2") Account user2);
@@ -29,7 +29,7 @@ public interface FriendshipRepository extends JpaRepository<Friendship, UUID> {
     /**
      * List all accepted friends for a given account (as requester or addressee).
      */
-    @Query("SELECT f FROM Friendship f WHERE " +
+    @Query("SELECT f FROM Friendship f JOIN FETCH f.requester JOIN FETCH f.addressee WHERE " +
            "(f.requester.id = :accountId OR f.addressee.id = :accountId) " +
            "AND f.status = 'ACCEPTED' ORDER BY f.updatedAt DESC")
     List<Friendship> findAllAcceptedByAccount(@Param("accountId") UUID accountId);
@@ -37,13 +37,13 @@ public interface FriendshipRepository extends JpaRepository<Friendship, UUID> {
     /**
      * Pending friend requests received by the given account.
      */
-    @Query("SELECT f FROM Friendship f WHERE f.addressee.id = :accountId AND f.status = 'PENDING' ORDER BY f.createdAt DESC")
+    @Query("SELECT f FROM Friendship f JOIN FETCH f.requester JOIN FETCH f.addressee WHERE f.addressee.id = :accountId AND f.status = 'PENDING' ORDER BY f.createdAt DESC")
     List<Friendship> findPendingRequestsReceived(@Param("accountId") UUID accountId);
 
     /**
      * Pending friend requests sent by the given account.
      */
-    @Query("SELECT f FROM Friendship f WHERE f.requester.id = :accountId AND f.status = 'PENDING' ORDER BY f.createdAt DESC")
+    @Query("SELECT f FROM Friendship f JOIN FETCH f.requester JOIN FETCH f.addressee WHERE f.requester.id = :accountId AND f.status = 'PENDING' ORDER BY f.createdAt DESC")
     List<Friendship> findPendingSentRequests(@Param("accountId") UUID accountId);
 
     /**
@@ -63,7 +63,7 @@ public interface FriendshipRepository extends JpaRepository<Friendship, UUID> {
     /**
      * Find all friendships (any status) involving two accounts — used for search to show status.
      */
-    @Query("SELECT f FROM Friendship f WHERE " +
+    @Query("SELECT f FROM Friendship f JOIN FETCH f.requester JOIN FETCH f.addressee WHERE " +
            "(f.requester.id = :accountId AND f.addressee.id IN :otherIds) OR " +
            "(f.addressee.id = :accountId AND f.requester.id IN :otherIds)")
     List<Friendship> findAllByAccountAndOtherIds(@Param("accountId") UUID accountId,

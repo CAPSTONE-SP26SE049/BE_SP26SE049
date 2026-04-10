@@ -16,7 +16,7 @@ public class LeaderboardScheduler {
 
     private final LeaderboardService leaderboardService;
 
-    @Scheduled(fixedRate = 60000, initialDelay = 10000)
+    @Scheduled(fixedRate = 300000, initialDelay = 10000)
     public void refreshLeaderboards() {
         try {
             leaderboardService.refreshAllLeaderboards();

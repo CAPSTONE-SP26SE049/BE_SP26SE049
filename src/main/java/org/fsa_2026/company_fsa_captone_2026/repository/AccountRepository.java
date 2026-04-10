@@ -56,4 +56,21 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
      * Top 50 active accounts for a region, ordered by totalStars DESC.
      */
     List<Account> findTop50ByRegionIgnoreCaseAndIsActiveTrueOrderByTotalStarsDesc(String region);
+
+    /**
+     * Search active accounts by fullName or email containing a keyword (case-insensitive).
+     * Excludes the requesting user. Limit 20 results at the DB level.
+     * Replaces the previous findAll() + in-memory filter anti-pattern.
+     */
+    @Query("SELECT a FROM Account a WHERE a.isActive = true AND a.id <> :excludeId " +
+           "AND (LOWER(a.fullName) LIKE LOWER(CONCAT('%', :query, '%')) " +
+           "OR LOWER(a.email) LIKE LOWER(CONCAT('%', :query, '%'))) " +
+           "ORDER BY a.fullName ASC")
+    @org.springframework.data.jpa.repository.QueryHints(
+        @jakarta.persistence.QueryHint(name = "jakarta.persistence.query.timeout", value = "5000")
+    )
+    List<Account> searchActiveAccountsByNameOrEmail(
+            @org.springframework.data.repository.query.Param("query") String query,
+            @org.springframework.data.repository.query.Param("excludeId") UUID excludeId,
+            org.springframework.data.domain.Pageable pageable);
 }

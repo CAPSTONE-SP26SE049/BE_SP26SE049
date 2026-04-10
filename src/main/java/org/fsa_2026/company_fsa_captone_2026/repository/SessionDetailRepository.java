@@ -12,10 +12,11 @@ import java.util.UUID;
 @Repository
 public interface SessionDetailRepository extends JpaRepository<SessionDetail, UUID> {
 
-    List<SessionDetail> findBySessionId(UUID sessionId);
+    @Query("SELECT sd FROM SessionDetail sd JOIN FETCH sd.session JOIN FETCH sd.contentItem WHERE sd.session.id = :sessionId")
+    List<SessionDetail> findBySessionId(@Param("sessionId") UUID sessionId);
 
     List<SessionDetail> findByContentItemId(UUID contentItemId);
 
-    @Query("SELECT sd FROM SessionDetail sd WHERE sd.session.account.id = :accountId ORDER BY sd.createdAt DESC")
+    @Query("SELECT sd FROM SessionDetail sd JOIN FETCH sd.session JOIN FETCH sd.contentItem WHERE sd.session.account.id = :accountId ORDER BY sd.createdAt DESC")
     List<SessionDetail> findByAccountIdOrderByCreatedAtDesc(@Param("accountId") UUID accountId);
 }

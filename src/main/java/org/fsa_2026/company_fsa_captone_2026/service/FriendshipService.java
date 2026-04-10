@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.PageRequest;
+
 
 @Slf4j
 @Service
@@ -255,20 +257,11 @@ public class FriendshipService {
             throw new ApiException("BAD_REQUEST", "Từ khóa tìm kiếm phải có ít nhất 2 ký tự");
         }
 
-        String trimmedQuery = query.trim().toLowerCase();
+        String trimmedQuery = query.trim();
 
-        // Search by fullName or email (simple LIKE approach via stream for small user base)
-        // For large scale, consider dedicated search index.
-        List<Account> allUsers = accountRepository.findAll();
-        List<Account> matchedUsers = allUsers.stream()
-                .filter(a -> a.getIsActive() && !a.getId().equals(currentUser.getId()))
-                .filter(a -> {
-                    String name = a.getFullName() != null ? a.getFullName().toLowerCase() : "";
-                    String mail = a.getEmail().toLowerCase();
-                    return name.contains(trimmedQuery) || mail.contains(trimmedQuery);
-                })
-                .limit(20)
-                .collect(Collectors.toList());
+        // ✅ DB-level LIKE search — no more findAll() in memory!
+        List<Account> matchedUsers = accountRepository.searchActiveAccountsByNameOrEmail(
+                trimmedQuery, currentUser.getId(), PageRequest.of(0, 20));
 
         if (matchedUsers.isEmpty()) {
             return Collections.emptyList();
