@@ -20,6 +20,14 @@ public class LearnerDashboardResponse {
         private String description;
         private Integer progress;
         private String id;
+        /** true nếu quiz này đang bị khóa (chưa đủ sao từ quiz trước) */
+        private Boolean isLocked;
+        /** Số sao cần để mở khóa level này (0 nếu không bị khóa) */
+        private Integer starsNeeded;
+        /** Số sao người dùng hiện có trong level này */
+        private Integer currentStars;
+        /** Tên level chứa quiz này */
+        private String levelName;
     }
 
     @Data
