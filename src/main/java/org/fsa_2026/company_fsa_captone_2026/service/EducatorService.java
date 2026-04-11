@@ -301,7 +301,7 @@ public class EducatorService {
         public QuizResponse getQuizById(String educatorEmail, UUID quizId) {
                 getAccountByEmail(educatorEmail);
                 ContentItem quiz = contentItemRepository.findById(quizId)
-                                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy b i kiểm tra"));
+                                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy bài kiểm tra"));
                 return QuizResponse.fromEntity(quiz);
         }
 
@@ -341,7 +341,7 @@ public class EducatorService {
         public QuizResponse updateQuiz(String educatorEmail, UUID quizId, QuizCreateRequest request) {
                 Account educator = getAccountByEmail(educatorEmail);
                 ContentItem quiz = contentItemRepository.findById(quizId)
-                                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy b i kiểm tra"));
+                                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy bài kiểm tra"));
                 LearningUnit level = learningUnitRepository.findById(request.getLevelId())
                                 .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
 
@@ -487,14 +487,14 @@ public class EducatorService {
                                         }
 
                                         String unitName = sd.getContentItem() != null ? sd.getContentItem().getTitle()
-                                                        : "b i học";
+                                                        : "bài học";
                                         double score = sd.getScoreOverall() != null ? sd.getScoreOverall().doubleValue()
                                                         : 0.0;
 
                                         return EducatorActivityResponse.builder()
                                                         .studentName(studentName)
                                                         .title(String.format(
-                                                                        "Học viên %s đã ho n th nh %s với điểm số %.1f%%",
+                                                                        "Học viên %s đã hoàn thành %s với điểm số %.1f%%",
                                                                         studentName, unitName, score))
                                                         .createdAt(sd.getCreatedAt())
                                                         .type("COMPLETED")
@@ -687,13 +687,15 @@ public class EducatorService {
 
                 List<LessonPlanItem> items = new ArrayList<>();
                 for (int i = 0; i < unitIds.size(); i++) {
-                        LearningUnit unit = learningUnitRepository.findById(unitIds.get(i))
+                        final UUID unitId = unitIds.get(i);
+                        final int index = i;
+                        LearningUnit unit = learningUnitRepository.findById(unitId)
                                         .orElseThrow(() -> new ApiException(CODE_NOT_FOUND,
-                                                        "Không tìm thấy Unit ID: " + unitIds.get(i)));
+                                                        "Không tìm thấy Unit ID: " + unitId));
                         items.add(LessonPlanItem.builder()
                                         .lessonPlan(savedPlan)
                                         .learningUnit(unit)
-                                        .orderIndex(i)
+                                        .orderIndex(index)
                                         .build());
                 }
                 lessonPlanItemRepository.saveAll(items);
@@ -727,7 +729,7 @@ public class EducatorService {
 
         @Transactional(readOnly = true)
         public List<LearnerDashboardResponse.DailyQuest> getStudentQuests(String educatorEmail, UUID studentId) {
-                Account student = accountRepository.findById(studentId)
+                accountRepository.findById(studentId)
                                 .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy học viên"));
 
                 java.time.LocalDate today = java.time.LocalDate.now();
@@ -760,7 +762,7 @@ public class EducatorService {
 
         @Transactional
         public Quest assignQuestToStudent(String educatorEmail, UUID studentId, EducatorQuestRequest request) {
-                Account student = accountRepository.findById(studentId)
+                accountRepository.findById(studentId)
                                 .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy học viên"));
 
                 Quest quest = Quest.builder()
@@ -779,7 +781,7 @@ public class EducatorService {
 
         private Account getAccountByEmail(String email) {
                 return accountRepository.findByEmail(email)
-                                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy t i khoản"));
+                                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy tài khoản"));
         }
 
 }

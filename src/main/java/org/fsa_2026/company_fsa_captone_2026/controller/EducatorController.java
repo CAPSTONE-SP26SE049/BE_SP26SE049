@@ -14,6 +14,8 @@ import org.fsa_2026.company_fsa_captone_2026.dto.LevelResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.PlacementRuleRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.PlacementRuleResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.StudentAnalyticsResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.EducatorActivityResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.ContentApprovalHistoryResponse;
 import org.fsa_2026.company_fsa_captone_2026.service.EducatorService;
 import org.fsa_2026.company_fsa_captone_2026.service.ErrorTagService;
 import org.springframework.http.HttpStatus;
@@ -90,7 +92,7 @@ public class EducatorController {
 
         @GetMapping("/content/{id}/history")
         @Operation(summary = "Get Content Approval History", description = "View the audit log for a specific level or challenge")
-        public ResponseEntity<ApiResponse<List<org.fsa_2026.company_fsa_captone_2026.dto.ContentApprovalHistoryResponse>>> getContentApprovalHistory(
+        public ResponseEntity<ApiResponse<List<ContentApprovalHistoryResponse>>> getContentApprovalHistory(
                         @PathVariable UUID id) {
                 return ResponseEntity.ok(ApiResponse.success("Lấy lịch sử duyệt thành công",
                                 educatorService.getContentApprovalHistory(id)));

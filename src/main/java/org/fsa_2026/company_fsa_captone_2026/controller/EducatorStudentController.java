@@ -12,7 +12,7 @@ import org.fsa_2026.company_fsa_captone_2026.dto.UserManagementResponse;
 import org.fsa_2026.company_fsa_captone_2026.entity.Quest;
 import org.fsa_2026.company_fsa_captone_2026.entity.StudentAssignment;
 import org.fsa_2026.company_fsa_captone_2026.dto.FeedbackCreateRequest;
-import org.fsa_2026.company_fsa_captone_2026.dto.FeedbackResponse;
+import org.fsa_2026.company_fsa_captone_2026.entity.EducatorFeedback;
 import org.fsa_2026.company_fsa_captone_2026.service.EducatorService;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -54,7 +54,7 @@ public class EducatorStudentController {
 
     @GetMapping("/{studentId}/feedback")
     @Operation(summary = "Get Student Feedback History", description = "Fetch all previous feedback given to this student")
-    public ResponseEntity<ApiResponse<List<org.fsa_2026.company_fsa_captone_2026.entity.EducatorFeedback>>> getFeedbackHistory(Authentication auth, @PathVariable UUID studentId) {
+    public ResponseEntity<ApiResponse<List<EducatorFeedback>>> getFeedbackHistory(Authentication auth, @PathVariable UUID studentId) {
         return ResponseEntity.ok(ApiResponse.success("Fetched feedback history", educatorService.getStudentFeedbackHistory(auth.getName(), studentId)));
     }
 
