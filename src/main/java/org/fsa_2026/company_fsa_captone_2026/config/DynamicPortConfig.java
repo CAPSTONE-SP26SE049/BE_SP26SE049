@@ -51,17 +51,11 @@ public class DynamicPortConfig {
             // Set the available port using the correct API for Spring Boot 4.0+
             factory.setPort(availablePort);
 
-            // Log the port being used
-            String message = "═══════════════════════════════════════════════════════════════════\n" +
-                    "🚀 Server starting on port: " + availablePort + "\n";
-
             if (availablePort != preferredPort) {
-                message += "   (Preferred port " + preferredPort + " was in use)\n";
+                log.info("Server will listen on port: {} (preferred port {} was in use)", availablePort, preferredPort);
+            } else {
+                log.info("Server will listen on port: {}", availablePort);
             }
-            message += "═══════════════════════════════════════════════════════════════════";
-
-            System.out.println(message);
-            log.info("Server will listen on port: {}", availablePort);
         };
     }
 }

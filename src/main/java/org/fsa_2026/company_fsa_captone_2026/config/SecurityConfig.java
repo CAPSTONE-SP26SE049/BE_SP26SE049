@@ -2,6 +2,7 @@ package org.fsa_2026.company_fsa_captone_2026.config;
 
 import lombok.RequiredArgsConstructor;
 import org.fsa_2026.company_fsa_captone_2026.common.JwtAuthenticationFilter;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -16,8 +17,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import jakarta.servlet.http.HttpServletResponse;
+
+import java.util.List;
 
 /**
  * Security Configuration
@@ -32,7 +38,19 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final UserDetailsService userDetailsService;
-    private final CorsConfigurationSource corsConfigurationSource;
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type"));
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -66,15 +84,25 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) {
         try {
             http
-                    .cors(cors -> cors.configurationSource(corsConfigurationSource))
+                    .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                     .csrf(csrf -> csrf.disable())
+                    .formLogin(form -> form.disable())
+                    .httpBasic(basic -> basic.disable())
                     .exceptionHandling(exception -> exception
-                            .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
+                            .authenticationEntryPoint((request, response, authException) -> {
+                                // Trả về 401 thuần REST, tránh browser popup Basic Auth (WWW-Authenticate)
+                                response.setHeader("WWW-Authenticate", "");
+                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                                response.setContentType("text/plain;charset=UTF-8");
+                                response.getWriter().write("Unauthorized");
+                            })
                             .accessDeniedHandler(new JwtAccessDeniedHandler()))
                     .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                     .authorizeHttpRequests(authz -> authz
                             // DEVELOPMENT MODE: Allow all access to Swagger and API docs
                             .requestMatchers(
+                                    // WebSocket/SockJS endpoints must be public
+                                    "/ws/**",
                                     // Swagger UI endpoints
                                     "/swagger-ui.html",
                                     "/swagger-ui/**",

@@ -31,3 +31,30 @@ build/
 
 ### VS Code ###
 .vscode/
+hs_err_pid*.log
+
+replay_pid*.log 
+
+# --- Tối ưu thêm cho Backend ---
+*.log
+*.temp
+*.tmp
+
+# Tránh lộ password DB cá nhân hoặc API Key (nếu nhóm có dùng)
+.env
+bin/
+out/
+
+# Cấu hình riêng của máy (nếu có dùng local profile)
+src/main/resources/application-local.properties
+src/main/resources/application-local.yml
+
+# --- Cho Windows (Vì bạn đang dùng Windows) ---
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# --- Cho MacOS (Phòng hờ bạn khác trong nhóm dùng MacBook) ---
+.DS_Store
+.AppleDouble
+.LSOverride
