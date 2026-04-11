@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="44-add-student-assignment-tables" author="antigravity">
+        <createTable tableName="student_assignment">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false" />
+            </column>
+            <column name="student_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_assignment_student" referencedTableName="account" referencedColumnNames="id" />
+            </column>
+            <column name="educator_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_assignment_educator" referencedTableName="account" referencedColumnNames="id" />
+            </column>
+            <column name="learning_unit_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_assignment_unit" referencedTableName="learning_unit" referencedColumnNames="id" />
+            </column>
+            <column name="status" type="VARCHAR(20)" defaultValue="PENDING"/> <!-- PENDING, COMPLETED, OVERDUE -->
+            <column name="assigned_at" type="TIMESTAMP WITHOUT TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="deadline" type="TIMESTAMP WITHOUT TIME ZONE"/>
+            <column name="completed_at" type="TIMESTAMP WITHOUT TIME ZONE"/>
+        </createTable>
+
+        <createIndex indexName="idx_assignment_student_status" tableName="student_assignment">
+            <column name="student_id"/>
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

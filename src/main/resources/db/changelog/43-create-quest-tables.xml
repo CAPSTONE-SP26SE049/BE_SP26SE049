@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="43-create-quest-tables" author="antigravity">
+        <!-- 1. Quest Definition Table -->
+        <createTable tableName="quest">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false" />
+            </column>
+            <column name="title" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="xp_reward" type="INTEGER" defaultValueNumeric="0"/>
+            <column name="target_value" type="INTEGER" defaultValueNumeric="1"/>
+            <column name="quest_type" type="VARCHAR(50)">
+                <constraints nullable="false"/> <!-- SPEAKING, STREAK, QUIZ_GENERAL, etc. -->
+            </column>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true"/>
+            <column name="created_at" type="TIMESTAMP WITHOUT TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP WITHOUT TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+
+        <!-- 2. Account Quest Progress (Daily tracking) -->
+        <createTable tableName="account_quest_progress">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false" />
+            </column>
+            <column name="account_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_quest_progress_account" referencedTableName="account" referencedColumnNames="id" />
+            </column>
+            <column name="quest_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_quest_progress_quest" referencedTableName="quest" referencedColumnNames="id" />
+            </column>
+            <column name="current_value" type="INTEGER" defaultValueNumeric="0"/>
+            <column name="is_completed" type="BOOLEAN" defaultValueBoolean="false"/>
+            <column name="quest_date" type="DATE" defaultValueComputed="CURRENT_DATE"/>
+            <column name="completed_at" type="TIMESTAMP WITHOUT TIME ZONE"/>
+        </createTable>
+
+        <createIndex indexName="idx_quest_progress_acc_date" tableName="account_quest_progress">
+            <column name="account_id"/>
+            <column name="quest_date"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

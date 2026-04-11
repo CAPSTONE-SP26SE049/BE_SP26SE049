@@ -76,5 +76,10 @@
     <include file="db/changelog/40-seed-achievements.xml"/>
     <include file="db/changelog/41-create-speaking-attempt.xml"/>
     <include file="db/changelog/42-create-dashboard-summary.xml"/>
+    <include file="db/changelog/43-create-quest-tables.xml"/>
+    <include file="db/changelog/44-add-student-assignment-tables.xml"/>
+    <include file="db/changelog/45-seed-initial-quests.xml"/>
+    <include file="db/changelog/46-add-lesson-plan-tables.xml"/>
+    <include file="db/changelog/48-add-personalized-quests.xml"/>
 </databaseChangeLog>
 

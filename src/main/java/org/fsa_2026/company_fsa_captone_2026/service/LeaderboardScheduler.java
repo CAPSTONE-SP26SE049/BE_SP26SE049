@@ -16,7 +16,7 @@ public class LeaderboardScheduler {
 
     private final LeaderboardService leaderboardService;
 
-    @Scheduled(fixedRate = 300000, initialDelay = 10000)
+    // @Scheduled(fixedRate = 300000, initialDelay = 10000) // DISABLED: Causing 17s DB lock and HikariCP connection leak
     public void refreshLeaderboards() {
         try {
             leaderboardService.refreshAllLeaderboards();

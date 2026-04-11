@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="46-add-lesson-plan-tables" author="antigravity">
+        <createTable tableName="lesson_plan">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false" />
+            </column>
+            <column name="title" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="educator_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_lp_educator" referencedTableName="account" referencedColumnNames="id" />
+            </column>
+            <column name="created_at" type="TIMESTAMP WITHOUT TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+
+        <createTable tableName="lesson_plan_item">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false" />
+            </column>
+            <column name="lesson_plan_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_lpi_lp" referencedTableName="lesson_plan" referencedColumnNames="id" />
+            </column>
+            <column name="learning_unit_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_lpi_unit" referencedTableName="learning_unit" referencedColumnNames="id" />
+            </column>
+            <column name="order_index" type="INTEGER"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="47-update-assignment-to-reference-plan" author="antigravity">
+        <addColumn tableName="student_assignment">
+            <column name="lesson_plan_id" type="UUID">
+                <constraints foreignKeyName="fk_assignment_lp" referencedTableName="lesson_plan" referencedColumnNames="id"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

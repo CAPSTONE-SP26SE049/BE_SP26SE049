@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="48-add-personalized-quests" author="antigravity">
+        <addColumn tableName="quest">
+            <column name="student_id" type="UUID">
+                <constraints foreignKeyName="fk_quest_student" referencedTableName="account" referencedColumnNames="id"/>
+            </column>
+            <column name="end_date" type="TIMESTAMP WITHOUT TIME ZONE"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

@@ -16,15 +16,21 @@ import org.fsa_2026.company_fsa_captone_2026.dto.UserRegionProgressResponse;
 import org.fsa_2026.company_fsa_captone_2026.entity.Account;
 import org.fsa_2026.company_fsa_captone_2026.entity.AccountLearningUnit;
 import org.fsa_2026.company_fsa_captone_2026.entity.AccountReward;
+import org.fsa_2026.company_fsa_captone_2026.entity.ContentItem;
 import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
 import org.fsa_2026.company_fsa_captone_2026.entity.RewardCatalog;
+import org.fsa_2026.company_fsa_captone_2026.entity.SessionDetail;
+import org.fsa_2026.company_fsa_captone_2026.entity.StudySession;
 import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
 import org.fsa_2026.company_fsa_captone_2026.repository.AccountLearningUnitRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.AccountRewardRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.ContentItemRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.LearningUnitRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.QuizChallengeItemRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.RewardCatalogRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.SessionDetailRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.StudySessionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,6 +54,10 @@ public class QuizService {
     private final AccountRepository accountRepository;
     private final AccountRewardRepository accountRewardRepository;
     private final AccountLearningUnitRepository accountLearningUnitRepository;
+    private final StudySessionRepository studySessionRepository;
+    private final SessionDetailRepository sessionDetailRepository;
+    private final ContentItemRepository contentItemRepository;
+    private final QuestService questService;
     private final ObjectMapper objectMapper;
 
     // ==========================================
@@ -228,6 +238,19 @@ public class QuizService {
 
         // 7. Lưu progress vào AccountLearningUnit (Lưu score là phần trăm)
         saveProgress(account, quiz, stars, passed, (int) Math.round(percentage));
+
+        // 8. Record Study Session & Detail
+        recordStudySession(account, quiz, passed, percentage);
+
+        // 9. Update Quests
+        questService.updateQuestProgress(account.getId(), "QUIZ_PASS", 1);
+        String skillType = extractSkillTypeFromMetadata(quiz);
+        if ("SPEAKING".equalsIgnoreCase(skillType)) {
+             questService.updateQuestProgress(account.getId(), "SPEAKING", 1);
+        }
+        if (passed && percentage >= 100) {
+             questService.updateQuestProgress(account.getId(), "QUIZ_PERFECT", 1);
+        }
 
 
         // 6. Nếu ĐẠT và quiz có gắn reward → trao reward tự động
@@ -637,6 +660,32 @@ public class QuizService {
 
 
         accountLearningUnitRepository.save(progress);
+
+        // PROPAGATE TO LEVEL: If a quiz is completed, ensure the parent Level is marked as active/complete
+        if (passed && quiz.getParent() != null && "LEVEL".equalsIgnoreCase(quiz.getParent().getType())) {
+            propagateProgressToLevel(account, quiz.getParent());
+        }
+    }
+
+    private void propagateProgressToLevel(Account account, LearningUnit level) {
+        Optional<AccountLearningUnit> existingOpt =
+                accountLearningUnitRepository.findByAccountIdAndLearningUnitId(account.getId(), level.getId());
+
+        if (existingOpt.isPresent()) {
+            AccountLearningUnit progress = existingOpt.get();
+            if (!Boolean.TRUE.equals(progress.getIsCompleted())) {
+                progress.setIsCompleted(true);
+                accountLearningUnitRepository.save(progress);
+            }
+        } else {
+            AccountLearningUnit progress = AccountLearningUnit.builder()
+                    .account(account)
+                    .learningUnit(level)
+                    .isCompleted(true)
+                    .starsEarned(0) // Level itself doesn't earn stars, quizzes do
+                    .build();
+            accountLearningUnitRepository.save(progress);
+        }
     }
 
 
@@ -734,4 +783,39 @@ public class QuizService {
         return "READING";
     }
 
+    private void recordStudySession(Account account, LearningUnit quiz, boolean passed, double score) {
+        try {
+            // Find or create active study session for today
+            java.time.Instant todayStart = java.time.LocalDate.now().atStartOfDay(java.time.ZoneOffset.UTC).toInstant();
+            List<StudySession> sessions = studySessionRepository.findByAccountIdAndSessionType(account.getId(), "QUIZ");
+            StudySession session = sessions.stream()
+                .filter(s -> s.getStartedAt().isAfter(todayStart))
+                .findFirst()
+                .orElseGet(() -> {
+                    StudySession s = StudySession.builder()
+                        .account(account)
+                        .sessionType("QUIZ")
+                        .startedAt(java.time.Instant.now())
+                        .build();
+                    return studySessionRepository.save(s);
+                });
+
+            // Find ContentItem for this LearningUnit
+            List<ContentItem> items = contentItemRepository.findByLearningUnitId(quiz.getId());
+            if (!items.isEmpty()) {
+                SessionDetail detail = SessionDetail.builder()
+                    .session(session)
+                    .contentItem(items.get(0))
+                    .isPassed(passed)
+                    .scoreOverall(java.math.BigDecimal.valueOf(score))
+                    .build();
+                sessionDetailRepository.save(detail);
+
+                session.setEndedAt(java.time.Instant.now());
+                studySessionRepository.save(session);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to record study session: {}", e.getMessage());
+        }
+    }
 }

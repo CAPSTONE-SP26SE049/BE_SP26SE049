@@ -18,6 +18,7 @@ public class StudentAnalyticsResponse implements Serializable {
     private UUID studentId;
     private String fullName;
     private List<ErrorMetric> topErrors;
+    private List<DailyScore> scoreTrend;
 
     @Data
     @Builder
@@ -27,5 +28,14 @@ public class StudentAnalyticsResponse implements Serializable {
         private String phoneme;
         private double accuracy;
         private long count;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class DailyScore implements Serializable {
+        private String date;
+        private double score;
     }
 }

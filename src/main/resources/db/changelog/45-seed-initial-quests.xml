@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="45-seed-initial-quests" author="antigravity">
+        <insert tableName="quest">
+            <column name="id" value="38b0f443-41bb-4e96-8646-513d6c5d8221"/>
+            <column name="title" value="Hoàn thành 1 bài luyện nói"/>
+            <column name="quest_type" value="SPEAKING"/>
+            <column name="target_value" valueNumeric="1"/>
+            <column name="xp_reward" valueNumeric="50"/>
+        </insert>
+        <insert tableName="quest">
+            <column name="id" value="38b0f443-41bb-4e96-8646-513d6c5d8222"/>
+            <column name="title" value="Duy trì Streak 3 ngày liên tiếp"/>
+            <column name="quest_type" value="STREAK"/>
+            <column name="target_value" valueNumeric="3"/>
+            <column name="xp_reward" valueNumeric="100"/>
+        </insert>
+        <insert tableName="quest">
+            <column name="id" value="38b0f443-41bb-4e96-8646-513d6c5d8223"/>
+            <column name="title" value="Tham gia 1 bài kiểm tra tổng hợp"/>
+            <column name="quest_type" value="QUIZ_PASS"/>
+            <column name="target_value" valueNumeric="1"/>
+            <column name="xp_reward" valueNumeric="150"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

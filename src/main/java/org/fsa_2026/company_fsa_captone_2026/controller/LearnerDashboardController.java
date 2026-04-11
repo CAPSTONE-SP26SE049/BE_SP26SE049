@@ -9,7 +9,7 @@ import org.fsa_2026.company_fsa_captone_2026.entity.Account;
 import org.fsa_2026.company_fsa_captone_2026.common.Constants;
 import org.fsa_2026.company_fsa_captone_2026.dto.ApiResponse;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,11 +24,11 @@ public class LearnerDashboardController {
 
     @Operation(summary = "Get aggregated dashboard data for the authenticated learner (O(1) execution)")
     @GetMapping
-    public ResponseEntity<ApiResponse<LearnerDashboardResponse>> getDashboardData(@AuthenticationPrincipal Account account) {
-        if (account == null) {
+    public ResponseEntity<ApiResponse<LearnerDashboardResponse>> getDashboardData(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
             return ResponseEntity.status(401).build();
         }
-        LearnerDashboardResponse response = dashboardService.getDashboardData(account.getId());
+        LearnerDashboardResponse response = dashboardService.getDashboardData(authentication.getName());
         return ResponseEntity.ok(ApiResponse.success("Dashboard data retrieved", response));
     }
 }

@@ -59,16 +59,15 @@ public class EducatorController {
                                                 educatorService.getDashboardSummary(authentication.getName())));
         }
 
-
-        @GetMapping("/students/{id}/analytics")
-        @Operation(summary = "Get Student Analytics", description = "Detailed pronunciation report for a student")
-        public ResponseEntity<ApiResponse<StudentAnalyticsResponse>> getStudentAnalytics(
-                        @PathVariable UUID id,
+        @GetMapping("/dashboard/activities")
+        @Operation(summary = "Get Recent Activities", description = "Monitor latest student exercise attempts")
+        public ResponseEntity<ApiResponse<List<EducatorActivityResponse>>> getRecentActivities(
                         Authentication authentication) {
-                return ResponseEntity.ok(
-                                ApiResponse.success(MSG_SUCCESS,
-                                                educatorService.getStudentAnalytics(authentication.getName(), id)));
+                return ResponseEntity.ok(ApiResponse.success(MSG_SUCCESS,
+                                educatorService.getRecentActivities(authentication.getName())));
         }
+
+
 
         @GetMapping("/curriculum/{region}")
         @Operation(summary = "Get Curriculum by Region", description = "List levels filtered by region")
@@ -164,15 +163,6 @@ public class EducatorController {
                                 errorTagService.getErrorTagsByDialect(dialectId)));
         }
 
-        @PostMapping("/students/{id}/feedback")
-        @Operation(summary = "Submit Student Feedback", description = "Teacher provides manual feedback on an attempt")
-        public ResponseEntity<ApiResponse<Void>> submitFeedback(
-                        @PathVariable UUID id,
-                        @Valid @RequestBody FeedbackCreateRequest request,
-                        Authentication authentication) {
-                educatorService.submitFeedback(authentication.getName(), id, request);
-                return ResponseEntity.ok(ApiResponse.success("Gửi phản hồi thành công", null));
-        }
 
         @GetMapping("/placement/rules")
         @Operation(summary = "Get Placement Rules", description = "List all student routing rules")
