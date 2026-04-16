@@ -77,5 +77,6 @@
     <include file="db/changelog/41-create-speaking-attempt.xml"/>
     <include file="db/changelog/42-create-chat-message-table.xml"/>
     <include file="db/changelog/43-index-chat-message.xml"/>
+    <include file="db/changelog/44-fix-quiz-orderindex.xml"/>
 </databaseChangeLog>
 

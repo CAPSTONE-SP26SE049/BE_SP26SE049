@@ -1,3 +1,5 @@
+
+
 spring:
   application:
     name: com.company.FSA_Captone_2026
@@ -34,7 +36,7 @@ spring:
     enabled: true
     change-log: classpath:db/changelog/db.changelog-master.xml
 
-  # Jackson Configuration
+  # Jackson Configuration (JavaTimeModule & disable timestamps via JacksonConfig.java)
   jackson:
     default-property-inclusion: non_null
 

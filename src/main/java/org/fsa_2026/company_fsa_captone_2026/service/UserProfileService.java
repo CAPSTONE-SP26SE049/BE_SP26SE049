@@ -32,6 +32,9 @@ public class UserProfileService {
         if (request.getPhone() != null) {
             account.setPhone(request.getPhone());
         }
+        if (request.getRegion() != null) {
+            account.setRegion(request.getRegion());
+        }
 
         accountRepository.save(account);
 

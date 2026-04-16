@@ -26,13 +26,12 @@ import java.util.UUID;
 @Slf4j
 @Controller
 @RequiredArgsConstructor
-@RequestMapping(Constants.API_PREFIX + "/chat")
 public class ChatController {
 
     private final ChatMessageService chatMessageService;
     private final SimpMessagingTemplate simpMessagingTemplate;
 
-    @GetMapping("/history/{friendId}")
+    @GetMapping(Constants.API_PREFIX + "/chat/history/{friendId}")
     @ResponseBody
     public ResponseEntity<List<ChatMessageDto>> getHistory(
             @PathVariable UUID friendId,
@@ -42,7 +41,7 @@ public class ChatController {
         return ResponseEntity.ok(chatMessageService.getChatHistory(currentUserId, friendId));
     }
 
-    @GetMapping("/unread")
+    @GetMapping(Constants.API_PREFIX + "/chat/unread")
     @ResponseBody
     public ResponseEntity<Map<UUID, Long>> getUnreadCounts(Authentication authentication) {
         UUID currentUserId = chatMessageService.resolveUserId(authentication != null ? authentication.getName() : null);

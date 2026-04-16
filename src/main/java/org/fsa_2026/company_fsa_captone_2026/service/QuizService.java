@@ -691,7 +691,7 @@ public class QuizService {
         response.put("difficulty", metadata.getOrDefault("difficulty", "BEGINNER"));
         response.put("questionCount", metadata.getOrDefault("question_count", 0));
         response.put("orderIndex", metadata.getOrDefault("orderIndex", 0));
-        response.put("skillType", metadata.getOrDefault("skill_type", "READING"));
+        response.put("skillType", extractSkillTypeFromMetadata(quiz));
         response.put("comment", metadata.getOrDefault("comment", ""));
 
         // Reward Info
@@ -724,14 +724,30 @@ public class QuizService {
     }
 
     private String extractSkillTypeFromMetadata(LearningUnit quiz) {
-        if (quiz.getMetadataJson() == null || quiz.getMetadataJson().isBlank()) return "READING";
-        try {
-            Map<String, Object> metadata = objectMapper.readValue(
-                    quiz.getMetadataJson(), new TypeReference<Map<String, Object>>() {});
-            Object st = metadata.get("skill_type");
-            if (st instanceof String) return (String) st;
-        } catch (Exception ignored) {}
-        return "READING";
+        if (quiz.getMetadataJson() != null && !quiz.getMetadataJson().isBlank()) {
+            try {
+                Map<String, Object> metadata = objectMapper.readValue(
+                        quiz.getMetadataJson(), new TypeReference<Map<String, Object>>() {});
+                // Try "skill_type" first, then "skillType"
+                Object st = metadata.get("skill_type");
+                if (st == null) st = metadata.get("skillType");
+                if (st instanceof String && !((String) st).isBlank()) {
+                    return ((String) st).toUpperCase();
+                }
+            } catch (Exception ignored) {}
+        }
+        // Infer from quiz name as fallback
+        return inferSkillTypeFromName(quiz.getName());
+    }
+
+    private String inferSkillTypeFromName(String name) {
+        if (name == null || name.isBlank()) return "MIXED";
+        String lower = name.toLowerCase();
+        if (lower.contains("viết") || lower.contains("writ")) return "WRITING";
+        if (lower.contains("nghe") || lower.contains("listen")) return "LISTENING";
+        if (lower.contains("nói") || lower.contains("speak") || lower.contains("phát âm")) return "SPEAKING";
+        if (lower.contains("đọc") || lower.contains("read")) return "READING";
+        return "MIXED";
     }
 
 }
