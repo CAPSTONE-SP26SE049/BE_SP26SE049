@@ -22,14 +22,14 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
     boolean existsByPhone(String phone);
 
     /**
-     * Lấy danh sách Account theo roleCode và trạng thái active.
+     * Lấy danh sách Account theo roleCode.
      * Filter tại DB thay vì load-all vào memory.
-        *
-        * @param roleCodes danh sách role cần lọc
-        * @return danh sách account active thuộc các role tương ứng
+     *
+     * @param roleCodes danh sách role cần lọc
+     * @return danh sách account thuộc các role tương ứng, bao gồm cả active và inactive
      */
-    @Query("SELECT a FROM Account a WHERE a.roleCode IN :roleCodes AND a.isActive = true")
-    List<Account> findAllActiveByRoleCodeIn(List<RoleCode> roleCodes);
+    @Query("SELECT a FROM Account a WHERE a.roleCode IN :roleCodes")
+    List<Account> findAllByRoleCodeIn(List<RoleCode> roleCodes);
 
     List<Account> findTop10ByIsActiveTrueOrderByTotalExperienceDesc();
 

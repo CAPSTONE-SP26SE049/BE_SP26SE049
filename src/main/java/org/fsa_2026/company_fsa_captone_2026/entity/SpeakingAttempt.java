@@ -75,8 +75,19 @@ public class SpeakingAttempt {
     @Column(name = "dialect", length = 20)
     private String dialect;
 
-    /** Người dùng đã đồng ý thu thập dữ liệu */
     @Column(name = "consent_given", nullable = false)
     @Builder.Default
     private Boolean consentGiven = true;
+
+    /** Thời gian xử lý của Gemini AI (miliseconds) */
+    @Column(name = "processing_time_ms")
+    private Long processingTimeMs;
+
+    /** Thời gian nhận diện giọng nói của Parakeet ASR (miliseconds) */
+    @Column(name = "asr_processing_time_ms")
+    private Long asrProcessingTimeMs;
+
+    /** Phản hồi chi tiết của Gemini AI (văn bản) */
+    @Column(name = "gemini_feedback", columnDefinition = "TEXT")
+    private String geminiFeedback;
 }

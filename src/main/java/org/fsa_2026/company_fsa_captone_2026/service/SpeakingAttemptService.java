@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -39,7 +40,10 @@ public class SpeakingAttemptService {
             String audioUrl,
             int geminiScore,
             boolean isCorrect,
-            String dialect) {
+            String dialect,
+            Long processingTimeMs,
+            Long asrProcessingTimeMs,
+            String geminiFeedback) {
 
         try {
             // 1. Tìm Account
@@ -61,6 +65,7 @@ public class SpeakingAttemptService {
             }
 
             // 3. Lưu vào DB
+            log.info("[SpeakingAttempt] Saving attempt with processingTimeMs={}, asrProcessingTimeMs={}", processingTimeMs, asrProcessingTimeMs);
             SpeakingAttempt attempt = SpeakingAttempt.builder()
                     .account(accountOpt.get())
                     .challenge(challenge)
@@ -71,6 +76,9 @@ public class SpeakingAttemptService {
                     .isCorrect(isCorrect)
                     .dialect(dialect)
                     .consentGiven(true)
+                    .processingTimeMs(processingTimeMs)
+                    .asrProcessingTimeMs(asrProcessingTimeMs)
+                    .geminiFeedback(geminiFeedback)
                     .build();
 
             speakingAttemptRepository.save(attempt);
@@ -98,5 +106,29 @@ public class SpeakingAttemptService {
                 "central", speakingAttemptRepository.countByDialectAndConsentGivenTrue("CENTRAL"),
                 "south", speakingAttemptRepository.countByDialectAndConsentGivenTrue("SOUTH")
         );
+    }
+
+    /**
+     * Admin: lấy danh sách logs chi tiết cho AI Monitor (50 lượt gần nhất).
+     */
+    public List<org.fsa_2026.company_fsa_captone_2026.dto.SpeakingAttemptLogResponse> getAiMonitorLogs(int limit) {
+        return speakingAttemptRepository.findTopNOrderByCreatedAtDesc(
+                org.springframework.data.domain.PageRequest.of(0, Math.min(limit, 200))
+        ).stream().map(sa -> org.fsa_2026.company_fsa_captone_2026.dto.SpeakingAttemptLogResponse.builder()
+                .id(sa.getId())
+                .userEmail(sa.getAccount().getEmail())
+                .userFullName(sa.getAccount().getFullName())
+                .targetText(sa.getTargetText())
+                .asrTranscription(sa.getAsrTranscription())
+                .audioUrl(sa.getAudioUrl())
+                .geminiScore(sa.getGeminiScore())
+                .geminiFeedback(sa.getGeminiFeedback())
+                .isCorrect(sa.getIsCorrect())
+                .dialect(sa.getDialect())
+                .processingTimeMs(sa.getProcessingTimeMs())
+                .asrProcessingTimeMs(sa.getAsrProcessingTimeMs())
+                .createdAt(sa.getCreatedAt())
+                .build()
+        ).toList();
     }
 }

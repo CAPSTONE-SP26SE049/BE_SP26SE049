@@ -660,6 +660,19 @@ public class QuizService {
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("id", quiz.getId());
         response.put("levelId", quiz.getParent() != null ? quiz.getParent().getId() : null);
+
+        // Find Dialect name (Region) by traversing up
+        String dialect = null;
+        LearningUnit current = quiz.getParent();
+        while (current != null) {
+            if ("DIALECT".equalsIgnoreCase(current.getType())) {
+                dialect = current.getName();
+                break;
+            }
+            current = current.getParent();
+        }
+        response.put("dialect", dialect);
+
         response.put("name", quiz.getName());
         response.put("type", quiz.getType());
 

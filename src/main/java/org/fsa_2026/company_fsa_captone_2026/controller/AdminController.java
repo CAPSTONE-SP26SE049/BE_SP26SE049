@@ -23,9 +23,11 @@ import org.fsa_2026.company_fsa_captone_2026.dto.LevelResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.UserManagementResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.UserStatusUpdateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.UserUpdateRequest;
+import org.fsa_2026.company_fsa_captone_2026.dto.UserAnalyticsResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.AnalyticsOverviewResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.SystemHealthResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.RewardResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.SpeakingAttemptLogResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -391,6 +393,23 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success("Thành công", response));
     }
 
+    @GetMapping("/analytics/users-progress")
+    @Operation(summary = "Users Progress Analytics", description = "Get detailed progress for all users (exclude admin/educator)")
+    public ResponseEntity<ApiResponse<List<UserAnalyticsResponse>>> getUsersProgress() {
+        log.info("Admin requesting users progress analytics");
+        List<UserAnalyticsResponse> responses = adminService.getUsersAnalytics();
+        return ResponseEntity.ok(ApiResponse.success("Thành công", responses));
+    }
+
+    @GetMapping("/ai-monitor/logs")
+    @Operation(summary = "AI Monitor Logs", description = "Get recent speaking attempt logs with latency and feedback details")
+    public ResponseEntity<ApiResponse<List<SpeakingAttemptLogResponse>>> getAiMonitorLogs(
+            @RequestParam(defaultValue = "50") int limit) {
+        log.info("Admin requesting AI monitor logs, limit={}", limit);
+        List<SpeakingAttemptLogResponse> logs = speakingAttemptService.getAiMonitorLogs(limit);
+        return ResponseEntity.ok(ApiResponse.success("Thành công", logs));
+    }
+
     @GetMapping("/analytics/engagement")
     @Operation(summary = "User Engagement", description = "Get engagement metrics")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getAnalyticsEngagement() {
@@ -405,10 +424,8 @@ public class AdminController {
     @Operation(summary = "Error Heatmaps", description = "Get error pattern heat maps across regions")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getErrorHeatmaps() {
         log.info("Admin requesting error heatmaps");
-        Map<String, Object> mockResponse = new HashMap<>();
-        mockResponse.put("northern_N_L_confusion_rate", 0.45);
-        mockResponse.put("central_S_X_confusion_rate", 0.38);
-        return ResponseEntity.ok(ApiResponse.success("Thành công", mockResponse));
+        Map<String, Object> response = adminService.getErrorHeatmaps();
+        return ResponseEntity.ok(ApiResponse.success("Thành công", response));
     }
 
     // ==========================================
@@ -422,7 +439,8 @@ public class AdminController {
         SystemHealthResponse mockResponse = SystemHealthResponse.builder()
                 .status("UP")
                 .databaseStatus("CONNECTED")
-                .aiModelStatus("ONLINE")
+                .parakeetStatus("ONLINE")
+                .geminiStatus("CONNECTED")
                 .uptimeSeconds(86400)
                 .build();
         return ResponseEntity.ok(ApiResponse.success("Thành công", mockResponse));
@@ -432,10 +450,8 @@ public class AdminController {
     @Operation(summary = "AI Performance", description = "Metrics for AI model latency and accuracy")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getAiPerformance() {
         log.info("Admin requesting AI performance metrics");
-        Map<String, Object> mockResponse = new HashMap<>();
-        mockResponse.put("averageLatencyMs", 350);
-        mockResponse.put("phonemeAccuracyRate", 0.88);
-        return ResponseEntity.ok(ApiResponse.success("Thành công", mockResponse));
+        Map<String, Object> response = adminService.getAiPerformance();
+        return ResponseEntity.ok(ApiResponse.success("Thành công", response));
     }
 
     @GetMapping("/system/feedback")

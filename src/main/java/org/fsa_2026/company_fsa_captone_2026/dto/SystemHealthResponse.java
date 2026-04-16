@@ -17,6 +17,7 @@ import java.io.Serializable;
 public class SystemHealthResponse implements Serializable {
     private String status;
     private String databaseStatus;
-    private String aiModelStatus;
+    private String parakeetStatus; // Local ASR
+    private String geminiStatus;   // Cloud AI
     private long uptimeSeconds;
 }
