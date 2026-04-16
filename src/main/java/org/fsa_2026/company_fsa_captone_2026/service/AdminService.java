@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.fsa_2026.company_fsa_captone_2026.dto.AnalyticsOverviewResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.UserAnalyticsResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.ContentApprovalHistoryResponse;
@@ -37,6 +38,8 @@ import org.fsa_2026.company_fsa_captone_2026.repository.ContentItemRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.DailyAnalyticsRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.RewardCatalogRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.LearningUnitRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.AccountLearningUnitRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.SpeakingAttemptRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.StudySessionRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -67,8 +70,10 @@ public class AdminService {
 
     private final AccountRepository accountRepository;
     private final LearningUnitRepository learningUnitRepository;
+    private final AccountLearningUnitRepository accountLearningUnitRepository;
     private final ContentItemRepository contentItemRepository;
     private final StudySessionRepository studySessionRepository;
+    private final SpeakingAttemptRepository speakingAttemptRepository;
     private final ContentApprovalHistoryRepository contentApprovalHistoryRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
@@ -196,10 +201,55 @@ public class AdminService {
     // ==========================================
 
     @Transactional(readOnly = true)
+    public List<UserAnalyticsResponse> getUsersAnalytics() {
+        // 1. Fetch only users (exclude Educator and Admin)
+        List<Account> users = accountRepository.findAllByRoleCodeIn(List.of(RoleCode.USER));
+
+        // 2. Count total quizzes in system
+        long totalQuizzes = learningUnitRepository.countByType("QUIZ");
+
+        // 3. Bulk fetch progress for all users to avoid N+1 issue
+        List<UUID> userIds = users.stream().map(Account::getId).collect(Collectors.toList());
+        List<AccountLearningUnitRepository.UserProgressProjection> progressList =
+                accountLearningUnitRepository.findProgressByAccountIds(userIds);
+
+        // Map for quick lookup O(1)
+        Map<UUID, AccountLearningUnitRepository.UserProgressProjection> progressMap = progressList.stream()
+                .collect(Collectors.toMap(
+                        AccountLearningUnitRepository.UserProgressProjection::getAccountId,
+                        p -> p
+                ));
+
+        return users.stream().map(user -> {
+            AccountLearningUnitRepository.UserProgressProjection p = progressMap.get(user.getId());
+            return UserAnalyticsResponse.builder()
+                    .id(user.getId())
+                    .fullName(user.getFullName())
+                    .email(user.getEmail())
+                    .completedQuizzes(p != null ? p.getCompletedCount().intValue() : 0)
+                    .totalQuizzes((int) totalQuizzes)
+                    .totalStars(user.getTotalStars() != null ? user.getTotalStars() : 0)
+                    .currentStreak(user.getCurrentStreakDays() != null ? user.getCurrentStreakDays() : 0)
+                    .averageScore(p != null ? p.getAverageScore() : 0.0)
+                    .build();
+        }).collect(Collectors.toList());
+    }
+
+    public Map<String, Object> getAiPerformance() {
+        Double avgLatency = speakingAttemptRepository.getAverageProcessingTimeMs();
+        Double accuracyRate = speakingAttemptRepository.getAccuracyRate();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("averageLatencyMs", avgLatency != null ? Math.round(avgLatency) : 0);
+        response.put("accuracyRate", accuracyRate != null ? accuracyRate : 0.0);
+        return response;
+    }
+
+    @Transactional(readOnly = true)
     public List<UserManagementResponse> getAllUsers() {
-        // Filter tại DB thay vì load toàn bộ rồi filter bằng Java
+        // Lấy toàn bộ user/educator, bao gồm cả active và inactive
         return accountRepository
-                .findAllActiveByRoleCodeIn(List.of(RoleCode.USER, RoleCode.EDUCATOR))
+                .findAllByRoleCodeIn(List.of(RoleCode.USER, RoleCode.EDUCATOR))
                 .stream()
                 .map(UserManagementResponse::fromEntity)
                 .collect(Collectors.toList());
@@ -503,35 +553,55 @@ public class AdminService {
         LocalDate today = LocalDate.now();
         Optional<DailyAnalytics> analyticsOpt = dailyAnalyticsRepository.findByRecordDate(today);
 
+        long totalUsers = accountRepository.count();
+        long totalAttempts = speakingAttemptRepository.countByConsentGivenTrue();
+        double averageScore = speakingAttemptRepository.averageGeminiScoreWithConsentGivenTrue();
+        java.time.Instant sevenDaysAgo = java.time.Instant.now().minus(7, java.time.temporal.ChronoUnit.DAYS);
+        long activeUsers7Days = studySessionRepository.countDistinctAccountByStartedAtAfter(sevenDaysAgo);
+
         DailyAnalytics analytics;
         if (analyticsOpt.isPresent()) {
-            analytics = analyticsOpt.get(); // Trả về data đã gom trong ngày để tránh query lớn
+            analytics = analyticsOpt.get();
+            analytics.setTotalUsers(totalUsers);
+            analytics.setTotalAttempts(totalAttempts);
+            analytics.setAverageScore(averageScore);
+            analytics.setActiveUsers(activeUsers7Days);
+            analytics = dailyAnalyticsRepository.save(analytics);
         } else {
-            long totalUsers = accountRepository.count();
-            // Update analytics with proper JSONB aggregation for scores if needed
-            long totalAttempts = studySessionRepository.count();
-
-            double averageScore = 0.0; // Placeholder due to schema change
-
-            java.time.Instant sevenDaysAgo = java.time.Instant.now().minus(7, java.time.temporal.ChronoUnit.DAYS);
-            long activeUsers7Days = studySessionRepository.countDistinctAccountByStartedAtAfter(sevenDaysAgo);
-
             analytics = new DailyAnalytics();
             analytics.setRecordDate(today);
             analytics.setTotalUsers(totalUsers);
             analytics.setTotalAttempts(totalAttempts);
             analytics.setAverageScore(averageScore);
             analytics.setActiveUsers(activeUsers7Days);
-
             analytics = dailyAnalyticsRepository.save(analytics);
         }
 
         return AnalyticsOverviewResponse.builder()
-                .totalUsers(analytics.getTotalUsers())
-                .activeUsers7Days(analytics.getActiveUsers())
-                .totalAttempts(analytics.getTotalAttempts())
-                .averageScore(analytics.getAverageScore())
+                .totalUsers(totalUsers)
+                .activeUsers7Days(activeUsers7Days)
+                .totalAttempts(totalAttempts)
+                .averageScore(averageScore)
                 .build();
+    }
+
+    /**
+     * Get Error Heatmaps from DB by dialect
+     * Rate = (count gemini_score < 80) / (total count)
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getErrorHeatmaps() {
+        Map<String, Object> stats = new HashMap<>();
+        String[] dialects = {"NORTH", "SOUTH", "CENTRAL"};
+
+        for (String d : dialects) {
+            long total = speakingAttemptRepository.countByDialectAndConsentGivenTrue(d);
+            long errors = speakingAttemptRepository.countByDialectAndConsentGivenTrueAndGeminiScoreLessThan(d, 80);
+
+            double rate = total > 0 ? (double) errors / total : 0.0;
+            stats.put(d.toLowerCase(), rate);
+        }
+        return stats;
     }
 
     /**

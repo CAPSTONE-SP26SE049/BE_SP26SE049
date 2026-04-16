@@ -47,28 +47,64 @@ public class AIController {
         String challengeId = (String) request.get("challengeId");
         String dialect = (String) request.get("dialect");
         String audioUrl = (String) request.get("audioUrl");
-        Boolean consentGivenValue = (Boolean) request.get("consentGiven");
+        Boolean consentGivenValue = request.get("consentGiven") instanceof Boolean b ? b : null;
         boolean consentGiven = consentGivenValue != null && consentGivenValue;
+        Long asrProcessingTimeMs = extractLong(request.get("asrProcessingTimeMs"));
+        if (asrProcessingTimeMs == null) {
+            asrProcessingTimeMs = extractLong(request.get("asr_processing_time_ms"));
+        }
+        if (asrProcessingTimeMs == null) {
+            asrProcessingTimeMs = extractLong(request.get("asrProcesingTimeMs"));
+        }
+        if (asrProcessingTimeMs == null) {
+            asrProcessingTimeMs = extractLong(request.get("asrProcessingTime"));
+        }
+        if (asrProcessingTimeMs == null) {
+            asrProcessingTimeMs = extractLong(request.get("asrLatencyMs"));
+        }
 
         if (transcribedText == null || targetText == null) {
             throw new ApiException("BAD_REQUEST", "Thiếu transcribedText hoặc targetText");
         }
 
-        // 1. Get AI Analysis
-        Map<String, Object> result = aiService.provideFeedback(transcribedText, targetText);
+        long startTime = System.currentTimeMillis();
+        Map<String, Object> result = new java.util.HashMap<>(aiService.provideFeedback(transcribedText, targetText));
+        long endTime = System.currentTimeMillis();
+        long processingTimeMs = endTime - startTime;
 
-        // 2. Async save if consent given
+        String aiFeedback = null;
+        Object feedbackObj = result.get("feedback");
+        if (feedbackObj == null) {
+            feedbackObj = result.get("suggestion");
+        }
+        if (feedbackObj == null) {
+            feedbackObj = result.get("errorDetail");
+        }
+        if (feedbackObj != null) {
+            aiFeedback = feedbackObj.toString();
+        }
+
+        result.put("startTime", startTime);
+        result.put("endTime", endTime);
+        result.put("processingTimeMs", processingTimeMs);
+        result.put("feedback", aiFeedback);
+        result.put("geminiFeedback", aiFeedback);
+        result.put("aiScore", result.get("accuracy"));
+        result.put("score", result.get("accuracy"));
+        result.put("suggestion", aiFeedback);
+        result.put("errorDetail", aiFeedback);
+
         if (consentGiven && authentication != null) {
-            Object scoreObj = result.get("score");
             int score = 0;
-            if (scoreObj instanceof Number) {
-                score = ((Number) scoreObj).intValue();
+            Object scoreObj = result.get("accuracy");
+            if (scoreObj instanceof Number number) {
+                score = number.intValue();
             }
-            
+
             boolean isCorrect = false;
             Object isCorrectObj = result.get("isCorrect");
-            if (isCorrectObj instanceof Boolean) {
-                isCorrect = (Boolean) isCorrectObj;
+            if (isCorrectObj instanceof Boolean bool) {
+                isCorrect = bool;
             }
 
             speakingAttemptService.saveAttemptAsync(
@@ -79,7 +115,10 @@ public class AIController {
                     audioUrl,
                     score,
                     isCorrect,
-                    dialect
+                    dialect,
+                    processingTimeMs,
+                    asrProcessingTimeMs,
+                    aiFeedback
             );
         }
 
@@ -100,5 +139,19 @@ public class AIController {
             throw new ApiException("BAD_REQUEST", "Thiếu message");
         }
         return aiService.chatWithGeminiFlash(message);
+    }
+
+    private Long extractLong(Object value) {
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        if (value instanceof String text) {
+            try {
+                return Long.parseLong(text.trim());
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
     }
 }
