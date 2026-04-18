@@ -27,7 +27,7 @@ public class BadgeService {
 
     @Transactional(readOnly = true)
     public List<BadgeResponse> getAllBadges() {
-        return rewardCatalogRepository.findByRewardTypeAndIsActiveTrue(RewardType.BADGE)
+        return rewardCatalogRepository.findByIsActiveTrue()
                 .stream()
                 .map(BadgeResponse::fromEntity)
                 .collect(Collectors.toList());

@@ -193,33 +193,7 @@ public class AdminController {
     // 1c. Content Management: Dialects
     // ==========================================
 
-    @PostMapping("/content/dialects")
-    @Operation(summary = "Create Dialect", description = "Create a new regional dialect")
-    public ResponseEntity<ApiResponse<DialectResponse>> createDialect(
-            @Valid @RequestBody DialectCreateRequest request) {
-        log.info("Admin creating a new dialect: {}", request.getName());
-        DialectResponse response = adminService.createDialect(request);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Tạo vùng miền phát âm thành công", response));
-    }
 
-    @PutMapping("/content/dialects/{id}")
-    @Operation(summary = "Update Dialect", description = "Update an existing dialect by ID")
-    public ResponseEntity<ApiResponse<DialectResponse>> updateDialect(
-            @PathVariable UUID id,
-            @Valid @RequestBody DialectCreateRequest request) {
-        log.info("Admin updating dialect ID: {}", id);
-        DialectResponse response = adminService.updateDialect(id, request);
-        return ResponseEntity.ok(ApiResponse.success("Cập nhật vùng miền thành công", response));
-    }
-
-    @DeleteMapping("/content/dialects/{id}")
-    @Operation(summary = "Delete Dialect", description = "Delete a dialect by ID")
-    public ResponseEntity<ApiResponse<Void>> deleteDialect(@PathVariable UUID id) {
-        log.info("Admin deleting dialect ID: {}", id);
-        adminService.deleteDialect(id);
-        return ResponseEntity.ok(ApiResponse.success("Xóa vùng miền thành công", null));
-    }
 
     // ==========================================
     // 1c. Content Management: Levels

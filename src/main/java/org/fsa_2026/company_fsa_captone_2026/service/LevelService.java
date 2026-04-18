@@ -30,7 +30,7 @@ public class LevelService {
         
         return allLevels.stream()
                 .map(LevelResponse::fromEntity)
-                .filter(r -> r.getStatus() == null || !"REJECTED".equals(r.getStatus()))
+                .filter(r -> r.getStatus() == null || (!"REJECTED".equals(r.getStatus()) && !"DELETED".equals(r.getStatus())))
                 .sorted(Comparator.comparingInt(r -> r.getLevelOrder() != null ? r.getLevelOrder() : 0))
                 .collect(Collectors.toList());
     }
@@ -60,7 +60,7 @@ public class LevelService {
         return learningUnitRepository.findByType("LEVEL")
                 .stream()
                 .map(LevelResponse::fromEntity)
-                .filter(r -> r.getStatus() == null || !"REJECTED".equals(r.getStatus()))
+                .filter(r -> r.getStatus() == null || (!"REJECTED".equals(r.getStatus()) && !"DELETED".equals(r.getStatus())))
                 .sorted(java.util.Comparator.comparingInt(r -> r.getLevelOrder() != null ? r.getLevelOrder() : 0))
                 .collect(java.util.stream.Collectors.toList());
     }

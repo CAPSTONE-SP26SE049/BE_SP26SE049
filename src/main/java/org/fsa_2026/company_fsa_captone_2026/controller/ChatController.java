@@ -12,6 +12,8 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -26,13 +28,12 @@ import java.util.UUID;
 @Slf4j
 @Controller
 @RequiredArgsConstructor
-@RequestMapping(Constants.API_PREFIX + "/chat")
 public class ChatController {
 
     private final ChatMessageService chatMessageService;
     private final SimpMessagingTemplate simpMessagingTemplate;
 
-    @GetMapping("/history/{friendId}")
+    @GetMapping(Constants.API_PREFIX + "/chat/history/{friendId}")
     @ResponseBody
     public ResponseEntity<List<ChatMessageDto>> getHistory(
             @PathVariable UUID friendId,
@@ -42,11 +43,39 @@ public class ChatController {
         return ResponseEntity.ok(chatMessageService.getChatHistory(currentUserId, friendId));
     }
 
-    @GetMapping("/unread")
+    @GetMapping(Constants.API_PREFIX + "/chat/unread")
     @ResponseBody
     public ResponseEntity<Map<UUID, Long>> getUnreadCounts(Authentication authentication) {
         UUID currentUserId = chatMessageService.resolveUserId(authentication != null ? authentication.getName() : null);
         return ResponseEntity.ok(chatMessageService.getUnreadCounts(currentUserId));
+    }
+
+    @PostMapping(Constants.API_PREFIX + "/chat/send")
+    @ResponseBody
+    public ResponseEntity<ChatMessageDto> sendChatMessage(
+            @RequestBody ChatMessageDto incoming,
+            Authentication authentication
+    ) {
+        UUID senderId = chatMessageService.resolveUserId(authentication != null ? authentication.getName() : null);
+        if (incoming == null || incoming.getRecipientId() == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        ChatMessageDto dto = new ChatMessageDto(
+                incoming.getId(),
+                senderId,
+                incoming.getRecipientId(),
+                incoming.getContent(),
+                incoming.getTimestamp() != null ? incoming.getTimestamp() : LocalDateTime.now(),
+                incoming.getStatus() != null ? incoming.getStatus() : MessageStatus.SENT.name()
+        );
+
+        ChatMessageDto savedDto = chatMessageService.saveMessage(dto);
+
+        String destination = "/topic/chat/" + savedDto.getRecipientId();
+        simpMessagingTemplate.convertAndSend(destination, savedDto);
+        
+        return ResponseEntity.ok(savedDto);
     }
 
     @MessageMapping("/chat")
