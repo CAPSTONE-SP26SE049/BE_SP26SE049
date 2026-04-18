@@ -17,4 +17,6 @@ public interface RewardCatalogRepository extends JpaRepository<RewardCatalog, UU
     List<RewardCatalog> findByRewardType(RewardType rewardType);
 
     List<RewardCatalog> findByRewardTypeAndIsActiveTrue(RewardType rewardType);
+
+    List<RewardCatalog> findByIsActiveTrue();
 }

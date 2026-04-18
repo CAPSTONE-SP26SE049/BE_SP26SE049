@@ -121,6 +121,7 @@ public class QuizService {
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getAllQuizzes() {
         return learningUnitRepository.findByType("QUIZ").stream()
+                .filter(this::isNotDeleted)
                 .map(this::buildQuizResponse)
                 .collect(Collectors.toList());
     }
@@ -135,6 +136,7 @@ public class QuizService {
         }
 
         return learningUnitRepository.findByParentAndType(level, "QUIZ").stream()
+                .filter(this::isNotDeleted)
                 .map(this::buildQuizResponse)
                 .collect(Collectors.toList());
     }
@@ -155,6 +157,7 @@ public class QuizService {
 
         return learningUnitRepository.findAllById(quizIds).stream()
                 .filter(quiz -> "QUIZ".equalsIgnoreCase(quiz.getType()))
+                .filter(this::isNotDeleted)
                 .map(this::buildQuizResponse)
                 .collect(Collectors.toList());
     }
@@ -180,7 +183,33 @@ public class QuizService {
             throw new ApiException("INVALID_TYPE", "Đơn vị học tập không phải là Quiz");
         }
 
-        learningUnitRepository.delete(quiz);
+        long questionCount = quizChallengeItemRepository.countByQuizId(id);
+        if (questionCount > 0) {
+            throw new ApiException("CONFLICT", "Không thể xóa bài kiểm tra vì vẫn còn câu hỏi bên trong. Vui lòng gỡ hết câu hỏi trước.");
+        }
+
+        try {
+            Map<String, Object> metadata = quiz.getMetadataJson() != null
+                    ? objectMapper.readValue(quiz.getMetadataJson(), new TypeReference<Map<String, Object>>() {})
+                    : new java.util.LinkedHashMap<>();
+            metadata.put("status", "DELETED");
+            quiz.setMetadataJson(objectMapper.writeValueAsString(metadata));
+            learningUnitRepository.save(quiz);
+        } catch (JsonProcessingException e) {
+            log.error("Failed to update delete status in Quiz metadata", e);
+            throw new ApiException("INTERNAL_ERROR", "Lỗi xử lý metadata");
+        }
+    }
+
+    private boolean isNotDeleted(LearningUnit unit) {
+        if (unit.getMetadataJson() == null || unit.getMetadataJson().isBlank()) return true;
+        try {
+            Map<String, Object> metadata = objectMapper.readValue(
+                    unit.getMetadataJson(), new TypeReference<Map<String, Object>>() {});
+            return !"DELETED".equals(metadata.get("status"));
+        } catch (Exception e) {
+            return true;
+        }
     }
 
     @Transactional(readOnly = true)
@@ -193,6 +222,7 @@ public class QuizService {
 
         return learningUnitRepository.findAllById(quizIds).stream()
                 .filter(u -> "QUIZ".equalsIgnoreCase(u.getType()))
+                .filter(this::isNotDeleted)
                 .map(this::buildQuizResponse)
                 .collect(Collectors.toList());
     }
@@ -356,8 +386,10 @@ public class QuizService {
         Account account = accountRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy người dùng"));
 
-        // 3. Lấy tất cả quiz trong level và sắp xếp theo orderIndex
-        List<LearningUnit> quizzes = learningUnitRepository.findByParentAndType(level, "QUIZ");
+        // 3. Lấy tất cả quiz trong level và sắp xếp theo orderIndex (lọc những quiz đã bị xóa)
+        List<LearningUnit> quizzes = learningUnitRepository.findByParentAndType(level, "QUIZ").stream()
+                .filter(this::isNotDeleted)
+                .collect(Collectors.toList());
         quizzes.sort(java.util.Comparator.comparingInt(this::extractOrderIndexFromMetadata));
 
         // 4. Lấy progress của user cho tất cả quiz
@@ -555,7 +587,9 @@ public class QuizService {
             int completedQuizzes = 0;
 
             for (LearningUnit level : levels) {
-                List<LearningUnit> quizzes = learningUnitRepository.findByParentIdAndType(level.getId(), "QUIZ");
+                List<LearningUnit> quizzes = learningUnitRepository.findByParentIdAndType(level.getId(), "QUIZ").stream()
+                        .filter(this::isNotDeleted)
+                        .collect(Collectors.toList());
                 totalQuizzes += quizzes.size();
                 for (LearningUnit quiz : quizzes) {
                     AccountLearningUnit p = progressMap.get(quiz.getId());

@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.fsa_2026.company_fsa_captone_2026.common.Constants;
 import org.fsa_2026.company_fsa_captone_2026.dto.ApiResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.FriendPublicProfileResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.FriendRequestDTO;
 import org.fsa_2026.company_fsa_captone_2026.dto.FriendSearchResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.FriendshipResponse;
@@ -151,5 +152,19 @@ public class FriendshipController {
         log.info("User {} searching users with query: {}", authentication.getName(), query);
         List<FriendSearchResponse> results = friendshipService.searchUsers(authentication.getName(), query);
         return ResponseEntity.ok(ApiResponse.success("Tìm kiếm người dùng thành công", results));
+    }
+
+    // ─── Get Friend Public Profile ──────────────────────────────────
+
+    @GetMapping("/{userId}/profile")
+    @Operation(summary = "Get friend's public profile",
+            description = "Xem hồ sơ công khai của bạn bè (chỉ thông tin không nhạy cảm). Yêu cầu đã kết bạn.",
+            security = @SecurityRequirement(name = "bearer-jwt"))
+    public ResponseEntity<ApiResponse<FriendPublicProfileResponse>> getFriendProfile(
+            @PathVariable UUID userId,
+            Authentication authentication) {
+        log.info("User {} viewing public profile of {}", authentication.getName(), userId);
+        FriendPublicProfileResponse profile = friendshipService.getFriendProfile(authentication.getName(), userId);
+        return ResponseEntity.ok(ApiResponse.success("Lấy hồ sơ bạn bè thành công", profile));
     }
 }

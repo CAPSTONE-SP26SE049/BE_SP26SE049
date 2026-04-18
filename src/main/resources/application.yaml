@@ -28,7 +28,7 @@ spring:
       idle-timeout: 300000
       max-lifetime: 1200000
       connection-timeout: 20000
-      leak-detection-threshold: 2000
+      leak-detection-threshold: 60000  # 60s — avoids false-positive from slow scheduled tasks
 
 
   # Liquibase Configuration
