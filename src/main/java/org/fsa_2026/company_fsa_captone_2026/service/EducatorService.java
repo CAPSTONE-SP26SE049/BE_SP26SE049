@@ -80,7 +80,7 @@ public class EducatorService {
             payload.put("id", student.getId());
             payload.put("fullName", student.getFullName());
             payload.put("email", student.getEmail());
-            payload.put("avatar", student.getAvatarUrl());
+            payload.put("avatar_url", student.getAvatarUrl());
             payload.put("level", student.getRegion() != null ? student.getRegion() : "N/A");
             payload.put("learningPath", learningPath);
             payload.put("lastActiveAt", student.getLastLoginDate() != null ? student.getLastLoginDate().atStartOfDay() : LocalDateTime.now().minusDays(1));
