@@ -116,9 +116,14 @@ public class ChallengeBankService {
 
     @Transactional
     public void deleteChallenge(UUID id) {
-        // Remove from all quizzes first to avoid constraints
+        // Check if this challenge is used in any quiz
+        List<QuizChallengeItem> linkedQuizzes = quizChallengeItemRepository.findByChallengeId(id);
+        if (!linkedQuizzes.isEmpty()) {
+            throw new RuntimeException("Không thể xóa câu hỏi này vì đang được sử dụng trong bài kiểm tra. Vui lòng gỡ khỏi các bài kiểm tra trước.");
+        }
+        
+        // Remove mappings if any (just in case they exist under challengeBankId column)
         quizChallengeItemRepository.deleteByChallengeBankId(id);
-        quizChallengeItemRepository.deleteByChallengeId(id);
         challengeBankRepository.deleteById(id);
     }
 

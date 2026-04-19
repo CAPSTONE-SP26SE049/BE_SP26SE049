@@ -17,7 +17,7 @@ public class EducatorCreateRequest implements Serializable {
 
     @NotBlank(message = "Email không được để trống")
     @Email(message = "Định dạng email không hợp lệ")
-    @Size(max = 100, message = "Email không quá 100 ký tự")
+    @Size(max = 50, message = "Email không quá 50 ký tự")
     private String email;
 
     @NotBlank(message = "Họ tên không được để trống")

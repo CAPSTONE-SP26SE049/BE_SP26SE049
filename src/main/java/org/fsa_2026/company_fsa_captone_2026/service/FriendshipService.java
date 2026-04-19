@@ -2,6 +2,7 @@ package org.fsa_2026.company_fsa_captone_2026.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.fsa_2026.company_fsa_captone_2026.dto.FriendPublicProfileResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.FriendSearchResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.FriendshipResponse;
 import org.fsa_2026.company_fsa_captone_2026.entity.Account;
@@ -288,6 +289,45 @@ public class FriendshipService {
                         .friendshipStatus(statusMap.getOrDefault(a.getId(), null))
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    // ─── View Friend Profile ─────────────────────────────────────────
+
+    /**
+     * Returns the public profile of a friend.
+     * Only allowed if the two users have an ACCEPTED friendship.
+     * Sensitive fields (email, phone, passwordHash, codes) are never exposed.
+     */
+    @Transactional(readOnly = true)
+    public FriendPublicProfileResponse getFriendProfile(String requesterEmail, UUID targetUserId) {
+        Account requester = findAccountByEmail(requesterEmail);
+
+        // Self-lookup not needed here but guard anyway
+        if (requester.getId().equals(targetUserId)) {
+            throw new ApiException("BAD_REQUEST", "Không thể xem hồ sơ của chính mình qua endpoint này");
+        }
+
+        Account target = accountRepository.findById(targetUserId)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy người dùng"));
+
+        // Verify friendship is ACCEPTED
+        Friendship friendship = friendshipRepository.findByUsers(requester, target)
+                .orElseThrow(() -> new ApiException("FORBIDDEN", "Bạn chưa kết bạn với người này"));
+
+        if (friendship.getStatus() != FriendshipStatus.ACCEPTED) {
+            throw new ApiException("FORBIDDEN", "Bạn chưa kết bạn với người này");
+        }
+
+        return FriendPublicProfileResponse.builder()
+                .id(target.getId())
+                .fullName(target.getFullName())
+                .avatarUrl(target.getAvatarUrl())
+                .region(target.getRegion())
+                .totalStars(target.getTotalStars())
+                .currentStreakDays(target.getCurrentStreakDays())
+                .totalExperience(target.getTotalExperience())
+                .memberSince(target.getCreatedAt())
+                .build();
     }
 
     // ─── Helper Methods ─────────────────────────────────────────────

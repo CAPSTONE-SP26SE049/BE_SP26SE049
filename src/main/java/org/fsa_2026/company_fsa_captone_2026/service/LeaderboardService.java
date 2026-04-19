@@ -125,8 +125,9 @@ public class LeaderboardService {
     /**
      * Optimized refresh: only 4 leaderboards (GLOBAL + 3 regions), all ALL_TIME + TOTAL_STARS.
      * This replaced the old 108-combination refresh loop.
+     * NOTE: No @Transactional here — each refreshLeaderboard() manages its own transaction,
+     * so the DB connection is released after every board instead of held for all 4.
      */
-    @Transactional
     public void refreshAllLeaderboards() {
         log.info("[Leaderboard] Starting optimized refresh (4 boards)...");
         long start = System.currentTimeMillis();

@@ -64,8 +64,19 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
                 UUID userId = UUID.fromString(userIdStr);
                 Principal principal = () -> userId.toString();
                 accessor.setUser(principal);
+                if (accessor.getSessionAttributes() != null) {
+                    accessor.getSessionAttributes().put("WS_PRINCIPAL", principal);
+                }
             } catch (Exception ex) {
                 log.error("WS CONNECT error while parsing JWT", ex);
+            }
+        } else {
+            // Attempt to restore user from session for subsequent SEND/SUBSCRIBE frames
+            if (accessor.getSessionAttributes() != null) {
+                Object p = accessor.getSessionAttributes().get("WS_PRINCIPAL");
+                if (p instanceof Principal) {
+                    accessor.setUser((Principal) p);
+                }
             }
         }
 

@@ -1,5 +1,6 @@
 package org.fsa_2026.company_fsa_captone_2026.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,6 +22,7 @@ public class LeaderboardEntryResponse implements Serializable {
     private Integer rankPosition;
     private String accountId;
     private String fullName;
+    @JsonProperty("avatar_url")
     private String avatarUrl;
     private Integer totalExperience;
     private Integer totalStars;

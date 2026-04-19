@@ -268,7 +268,7 @@ public class SocialLoginService {
                         .fullName(account.getFullName())
                         .role(account.getRoleCode().name())
                         .region(account.getRegion())
-                        .avatar(account.getAvatarUrl())
+                        .avatarUrl(account.getAvatarUrl())
                         .currentStreakDays(account.getCurrentStreakDays())
                         .build())
                 .build();

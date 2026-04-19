@@ -28,6 +28,10 @@ public class UserManagementResponse {
     private Long unreadCount;
     private String lastMessage;
     private LocalDateTime lastMessageAt;
+    private String avatarUrl;
+    private String level;
+    private Integer progressPercent;
+    private Integer pronunciationScore;
     private Boolean hasCustomPath;
 
     public static UserManagementResponse fromEntity(Account account) {
@@ -46,6 +50,11 @@ public class UserManagementResponse {
                 .totalStars(account.getTotalStars() != null ? account.getTotalStars() : 0)
                 .currentStreakDays(account.getCurrentStreakDays() != null ? account.getCurrentStreakDays() : 0)
                 .hasCustomPath(hasCustomPath)
+                .avatarUrl(account.getAvatarUrl())
+                .level(account.getRegion() != null ? account.getRegion() : "N/A")
+                .progressPercent(
+                        Math.min(100, (account.getTotalExperience() != null ? account.getTotalExperience() : 0) / 10))
+                .pronunciationScore(Math.min(100, 60 + (account.getTotalStars() == null ? 0 : account.getTotalStars())))
                 .build();
     }
 }

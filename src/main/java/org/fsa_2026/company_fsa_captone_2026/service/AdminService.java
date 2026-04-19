@@ -397,53 +397,6 @@ public class AdminService {
         return ChallengeResponse.fromEntity(challenge);
     }
 
-    @Transactional
-    public DialectResponse createDialect(DialectCreateRequest request) {
-        LearningUnit dialect = LearningUnit.builder()
-                .name(request.getName())
-                .type("DIALECT")
-                .build();
-
-        try {
-            Map<String, Object> metadata = new java.util.HashMap<>();
-            metadata.put("description", request.getDescription());
-            dialect.setMetadataJson(objectMapper.writeValueAsString(metadata));
-        } catch (JsonProcessingException e) {
-            log.error("Failed to serialize Dialect metadata", e);
-        }
-
-        return DialectResponse.fromEntity(learningUnitRepository.save(dialect));
-    }
-
-    @Transactional
-    @SuppressWarnings("unchecked")
-    public DialectResponse updateDialect(UUID id, DialectCreateRequest request) {
-        LearningUnit dialect = learningUnitRepository.findById(id)
-                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy Dialect"));
-
-        dialect.setName(request.getName());
-
-        try {
-            Map<String, Object> metadata = new java.util.HashMap<>();
-            if (dialect.getMetadataJson() != null) {
-                metadata = objectMapper.readValue(dialect.getMetadataJson(), Map.class);
-            }
-            metadata.put("description", request.getDescription());
-            dialect.setMetadataJson(objectMapper.writeValueAsString(metadata));
-        } catch (JsonProcessingException e) {
-            log.error("Failed to update Dialect metadata", e);
-        }
-
-        return DialectResponse.fromEntity(learningUnitRepository.save(dialect));
-    }
-
-    @Transactional
-    public void deleteDialect(UUID id) {
-        if (!learningUnitRepository.existsById(id)) {
-            throw new ApiException(CODE_NOT_FOUND, "Không tìm thấy Dialect");
-        }
-        learningUnitRepository.deleteById(id);
-    }
 
     // ==========================================
     // 1c. Content Management: Levels
@@ -453,6 +406,7 @@ public class AdminService {
     public List<LevelResponse> getAllLevels() {
         return learningUnitRepository.findAll().stream()
                 .filter(unit -> TYPE_LEVEL.equals(unit.getType()))
+                .filter(this::isNotDeleted)
                 .map(LevelResponse::fromEntity)
                 .collect(Collectors.toList());
     }
@@ -535,10 +489,38 @@ public class AdminService {
 
     @Transactional
     public void deleteLevel(UUID id) {
-        if (!learningUnitRepository.existsById(id)) {
-            throw new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND);
+        LearningUnit level = learningUnitRepository.findById(id)
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
+
+        List<LearningUnit> children = learningUnitRepository.findByParentId(id);
+        boolean hasActiveChild = children.stream().anyMatch(this::isNotDeleted);
+        if (hasActiveChild) {
+            throw new ApiException("CONFLICT", "Không thể xóa chương học do vẫn còn bài kiểm tra / bài học bên trong. Vui lòng xóa các mục con trước.");
         }
-        learningUnitRepository.deleteById(id);
+        
+
+        try {
+            Map<String, Object> metadata = level.getMetadataJson() != null
+                    ? objectMapper.readValue(level.getMetadataJson(), new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {})
+                    : new java.util.HashMap<>();
+            metadata.put("status", "DELETED");
+            level.setMetadataJson(objectMapper.writeValueAsString(metadata));
+            learningUnitRepository.save(level);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            log.error("Failed to update delete status in Level metadata", e);
+            throw new ApiException("INTERNAL_ERROR", "Lỗi xử lý metadata");
+        }
+    }
+
+    private boolean isNotDeleted(LearningUnit unit) {
+        if (unit.getMetadataJson() == null || unit.getMetadataJson().isBlank()) return true;
+        try {
+            Map<String, Object> metadata = objectMapper.readValue(
+                    unit.getMetadataJson(), new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+            return !"DELETED".equals(metadata.get("status"));
+        } catch (Exception e) {
+            return true;
+        }
     }
 
     /**
@@ -668,6 +650,13 @@ public class AdminService {
         if (!rewardCatalogRepository.existsById(id)) {
             throw new ApiException("NOT_FOUND", "Không tìm thấy phần thưởng");
         }
+        
+        // Check if any quiz is linked to this reward
+        Optional<LearningUnit> linkedQuiz = learningUnitRepository.findByRewardCatalogId(id);
+        if (linkedQuiz.isPresent()) {
+            throw new ApiException("CONFLICT", "Không thể xóa phần thưởng này vì đang được gán cho bài kiểm tra: " + linkedQuiz.get().getName());
+        }
+
         rewardCatalogRepository.deleteById(id);
     }
 
