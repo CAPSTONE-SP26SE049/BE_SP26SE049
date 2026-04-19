@@ -79,5 +79,8 @@
     <include file="db/changelog/43-index-chat-message.xml"/>
     <include file="db/changelog/44-add-processing-time-to-speaking-attempt.xml"/>
     <include file="db/changelog/45-add-asr-latency-and-feedback.xml"/>
+    <include file="db/changelog/46-add-custom-learning-path-tables.xml"/>
+    <include file="db/changelog/47-update-educator-feedback.xml"/>
+    <include file="db/changelog/48-cleanup-learning-units.xml"/>
 </databaseChangeLog>
 

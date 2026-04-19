@@ -54,7 +54,7 @@ public class ChatMessageService {
     @Transactional(readOnly = true)
     public List<ChatMessageDto> getChatHistory(UUID user1, UUID user2) {
         return chatMessageRepository
-                .findBySenderIdAndRecipientIdOrSenderIdAndRecipientIdOrderByTimestampAsc(user1, user2, user2, user1)
+                .findFullConversation(user1, user2)
                 .stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
@@ -72,8 +72,7 @@ public class ChatMessageService {
                 entity.getRecipientId(),
                 entity.getContent(),
                 entity.getTimestamp(),
-                entity.getStatus() != null ? entity.getStatus().name() : null
-        );
+                entity.getStatus() != null ? entity.getStatus().name() : null);
     }
 
     /**
@@ -97,4 +96,3 @@ public class ChatMessageService {
         return account.getId();
     }
 }
-

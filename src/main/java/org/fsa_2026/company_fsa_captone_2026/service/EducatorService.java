@@ -5,20 +5,23 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.fsa_2026.company_fsa_captone_2026.dto.UserManagementResponse;
+import java.time.LocalDateTime;
 import org.fsa_2026.company_fsa_captone_2026.entity.Account;
 import org.fsa_2026.company_fsa_captone_2026.entity.ChatMessage;
 import org.fsa_2026.company_fsa_captone_2026.entity.EducatorFeedback;
 import org.fsa_2026.company_fsa_captone_2026.entity.SessionDetail;
 import org.fsa_2026.company_fsa_captone_2026.entity.enums.MessageStatus;
+import org.fsa_2026.company_fsa_captone_2026.entity.enums.RoleCode;
 import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
 import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.ChatMessageRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.CustomLearningPathRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.EducatorFeedbackRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.SessionDetailRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -39,6 +42,7 @@ public class EducatorService {
     private final SessionDetailRepository sessionDetailRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final EducatorFeedbackRepository educatorFeedbackRepository;
+    private final CustomLearningPathRepository customPathRepository;
     private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
@@ -64,46 +68,48 @@ public class EducatorService {
     }
 
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> getStudentAccounts(String educatorEmail) {
-        resolveEducator(educatorEmail);
-        return findStudents().stream().map(student -> {
-            Map<String, Object> learningPath = new LinkedHashMap<>();
-            learningPath.put("id", UUID.nameUUIDFromBytes((student.getId() + ":path").getBytes()));
-            learningPath.put("title", student.getFullName() != null ? student.getFullName() + " - Personalized Path" : "Personalized Path");
-            learningPath.put("description", "Lộ trình học tùy chỉnh theo điểm phát âm và lỗi thường gặp");
-            learningPath.put("focusArea", defaultFocusArea(student));
-            learningPath.put("milestones", List.of("Ổn định nhịp phát âm", "Giảm lỗi nguyên âm", "Tăng độ chính xác"));
-            learningPath.put("status", "ACTIVE");
-            learningPath.put("updatedAt", LocalDateTime.now());
+    public List<UserManagementResponse> getStudentAccounts(String educatorEmail) {
+        List<Account> students = findStudents();
+        List<UUID> studentIdsWithPath = customPathRepository.findAllStudentIdsWithActivePath();
+        java.util.Set<UUID> pathSet = new java.util.HashSet<>(studentIdsWithPath);
 
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("id", student.getId());
-            payload.put("fullName", student.getFullName());
-            payload.put("email", student.getEmail());
-            payload.put("avatar", student.getAvatarUrl());
-            payload.put("level", student.getRegion() != null ? student.getRegion() : "N/A");
-            payload.put("learningPath", learningPath);
-            payload.put("lastActiveAt", student.getLastLoginDate() != null ? student.getLastLoginDate().atStartOfDay() : LocalDateTime.now().minusDays(1));
-            payload.put("progressPercent", Math.min(100, student.getTotalExperience() / 10));
-            payload.put("pronunciationScore", Math.min(100, 60 + (student.getTotalStars() == null ? 0 : student.getTotalStars())));
-            payload.put("weakPhonemes", List.of("/l/", "/n/", "/tr/"));
-            return payload;
-        }).collect(Collectors.toList());
-    }
+        Account educator = resolveEducator(educatorEmail);
+        List<Object[]> unreadCountsRaw = chatMessageRepository.countUnreadMessagesGroupedBySender(educator.getId());
+        Map<UUID, Long> unreadMap = unreadCountsRaw.stream()
+                .collect(Collectors.toMap(r -> (UUID) r[0], r -> (Long) r[1], (v1, v2) -> v1));
 
-    @Transactional(readOnly = true)
-    public Map<String, Object> getStudentAccountById(String educatorEmail, UUID studentId) {
-        resolveEducator(educatorEmail);
-        Account student = accountRepository.findById(studentId)
-                .orElseThrow(() -> new ApiException(NOT_FOUND, "Không tìm thấy học viên"));
-        return (Map<String, Object>) getStudentAccounts(educatorEmail).stream()
-                .filter(item -> studentId.equals(item.get("id")))
-                .findFirst()
-                .orElseGet(() -> Map.of("id", student.getId(), "fullName", student.getFullName(), "email", student.getEmail()));
+        return students.stream()
+                .map(student -> {
+                    boolean hasPath = pathSet.contains(student.getId());
+                    UserManagementResponse resp = UserManagementResponse.fromEntity(student, hasPath);
+                    resp.setUnreadCount(unreadMap.getOrDefault(student.getId(), 0L));
+                    // For now, let's not fetch last message in the list to avoid N+1 and slow
+                    // response
+                    // We can add a specialized bulk query for this later if needed
+                    resp.setLastMessage("Mở hội thoại để xem...");
+                    return resp;
+                })
+                .collect(Collectors.toList());
     }
 
     @Transactional
-    public Map<String, Object> createCustomLearningPath(String educatorEmail, UUID studentId, String title, String focusArea, List<String> milestones, String description) {
+    public void markAsRead(String educatorEmail, UUID studentId) {
+        Account educator = resolveEducator(educatorEmail);
+        chatMessageRepository.markMessagesAsRead(studentId, educator.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public UserManagementResponse getStudentAccountById(String educatorEmail, UUID studentId) {
+        resolveEducator(educatorEmail);
+        Account student = accountRepository.findById(studentId)
+                .filter(account -> account.getRoleCode() == RoleCode.USER)
+                .orElseThrow(() -> new ApiException(NOT_FOUND, "Không tìm thấy học viên"));
+        return UserManagementResponse.fromEntity(student);
+    }
+
+    @Transactional
+    public Map<String, Object> createCustomLearningPath(String educatorEmail, UUID studentId, String title,
+            String focusArea, List<String> milestones, String description) {
         resolveEducator(educatorEmail);
         accountRepository.findById(studentId).orElseThrow(() -> new ApiException(NOT_FOUND, "Không tìm thấy học viên"));
         Map<String, Object> result = new LinkedHashMap<>();
@@ -121,16 +127,20 @@ public class EducatorService {
     @Transactional(readOnly = true)
     public Map<String, Object> getProgressOverview(String educatorEmail) {
         resolveEducator(educatorEmail);
+        List<Account> students = findStudents();
+        List<SessionDetail> allDetails = sessionDetailRepository.findAll();
+
         Map<String, Object> response = new LinkedHashMap<>();
-        response.put("totalStudents", findStudents().size());
-        response.put("activeStudents", findStudents().stream().filter(a -> Boolean.TRUE.equals(a.getIsActive())).count());
-        response.put("averagePronunciationScore", sessionDetailRepository.findAll().stream()
+        response.put("totalStudents", students.size());
+        response.put("activeStudents",
+                students.stream().filter(a -> Boolean.TRUE.equals(a.getIsActive())).count());
+        response.put("averagePronunciationScore", allDetails.stream()
                 .filter(d -> d.getScoreOverall() != null)
                 .mapToDouble(d -> d.getScoreOverall().doubleValue())
                 .average().orElse(0.0));
         response.put("pendingFeedbackCount", educatorFeedbackRepository.count());
-        response.put("weeklyProgressRate", calculateWeeklyProgressRate(sessionDetailRepository.findAll()));
-        response.put("pronunciationMetrics", buildPronunciationMetrics(sessionDetailRepository.findAll()));
+        response.put("weeklyProgressRate", calculateWeeklyProgressRate(allDetails));
+        response.put("pronunciationMetrics", buildPronunciationMetrics(allDetails));
         return response;
     }
 
@@ -143,15 +153,22 @@ public class EducatorService {
 
         Map<String, Long> errorCounts = new LinkedHashMap<>();
         for (SessionDetail detail : details) {
-            if (detail.getAttemptMetadataJson() == null) continue;
+            if (detail.getAttemptMetadataJson() == null)
+                continue;
             try {
-                Map<String, Object> meta = objectMapper.readValue(detail.getAttemptMetadataJson(), new TypeReference<Map<String, Object>>() {});
+                Map<String, Object> meta = objectMapper.readValue(detail.getAttemptMetadataJson(),
+                        new TypeReference<Map<String, Object>>() {
+                        });
                 Object phonemeRaw = meta.get("phoneme_feedback_json");
-                if (phonemeRaw == null) continue;
+                if (phonemeRaw == null)
+                    continue;
                 String phonemeJson = objectMapper.writeValueAsString(phonemeRaw);
-                List<Map<String, Object>> items = objectMapper.readValue(phonemeJson, new TypeReference<List<Map<String, Object>>>() {});
+                List<Map<String, Object>> items = objectMapper.readValue(phonemeJson,
+                        new TypeReference<List<Map<String, Object>>>() {
+                        });
                 for (Map<String, Object> item : items) {
-                    String phoneme = String.valueOf(item.getOrDefault("phonemeIpa", item.getOrDefault("phoneme", "unknown")));
+                    String phoneme = String
+                            .valueOf(item.getOrDefault("phonemeIpa", item.getOrDefault("phoneme", "unknown")));
                     errorCounts.put(phoneme, errorCounts.getOrDefault(phoneme, 0L) + 1);
                 }
             } catch (JsonProcessingException e) {
@@ -171,8 +188,7 @@ public class EducatorService {
         response.put("learningEffectiveness", List.of(
                 Map.of("label", "Hoàn thành", "value", 72),
                 Map.of("label", "Phát âm", "value", 64),
-                Map.of("label", "Tự tin giao tiếp", "value", 58)
-        ));
+                Map.of("label", "Tự tin giao tiếp", "value", 58)));
         return response;
     }
 
@@ -180,31 +196,32 @@ public class EducatorService {
     public List<Map<String, Object>> getLessonPlans(String educatorEmail) {
         resolveEducator(educatorEmail);
         return List.of(
-                lessonPlan("LP-001", "Luyện âm đầu L/N", "Cải thiện phân biệt phụ âm đầu", List.of("Nguyễn Văn A", "Trần Thị B"), List.of("Đạt 80% chính xác", "Giảm lỗi đầu âm")),
-                lessonPlan("LP-002", "Nhịp điệu câu", "Tăng độ tự nhiên khi nói câu dài", List.of("Lê Văn C"), List.of("Đọc trôi chảy", "Giữ tốc độ ổn định"))
-        );
+                lessonPlan("LP-001", "Luyện âm đầu L/N", "Cải thiện phân biệt phụ âm đầu",
+                        List.of("Nguyễn Văn A", "Trần Thị B"), List.of("Đạt 80% chính xác", "Giảm lỗi đầu âm")),
+                lessonPlan("LP-002", "Nhịp điệu câu", "Tăng độ tự nhiên khi nói câu dài", List.of("Lê Văn C"),
+                        List.of("Đọc trôi chảy", "Giữ tốc độ ổn định")));
     }
 
     @Transactional
-    public Map<String, Object> createLessonPlan(String educatorEmail, String title, String objective, List<String> targetStudents, List<String> achievementGoals) {
+    public Map<String, Object> createLessonPlan(String educatorEmail, String title, String objective,
+            List<String> targetStudents, List<String> achievementGoals) {
         resolveEducator(educatorEmail);
         return lessonPlan(UUID.randomUUID().toString(), title, objective, targetStudents, achievementGoals);
     }
 
     @Transactional
-    public Map<String, Object> updateLessonPlan(String educatorEmail, UUID id, String title, String objective, List<String> targetStudents, List<String> achievementGoals) {
+    public Map<String, Object> updateLessonPlan(String educatorEmail, UUID id, String title, String objective,
+            List<String> targetStudents, List<String> achievementGoals) {
         resolveEducator(educatorEmail);
         return lessonPlan(id.toString(), title, objective, targetStudents, achievementGoals);
     }
 
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> getMessages(String educatorEmail) {
-        resolveEducator(educatorEmail);
-        List<ChatMessage> messages = chatMessageRepository.findAll().stream()
-                .sorted(Comparator.comparing(ChatMessage::getTimestamp).reversed())
-                .limit(20)
+    public List<Map<String, Object>> getConversationMessages(String educatorEmail, UUID studentId) {
+        Account educator = resolveEducator(educatorEmail);
+        return chatMessageRepository.findFullConversation(educator.getId(), studentId)
+                .stream().map(this::toMessageMap)
                 .collect(Collectors.toList());
-        return messages.stream().map(this::toMessageMap).collect(Collectors.toList());
     }
 
     @Transactional
@@ -230,8 +247,10 @@ public class EducatorService {
     @Transactional
     public Map<String, Object> sendFeedback(String educatorEmail, UUID studentId, String content, String priority) {
         Account educator = resolveEducator(educatorEmail);
-        Account student = accountRepository.findById(studentId).orElseThrow(() -> new ApiException(NOT_FOUND, "Không tìm thấy học viên"));
-        SessionDetail latest = sessionDetailRepository.findByAccountIdOrderByCreatedAtDesc(studentId).stream().findFirst()
+        Account student = accountRepository.findById(studentId)
+                .orElseThrow(() -> new ApiException(NOT_FOUND, "Không tìm thấy học viên"));
+        SessionDetail latest = sessionDetailRepository.findByAccountIdOrderByCreatedAtDesc(studentId).stream()
+                .findFirst()
                 .orElseThrow(() -> new ApiException(NOT_FOUND, "Không tìm thấy lượt luyện tập"));
 
         EducatorFeedback feedback = EducatorFeedback.builder()
@@ -261,19 +280,18 @@ public class EducatorService {
             report.put("studentName", student.getFullName());
             report.put("pronunciationErrors", List.of(
                     Map.of("phoneme", "/l/", "count", 4, "accuracy", 72),
-                    Map.of("phoneme", "/n/", "count", 2, "accuracy", 81)
-            ));
+                    Map.of("phoneme", "/n/", "count", 2, "accuracy", 81)));
             report.put("learningEffectiveness", List.of(
                     Map.of("label", "Hoàn thành bài", "value", 72),
-                    Map.of("label", "Ghi nhớ lỗi", "value", 64)
-            ));
-            report.put("recentSessions", sessionDetailRepository.findByAccountIdOrderByCreatedAtDesc(student.getId()).stream().limit(3).map(sd -> {
-                Map<String, Object> session = new LinkedHashMap<>();
-                session.put("id", sd.getId());
-                session.put("score", sd.getScoreOverall() != null ? sd.getScoreOverall().intValue() : 0);
-                session.put("createdAt", sd.getCreatedAt());
-                return session;
-            }).toList());
+                    Map.of("label", "Ghi nhớ lỗi", "value", 64)));
+            report.put("recentSessions", sessionDetailRepository.findByAccountIdOrderByCreatedAtDesc(student.getId())
+                    .stream().limit(3).map(sd -> {
+                        Map<String, Object> session = new LinkedHashMap<>();
+                        session.put("id", sd.getId());
+                        session.put("score", sd.getScoreOverall() != null ? sd.getScoreOverall().intValue() : 0);
+                        session.put("createdAt", sd.getCreatedAt());
+                        return session;
+                    }).toList());
             return report;
         }).collect(Collectors.toList());
     }
@@ -293,9 +311,7 @@ public class EducatorService {
     }
 
     private List<Account> findStudents() {
-        return accountRepository.findAll().stream()
-                .filter(a -> a.getRoleCode() != null && "USER".equalsIgnoreCase(a.getRoleCode().name()))
-                .collect(Collectors.toList());
+        return accountRepository.findAllByRoleCodeIn(List.of(RoleCode.USER));
     }
 
     private List<Map<String, Object>> buildPronunciationMetrics(List<SessionDetail> details) {
@@ -326,7 +342,8 @@ public class EducatorService {
         return student.getRegion() != null ? student.getRegion() : "Pronunciation";
     }
 
-    private Map<String, Object> lessonPlan(String id, String title, String objective, List<String> targetStudents, List<String> achievementGoals) {
+    private Map<String, Object> lessonPlan(String id, String title, String objective, List<String> targetStudents,
+            List<String> achievementGoals) {
         Map<String, Object> plan = new LinkedHashMap<>();
         plan.put("id", id);
         plan.put("title", title);
@@ -341,13 +358,11 @@ public class EducatorService {
     private Map<String, Object> toMessageMap(ChatMessage message) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("id", message.getId());
-        map.put("studentId", message.getRecipientId());
-        Account student = accountRepository.findById(message.getRecipientId()).orElse(null);
-        map.put("studentName", student != null ? student.getFullName() : "Học viên");
+        map.put("senderId", message.getSenderId());
+        map.put("recipientId", message.getRecipientId());
         map.put("content", message.getContent());
-        map.put("channel", "MESSAGE");
-        map.put("priority", "MEDIUM");
         map.put("createdAt", message.getTimestamp());
+        map.put("status", message.getStatus() != null ? message.getStatus().name() : "SENT");
         return map;
     }
 
