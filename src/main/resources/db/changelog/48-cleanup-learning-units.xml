@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="48-cleanup-learning-units-v2" author="antigravity">
+        <comment>Cleanup Level and Quiz learning units and their related data - Fixed with more dependencies</comment>
+        
+        <!-- 1. Delete assignments linked to Level/Quiz -->
+        <sql>
+            DELETE FROM assignment WHERE learning_unit_id IN (SELECT id FROM learning_unit WHERE type IN ('LEVEL', 'QUIZ'));
+        </sql>
+
+        <!-- 2. Delete user progress linked to Level/Quiz -->
+        <sql>
+            DELETE FROM account_learning_unit WHERE learning_unit_id IN (SELECT id FROM learning_unit WHERE type IN ('LEVEL', 'QUIZ'));
+        </sql>
+
+        <!-- 3. Delete custom path levels and progress linked to those Units -->
+        <sql>
+            DELETE FROM custom_path_levels WHERE level_id IN (SELECT id FROM learning_unit WHERE type IN ('LEVEL', 'QUIZ'));
+        </sql>
+        <sql>
+            DELETE FROM custom_path_progress WHERE learning_unit_id IN (SELECT id FROM learning_unit WHERE type IN ('LEVEL', 'QUIZ'));
+        </sql>
+
+        <!-- 4. Delete content items (Quizzes/Lessons) linked to those Units -->
+        <sql>
+            DELETE FROM content_item WHERE learning_unit_id IN (SELECT id FROM learning_unit WHERE type IN ('LEVEL', 'QUIZ'));
+        </sql>
+
+        <!-- 5. Delete lesson plan items linked to those Units (Fixes fk_lpi_unit) -->
+        <sql>
+            DELETE FROM lesson_plan_item WHERE learning_unit_id IN (SELECT id FROM learning_unit WHERE type IN ('LEVEL', 'QUIZ'));
+        </sql>
+
+        <!-- 6. Update parent_id of any other rows to NULL if they point to a deleted row to avoid FK violations -->
+        <sql>
+            UPDATE learning_unit SET parent_id = NULL WHERE parent_id IN (SELECT id FROM learning_unit WHERE type IN ('LEVEL', 'QUIZ'));
+        </sql>
+
+        <!-- 7. Delete the Learning Units themselves -->
+        <sql>
+            DELETE FROM learning_unit WHERE type = 'QUIZ';
+        </sql>
+        <sql>
+            DELETE FROM learning_unit WHERE type = 'LEVEL';
+        </sql>
+    </changeSet>
+</databaseChangeLog>

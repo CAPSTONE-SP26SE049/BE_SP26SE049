@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="46-create-custom-learning-path-tables" author="antigravity">
+        <!-- custom_learning_paths -->
+        <createTable tableName="custom_learning_paths">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+            
+            <column name="student_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_clp_student" referencedTableName="account" referencedColumnNames="id"/>
+            </column>
+            <column name="educator_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_clp_educator" referencedTableName="account" referencedColumnNames="id"/>
+            </column>
+            <column name="title" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- custom_path_levels -->
+        <createTable tableName="custom_path_levels">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="custom_path_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_cpl_path" referencedTableName="custom_learning_paths" referencedColumnNames="id"/>
+            </column>
+            <column name="level_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_cpl_level" referencedTableName="learning_unit" referencedColumnNames="id"/>
+            </column>
+            <column name="order_index" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- custom_path_progress -->
+        <createTable tableName="custom_path_progress">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+
+            <column name="custom_path_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_cpp_path" referencedTableName="custom_learning_paths" referencedColumnNames="id"/>
+            </column>
+            <column name="learning_unit_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_cpp_unit" referencedTableName="learning_unit" referencedColumnNames="id"/>
+            </column>
+            <column name="score" type="INTEGER" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_completed" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        
+        <addUniqueConstraint tableName="custom_path_progress" columnNames="custom_path_id, learning_unit_id" constraintName="uniq_cpp_path_unit"/>
+    </changeSet>
+</databaseChangeLog>

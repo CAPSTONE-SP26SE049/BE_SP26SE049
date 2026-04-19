@@ -5,6 +5,7 @@ import org.fsa_2026.company_fsa_captone_2026.common.JwtAuthenticationFilter;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -40,6 +41,7 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
 
     @Bean
+    @Primary
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
@@ -138,7 +140,7 @@ public class SecurityConfig {
                             .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
                             // Educator endpoints
-                            .requestMatchers("/api/v1/educator/**").hasAnyRole("EDUCATOR", "ADMIN")
+                            .requestMatchers("/api/v1/educator/**").hasAnyAuthority("ROLE_EDUCATOR", "ROLE_ADMIN")
 
                             // Learner endpoints
                             .requestMatchers("/api/v1/learner/**").hasRole("USER")
