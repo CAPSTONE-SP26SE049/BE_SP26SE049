@@ -1,5 +1,6 @@
 package org.fsa_2026.company_fsa_captone_2026.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -33,7 +34,8 @@ public class EducatorJourneyDtos {
         private UUID id;
         private String fullName;
         private String email;
-        private String avatar;
+        @JsonProperty("avatar_url")
+        private String avatarUrl;
         private String level;
         private StudentLearningPathResponse learningPath;
         private LocalDateTime lastActiveAt;
