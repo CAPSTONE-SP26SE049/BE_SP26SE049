@@ -182,6 +182,12 @@ public class EducatorController {
                                 educatorService.getAnalyticsReportByStudent(authentication.getName(), studentId)));
         }
 
+        @GetMapping("/feedback")
+        public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getFeedbackItems(Authentication authentication) {
+                return ResponseEntity.ok(ApiResponse.success(MSG_SUCCESS,
+                                educatorService.getFeedbackItems(authentication.getName())));
+        }
+
         // Feedback & Interaction Endpoints
         @PostMapping("/feedback")
         public ResponseEntity<ApiResponse<FeedbackResponse>> sendFeedback(
