@@ -749,7 +749,11 @@ public class QuizService {
         
         response.put("timeLimitSeconds", timeLimitSeconds);
         response.put("passingScore", metadata.getOrDefault("passing_score", 60));
-        response.put("questionCount", metadata.getOrDefault("question_count", 0));
+
+        // Use repository to get accurate question count instead of relying on potentially stale metadata
+        long questionCount = quizChallengeItemRepository.countByQuizId(quiz.getId());
+        response.put("questionCount", questionCount);
+
         response.put("orderIndex", metadata.getOrDefault("orderIndex", 0));
         response.put("skillType", extractSkillTypeFromMetadata(quiz));
         response.put("comment", metadata.getOrDefault("comment", ""));

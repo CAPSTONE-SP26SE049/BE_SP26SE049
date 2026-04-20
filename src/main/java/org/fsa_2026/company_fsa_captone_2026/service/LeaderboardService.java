@@ -41,6 +41,7 @@ public class LeaderboardService {
      * Get global leaderboard — reads from snapshot (fast).
      * Only refreshes lazily if snapshot missing.
      */
+    @Transactional
     public LeaderboardResponse getGlobalLeaderboard(LeaderboardPeriodType period,
                                                      LeaderboardSortBy sortBy,
                                                      String userEmail) {
@@ -48,14 +49,13 @@ public class LeaderboardService {
         final LeaderboardPeriodType p = LeaderboardPeriodType.ALL_TIME;
         final LeaderboardSortBy s    = LeaderboardSortBy.TOTAL_STARS;
 
-        // Check snapshot existence BEFORE starting a readonly tx
+        // Check snapshot existence
         Optional<Leaderboard> lbOpt = leaderboardRepository
                 .findByScopeAndPeriodTypeAndSortByAndRegionCodeIsNullAndIsFinalizedFalse(
                         LeaderboardScope.GLOBAL, p, s);
 
         if (lbOpt.isEmpty()) {
             log.info("[Leaderboard] No global snapshot found, running one-time refresh...");
-            // Call via self-proxy to get a proper WRITE transaction
             refreshLeaderboard(LeaderboardScope.GLOBAL, null, p, s);
             lbOpt = leaderboardRepository
                     .findByScopeAndPeriodTypeAndSortByAndRegionCodeIsNullAndIsFinalizedFalse(
@@ -70,6 +70,7 @@ public class LeaderboardService {
     /**
      * Get regional leaderboard for a canonical region code (NORTH/CENTRAL/SOUTH).
      */
+    @Transactional
     public LeaderboardResponse getRegionalLeaderboard(String regionCode,
                                                        LeaderboardPeriodType period,
                                                        LeaderboardSortBy sortBy,
@@ -125,9 +126,8 @@ public class LeaderboardService {
     /**
      * Optimized refresh: only 4 leaderboards (GLOBAL + 3 regions), all ALL_TIME + TOTAL_STARS.
      * This replaced the old 108-combination refresh loop.
-     * NOTE: No @Transactional here — each refreshLeaderboard() manages its own transaction,
-     * so the DB connection is released after every board instead of held for all 4.
      */
+    @Transactional
     public void refreshAllLeaderboards() {
         log.info("[Leaderboard] Starting optimized refresh (4 boards)...");
         long start = System.currentTimeMillis();

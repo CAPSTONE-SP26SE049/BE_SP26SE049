@@ -83,5 +83,4 @@
     <include file="db/changelog/46-add-custom-learning-path-tables.xml"/>
     <include file="db/changelog/47-remove-difficulty-tag.xml"/>
     <include file="db/changelog/47-update-educator-feedback.xml"/>
-    <include file="db/changelog/48-cleanup-learning-units.xml"/>
 </databaseChangeLog>
