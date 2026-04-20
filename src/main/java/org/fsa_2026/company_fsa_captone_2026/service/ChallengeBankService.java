@@ -44,7 +44,6 @@ public class ChallengeBankService {
         ChallengeBank challenge = ChallengeBank.builder()
                 .contentText(request.getContentText())
                 .skillType(request.getSkillType())
-                .difficultyTag(request.getDifficultyTag())
                 .region(request.getRegion() != null ? request.getRegion() : "BAC")
                 .metadataJson(request.getMetadataJson())
                 .createdBy(account.getId())
@@ -107,7 +106,6 @@ public class ChallengeBankService {
         
         if (request.getContentText() != null) challenge.setContentText(request.getContentText());
         if (request.getSkillType() != null) challenge.setSkillType(request.getSkillType());
-        if (request.getDifficultyTag() != null) challenge.setDifficultyTag(request.getDifficultyTag());
         if (request.getRegion() != null) challenge.setRegion(request.getRegion());
         if (request.getMetadataJson() != null) challenge.setMetadataJson(request.getMetadataJson());
         

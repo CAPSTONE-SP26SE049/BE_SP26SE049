@@ -80,4 +80,5 @@
     <include file="db/changelog/44-fix-quiz-orderindex.xml"/>
     <include file="db/changelog/45-add-processing-time-to-speaking-attempt.xml"/>
     <include file="db/changelog/46-add-asr-latency-and-feedback.xml"/>
+    <include file="db/changelog/47-remove-difficulty-tag.xml"/>
 </databaseChangeLog>

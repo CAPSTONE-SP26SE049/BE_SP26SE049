@@ -21,6 +21,8 @@ public interface AccountLearningUnitRepository extends JpaRepository<AccountLear
 
     boolean existsByAccountIdAndLearningUnitId(UUID accountId, UUID learningUnitId);
 
+    void deleteByLearningUnitId(UUID learningUnitId);
+
     long countByAccountIdAndIsCompletedTrue(UUID accountId);
 
     @Query("SELECT AVG(alu.highestScore) FROM AccountLearningUnit alu WHERE alu.account.id = :accountId AND alu.isCompleted = true")

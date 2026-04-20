@@ -320,9 +320,6 @@ public class AdminService {
         try {
             Map<String, Object> metadata = new java.util.HashMap<>();
             metadata.put("skill_type", request.getSkillType());
-            if (request.getDifficulty() != null) {
-                metadata.put("difficulty", request.getDifficulty().name());
-            }
             metadata.put("content_text", request.getContentText());
             metadata.put("phonetic_transcription_ipa", request.getPhoneticTranscriptionIpa());
             metadata.put("reference_audio_url", request.getReferenceAudioUrl());
@@ -359,9 +356,6 @@ public class AdminService {
         try {
             Map<String, Object> metadata = new java.util.HashMap<>();
             metadata.put("skill_type", request.getSkillType());
-            if (request.getDifficulty() != null) {
-                metadata.put("difficulty", request.getDifficulty().name());
-            }
             metadata.put("content_text", request.getContentText());
             metadata.put("phonetic_transcription_ipa", request.getPhoneticTranscriptionIpa());
             metadata.put("reference_audio_url", request.getReferenceAudioUrl());
@@ -497,21 +491,15 @@ public class AdminService {
         List<LearningUnit> children = learningUnitRepository.findByParentId(id);
         boolean hasActiveChild = children.stream().anyMatch(this::isNotDeleted);
         if (hasActiveChild) {
-            throw new ApiException("CONFLICT", "Không thể xóa chương học do vẫn còn bài kiểm tra / bài học bên trong. Vui lòng xóa các mục con trước.");
+            throw new ApiException("CONFLICT", "Không thể xóa màn học do vẫn còn bài kiểm tra / bài học bên trong. Vui lòng xóa các mục con trước.");
         }
-        
 
-        try {
-            Map<String, Object> metadata = level.getMetadataJson() != null
-                    ? objectMapper.readValue(level.getMetadataJson(), new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {})
-                    : new java.util.HashMap<>();
-            metadata.put("status", "DELETED");
-            level.setMetadataJson(objectMapper.writeValueAsString(metadata));
-            learningUnitRepository.save(level);
-        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-            log.error("Failed to update delete status in Level metadata", e);
-            throw new ApiException("INTERNAL_ERROR", "Lỗi xử lý metadata");
-        }
+        // Xóa toàn bộ progress của user liên quan đến màn học này
+        accountLearningUnitRepository.deleteByLearningUnitId(id);
+
+        // Hard delete khỏi database
+        learningUnitRepository.deleteById(id);
+        log.info("Level {} đã được xóa cứng khỏi database", id);
     }
 
     private boolean isNotDeleted(LearningUnit unit) {

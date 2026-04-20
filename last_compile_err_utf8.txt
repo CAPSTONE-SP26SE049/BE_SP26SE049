@@ -1,0 +1,80 @@
+﻿[INFO] Scanning for projects...
+[INFO] 
+[INFO] ---------------< org.fsa_2026:company_fsa_captone_2026 >----------------
+[INFO] Building com.company.FSA_Captone_2026 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.5.0:clean (default-clean) @ company_fsa_captone_2026 ---
+[INFO] Deleting D:\CAPSTONE\Back-End\BE_SP26SE049\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ company_fsa_captone_2026 ---
+[INFO] Copying 2 resources from src\main\resources to target\classes
+[INFO] Copying 53 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.14.1:compile (default-compile) @ company_fsa_captone_2026 ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 273 source files with javac [debug parameters release 17] to target\classes
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[1,1] illegal character: '\ufeff'
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[1,10] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[3,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[4,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[5,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[6,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[7,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[8,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[9,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[10,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[11,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[12,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[13,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[14,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[15,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[16,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[18,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[19,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[20,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[21,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[22,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[23,1] class, interface, enum, or record expected
+[INFO] 22 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  2.653 s
+[INFO] Finished at: 2026-04-20T03:30:33+07:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.14.1:compile (default-compile) on project company_fsa_captone_2026: Compilation failure: Compilation failure: 
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[1,1] illegal character: '\ufeff'
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[1,10] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[3,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[4,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[5,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[6,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[7,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[8,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[9,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[10,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[11,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[12,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[13,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[14,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[15,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[16,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[18,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[19,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[20,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[21,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[22,1] class, interface, enum, or record expected
+[ERROR] /D:/CAPSTONE/Back-End/BE_SP26SE049/src/main/java/org/fsa_2026/company_fsa_captone_2026/service/ChallengeExcelService.java:[23,1] class, interface, enum, or record expected
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

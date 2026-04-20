@@ -486,6 +486,15 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success("Xóa quiz thành công", null));
     }
 
+    @PutMapping("/content/quizzes/reorder")
+    @Operation(summary = "Reorder Quizzes", description = "Update orderIndex for a list of quizzes")
+    public ResponseEntity<ApiResponse<Void>> reorderQuizzes(@RequestBody List<UUID> quizIds) {
+        log.info("Admin reordering {} quizzes", quizIds.size());
+        quizService.reorderQuizzes(quizIds);
+        return ResponseEntity.ok(ApiResponse.success("Thay đổi thứ tự bài tập thành công", null));
+    }
+
+
     @GetMapping("/content/quizzes/{id}/challenges")
     @Operation(summary = "Get Quiz Challenges", description = "Get challenges assigned to a quiz")
     public ResponseEntity<ApiResponse<List<org.fsa_2026.company_fsa_captone_2026.dto.QuizChallengeItemResponse>>> getQuizChallenges(
