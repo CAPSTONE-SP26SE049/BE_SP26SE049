@@ -15,7 +15,6 @@ public class QuizQuestionResponse implements Serializable {
 
     private String id;
     private String skillType;
-    private String difficulty;
     private Integer questionOrder;
     private Integer points;
     private String challengeId;

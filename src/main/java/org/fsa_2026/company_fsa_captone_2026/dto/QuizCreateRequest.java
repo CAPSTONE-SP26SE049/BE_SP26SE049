@@ -38,7 +38,6 @@ public class QuizCreateRequest implements Serializable {
 
     private Integer pointsPerQuestion;
 
-    private String difficulty;
 
     private String comment;
 

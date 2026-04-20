@@ -87,7 +87,6 @@ public class QuizResponse implements Serializable {
                 List<Map<String, Object>> items = objectMapper.readValue(entity.getItemsJson(), List.class);
                 questions = items.stream().map(item -> QuizQuestionResponse.builder()
                         .skillType((String) item.get("skill_type"))
-                        .difficulty((String) item.get("difficulty"))
                         .questionOrder((Integer) item.get("question_order"))
                         .points((Integer) item.get("points"))
                         .challengeId((String) item.get("challenge_id"))
@@ -105,6 +104,7 @@ public class QuizResponse implements Serializable {
                 .instructions(instructions)
                 .passingScore(passingScore)
                 .timeLimitSeconds(timeLimitSeconds)
+                .questionCount(questions.size())
                 .status(entity.getStatus())
                 .rejectionReason(rejectionReason)
                 .questions(questions)
@@ -152,7 +152,6 @@ public class QuizResponse implements Serializable {
                     List<Map<String, Object>> qItems = (List<Map<String, Object>>) metadata.get("questions");
                     questions = qItems.stream().map(item -> QuizQuestionResponse.builder()
                             .skillType((String) item.get("skillType")) // Note camelCase here from buildQuizMetadata
-                            .difficulty((String) item.get("difficulty"))
                             .questionOrder((Integer) item.get("questionOrder"))
                             .points((Integer) item.get("points"))
                             .challengeId((String) item.get("challengeId")) // If present
@@ -170,6 +169,7 @@ public class QuizResponse implements Serializable {
                 .instructions(instructions)
                 .passingScore(passingScore)
                 .timeLimitSeconds(timeLimitSeconds)
+                .questionCount(questions.size())
                 .status("APPROVED") // Default for LU quizzes
                 .questions(questions)
                 .build();

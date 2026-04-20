@@ -11,7 +11,6 @@ import org.apache.poi.xssf.usermodel.XSSFDataValidationHelper;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeBankRequest;
 import org.fsa_2026.company_fsa_captone_2026.entity.ChallengeBank;
-import org.fsa_2026.company_fsa_captone_2026.entity.enums.DifficultyTag;
 import org.fsa_2026.company_fsa_captone_2026.entity.enums.SkillType;
 import org.fsa_2026.company_fsa_captone_2026.repository.ChallengeBankRepository;
 import org.springframework.stereotype.Service;
@@ -33,14 +32,16 @@ public class AdminChallengeBankExcelService {
     private static final String COL_REGION = "region";
     private static final String COL_HINT = "hint";
 
-    // Flexible columns (comma-separated values where applicable)
-    private static final String COL_WORDS = "words";
-    private static final String COL_ERROR_INDEX = "error_index";
-    private static final String COL_CORRECT_WORD = "correct_word";
+    // READING columns
+    private static final String COL_SENTENCE_WITH_ERROR = "sentenceWithError";
+    private static final String COL_WRONG_WORD = "wrongWord";
+    private static final String COL_CORRECT_WORD = "correctWord";
+    // LISTENING columns
     private static final String COL_AUDIO_URL = "audioUrl";
     private static final String COL_OPTIONS = "options";
     private static final String COL_CORRECT_ANSWER = "correctAnswer";
     private static final String COL_TRANSCRIPT = "transcript";
+    // WRITING columns
     private static final String COL_SCRAMBLED_WORDS = "scrambledWords";
     private static final String COL_CORRECT_SENTENCE = "correctSentence";
 
@@ -81,12 +82,12 @@ public class AdminChallengeBankExcelService {
             // Sample rows (3 kỹ năng đại diện)
             Row r1 = sheet.createRow(1);
             setRow(r1, headers, Map.of(
-                    COL_CONTENT_TEXT, "Chọn từ đúng để điền vào chỗ trống: \"Con ... đang ăn cỏ\"",
+                    COL_CONTENT_TEXT, "Chọn từ sai chính tả trong câu sau:",
                     COL_SKILL_TYPE, "Đọc hiểu",
                     COL_REGION, "Miền Bắc",
-                    COL_HINT, "Chú ý phân biệt dấu và âm cuối.",
-                    COL_WORDS, "Con, lợn, đang, ăn, cỏ",
-                    COL_ERROR_INDEX, "1",
+                    COL_HINT, "Chú ý phân biệt âm đầu L và N.",
+                    COL_SENTENCE_WITH_ERROR, "Con nợn đang ăn cỏ ngoài đồng.",
+                    COL_WRONG_WORD, "nợn",
                     COL_CORRECT_WORD, "lợn"
             ));
 
@@ -127,7 +128,7 @@ public class AdminChallengeBankExcelService {
      * - Bật showErrorBox để hiển thị cảnh báo khi nhập sai giá trị Enum.
      */
     private void addDropdownValidation(Sheet sheet, List<String> headers, String headerKey, String[] allowedValues) {
-        // Tìm index cột theo headerKey (vd: "skillType", "difficultyTag", "region")
+        // Tìm index cột theo headerKey (vd: "skillType", "region")
         int colIdx = headers.indexOf(headerKey);
         if (colIdx < 0) return; // Không có cột thì bỏ qua an toàn
 
@@ -268,10 +269,10 @@ public class AdminChallengeBankExcelService {
                 // hint
                 put(row, headers, COL_HINT, str(meta.get("hint")));
 
-                // flexible fields
-                put(row, headers, COL_WORDS, joinComma(meta.get("words")));
-                put(row, headers, COL_ERROR_INDEX, str(meta.get("error_index")));
-                put(row, headers, COL_CORRECT_WORD, str(meta.get("correct_word")));
+                // READING fields
+                put(row, headers, COL_SENTENCE_WITH_ERROR, str(meta.get("sentenceWithError")));
+                put(row, headers, COL_WRONG_WORD, str(meta.get("wrongWord")));
+                put(row, headers, COL_CORRECT_WORD, str(meta.get("correctWord")));
                 put(row, headers, COL_AUDIO_URL, str(meta.get("audioUrl")));
                 put(row, headers, COL_OPTIONS, joinComma(meta.get("options")));
                 put(row, headers, COL_CORRECT_ANSWER, str(meta.get("correctAnswer")));
@@ -293,8 +294,11 @@ public class AdminChallengeBankExcelService {
     private List<String> headers() {
         return List.of(
                 COL_CONTENT_TEXT, COL_SKILL_TYPE, COL_REGION, COL_HINT,
-                COL_WORDS, COL_ERROR_INDEX, COL_CORRECT_WORD,
+                // READING
+                COL_SENTENCE_WITH_ERROR, COL_WRONG_WORD, COL_CORRECT_WORD,
+                // LISTENING
                 COL_AUDIO_URL, COL_OPTIONS, COL_CORRECT_ANSWER, COL_TRANSCRIPT,
+                // WRITING
                 COL_SCRAMBLED_WORDS, COL_CORRECT_SENTENCE
         );
     }
@@ -311,9 +315,9 @@ public class AdminChallengeBankExcelService {
 
         switch (skillType) {
             case READING -> {
-                meta.put("words", splitComma(get(row, colMap, COL_WORDS)));
-                meta.put("error_index", parseInt(get(row, colMap, COL_ERROR_INDEX), 0));
-                meta.put("correct_word", get(row, colMap, COL_CORRECT_WORD));
+                meta.put("sentenceWithError", get(row, colMap, COL_SENTENCE_WITH_ERROR));
+                meta.put("wrongWord", get(row, colMap, COL_WRONG_WORD));
+                meta.put("correctWord", get(row, colMap, COL_CORRECT_WORD));
             }
             case LISTENING -> {
                 meta.put("audioUrl", get(row, colMap, COL_AUDIO_URL));
@@ -331,15 +335,6 @@ public class AdminChallengeBankExcelService {
             }
         }
         return meta;
-    }
-
-    private DifficultyTag parseDifficulty(String s) {
-        if (s == null || s.isBlank()) return DifficultyTag.BEGINNER;
-        try {
-            return DifficultyTag.valueOf(s.trim().toUpperCase());
-        } catch (Exception e) {
-            return DifficultyTag.BEGINNER;
-        }
     }
 
     private String parseRegion(String s) {

@@ -26,7 +26,6 @@ public class ChallengeResponse implements Serializable {
     private String levelId;
     private String type;
     private String skillType;
-    private String difficulty;
     private String contentText;
     private String phoneticTranscriptionIpa;
     private String referenceAudioUrl;
@@ -45,7 +44,6 @@ public class ChallengeResponse implements Serializable {
         String phoneticTranscriptionIpa = "";
         String referenceAudioUrl = "";
         String focusPhonemes = "";
-        String difficulty = "";
         String rejectionReason = "";
         String skillType = "";
 
@@ -57,7 +55,6 @@ public class ChallengeResponse implements Serializable {
                 referenceAudioUrl = (String) metadata.get("reference_audio_url");
                 focusPhonemes = (String) metadata.get("focus_phonemes");
                 skillType = (String) metadata.get("skill_type");
-                difficulty = (String) metadata.get("difficulty");
                 rejectionReason = (String) metadata.get("rejection_reason");
             }
         } catch (JsonProcessingException | ClassCastException ignored) {
@@ -69,7 +66,6 @@ public class ChallengeResponse implements Serializable {
                 .levelId(challenge.getLearningUnit() != null ? challenge.getLearningUnit().getId().toString() : null)
                 .type(challenge.getType())
                 .skillType(skillType)
-                .difficulty(difficulty)
                 .contentText(contentText)
                 .phoneticTranscriptionIpa(phoneticTranscriptionIpa)
                 .referenceAudioUrl(referenceAudioUrl)

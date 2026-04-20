@@ -118,6 +118,26 @@ public class QuizService {
         return learningUnitRepository.save(quiz);
     }
 
+    @Transactional
+    public void reorderQuizzes(List<UUID> quizIds) {
+        for (int i = 0; i < quizIds.size(); i++) {
+            UUID id = quizIds.get(i);
+            int newOrder = i + 1;
+            LearningUnit quiz = learningUnitRepository.findById(id)
+                    .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Quiz ID: " + id));
+
+            try {
+                Map<String, Object> metadata = objectMapper.readValue(
+                        quiz.getMetadataJson(), new TypeReference<Map<String, Object>>() {});
+                metadata.put("orderIndex", newOrder);
+                quiz.setMetadataJson(objectMapper.writeValueAsString(metadata));
+                learningUnitRepository.save(quiz);
+            } catch (Exception e) {
+                log.error("Error updating order for quiz {}: {}", id, e.getMessage());
+            }
+        }
+    }
+
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getAllQuizzes() {
         return learningUnitRepository.findByType("QUIZ").stream()
@@ -188,17 +208,12 @@ public class QuizService {
             throw new ApiException("CONFLICT", "Không thể xóa bài kiểm tra vì vẫn còn câu hỏi bên trong. Vui lòng gỡ hết câu hỏi trước.");
         }
 
-        try {
-            Map<String, Object> metadata = quiz.getMetadataJson() != null
-                    ? objectMapper.readValue(quiz.getMetadataJson(), new TypeReference<Map<String, Object>>() {})
-                    : new java.util.LinkedHashMap<>();
-            metadata.put("status", "DELETED");
-            quiz.setMetadataJson(objectMapper.writeValueAsString(metadata));
-            learningUnitRepository.save(quiz);
-        } catch (JsonProcessingException e) {
-            log.error("Failed to update delete status in Quiz metadata", e);
-            throw new ApiException("INTERNAL_ERROR", "Lỗi xử lý metadata");
-        }
+        // Xóa toàn bộ progress của user liên quan đến quiz này
+        accountLearningUnitRepository.deleteByLearningUnitId(id);
+
+        // Hard delete khỏi database
+        learningUnitRepository.deleteById(id);
+        log.info("Quiz {} đã được xóa cứng khỏi database", id);
     }
 
     private boolean isNotDeleted(LearningUnit unit) {
@@ -681,7 +696,6 @@ public class QuizService {
         metadata.put("time_limit_seconds", request.getTimeLimitSeconds());
         metadata.put("passing_score", request.getPassingScore());
         metadata.put("points_per_question", request.getPointsPerQuestion());
-        metadata.put("difficulty", request.getDifficulty());
         metadata.put("questions", request.getQuestions());
         metadata.put("question_count", request.getQuestionCount());
         metadata.put("comment", request.getComment());
@@ -735,8 +749,11 @@ public class QuizService {
         
         response.put("timeLimitSeconds", timeLimitSeconds);
         response.put("passingScore", metadata.getOrDefault("passing_score", 60));
-        response.put("difficulty", metadata.getOrDefault("difficulty", "BEGINNER"));
-        response.put("questionCount", metadata.getOrDefault("question_count", 0));
+
+        // Use repository to get accurate question count instead of relying on potentially stale metadata
+        long questionCount = quizChallengeItemRepository.countByQuizId(quiz.getId());
+        response.put("questionCount", questionCount);
+
         response.put("orderIndex", metadata.getOrDefault("orderIndex", 0));
         response.put("skillType", extractSkillTypeFromMetadata(quiz));
         response.put("comment", metadata.getOrDefault("comment", ""));

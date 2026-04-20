@@ -6,7 +6,6 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.fsa_2026.company_fsa_captone_2026.entity.ChallengeBank;
 import org.fsa_2026.company_fsa_captone_2026.entity.QuizChallengeItem;
-import org.fsa_2026.company_fsa_captone_2026.entity.enums.DifficultyTag;
 import org.fsa_2026.company_fsa_captone_2026.entity.enums.SkillType;
 import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.ChallengeBankRepository;
@@ -55,6 +54,13 @@ public class ChallengeExcelService {
     private static final String COL_WRITING_BLANK_SENTENCE = "Nội dung câu đố (với ký hiệu _ )";
     private static final String COL_WRITING_CORRECT_ANSWER = "Đáp án đúng (Correct Answer)";
     private static final String COL_WRITING_ALTERNATIVES   = "Đáp án chấp nhận khác (Alternative)";
+
+    // LISTENING — 4 cột đáp án riêng (khớp với form trên web)
+    private static final String COL_LISTENING_OPT1    = "Đáp án 1";
+    private static final String COL_LISTENING_OPT2    = "Đáp án 2";
+    private static final String COL_LISTENING_OPT3    = "Đáp án 3";
+    private static final String COL_LISTENING_OPT4    = "Đáp án 4";
+    private static final String COL_LISTENING_CORRECT = "Đáp án đúng";
     
     // New constants for READING
     private static final String COL_READING_SENTENCE = "Câu chứa lỗi sai (Sentence with Error)";
@@ -69,7 +75,7 @@ public class ChallengeExcelService {
 
         switch (skillType) {
             case READING -> headers.addAll(List.of(COL_READING_SENTENCE, COL_READING_WRONG_WORD, COL_READING_CORRECT_WORD, COL_HINT));
-            case LISTENING -> headers.addAll(List.of(COL_AUDIO_URL, COL_OPTIONS, COL_CORRECT_ANSWER, COL_TRANSCRIPT));
+            case LISTENING -> headers.addAll(List.of(COL_AUDIO_URL, COL_LISTENING_OPT1, COL_LISTENING_OPT2, COL_LISTENING_OPT3, COL_LISTENING_OPT4, COL_LISTENING_CORRECT, COL_TRANSCRIPT));
             case WRITING -> headers.addAll(List.of(COL_WRITING_BLANK_SENTENCE, COL_WRITING_CORRECT_ANSWER, COL_WRITING_ALTERNATIVES, COL_HINT));
             case SPEAKING, ENTRY_TEST -> headers.addAll(List.of(COL_AUDIO_URL, COL_TRANSCRIPT, COL_HINT));
         }
@@ -197,10 +203,10 @@ public class ChallengeExcelService {
                          "Trời nạnh quá mọi người mặc áo ấm", "nạnh", "lạnh", "L/N, nạnh -> lạnh")
             );
             case LISTENING -> List.of(
-                List.of("Nghe và chọn từ đúng", "BAC",
-                         "https://example.com/audio1.mp3", "Lúa nếp|Lúa nết|Núa nếp", "Lúa nếp", "Lúa nếp là lúa nếp làng"),
-                List.of("Nghe đoạn audio và chọn đáp án", "NAM",
-                         "https://example.com/audio2.mp3", "Nón lá|Lón lá|Nón nà", "Nón lá", "Chiếc nón lá Việt Nam")
+                List.of("Nghe và chọn từ đúng", "NAM",
+                         "", "Lúa nếp", "Lúa nết", "Núa nếp", "Lúa tẻ", "Lúa nếp", "Lúa nếp là lúa nếp làng"),
+                List.of("Nghe và chọn từ đúng", "NAM",
+                         "", "Nón lá", "Lón lá", "Nón nà", "Nóm lá", "Nón lá", "Chiếc nón lá Việt Nam")
             );
             case WRITING -> List.of(
                 List.of("Chọn từ đúng chính tả để điền vào chỗ trống", "BAC",
@@ -270,9 +276,19 @@ public class ChallengeExcelService {
             for (int i = 0; i < headerRow.getLastCellNum(); i++) {
                 Cell cell = headerRow.getCell(i);
                 if (cell != null) {
-                    colMap.put(getCellString(cell).trim(), i);
+                    String raw = getCellString(cell).trim();
+                    colMap.put(raw, i);
+                    String normalized = raw.replaceAll("[\\s/()\\[\\]{}]+", " ").trim();
+                    colMap.putIfAbsent(normalized, i);
                 }
             }
+            // Alias fallback for common header name variants
+            colMap.putIfAbsent(COL_CONTENT_TEXT, colMap.getOrDefault("Tiêu đề bài tập / Yêu cầu",
+                    colMap.getOrDefault("Tiêu đề", colMap.get("Yêu cầu"))));
+            colMap.putIfAbsent(COL_REGION, colMap.getOrDefault("Vùng miền",
+                    colMap.getOrDefault("Region", colMap.get("Miền"))));
+            colMap.values().removeIf(v -> v == null);
+            log.info("[Excel Import-Bank] headers: {}", colMap.keySet());
 
             for (int r = 1; r <= sheet.getLastRowNum(); r++) {
                 Row row = sheet.getRow(r);
@@ -373,9 +389,23 @@ public class ChallengeExcelService {
                 for (int i = 0; i < headerRow.getLastCellNum(); i++) {
                     Cell cell = headerRow.getCell(i);
                     if (cell != null) {
-                        colMap.put(getCellString(cell).trim(), i);
+                        String raw = getCellString(cell).trim();
+                        colMap.put(raw, i);
+                        // Also normalize: remove ()/{}/[] details for fuzzy match
+                        String normalized = raw.replaceAll("[\\s/()\\[\\]{}]+", " ").trim();
+                        colMap.putIfAbsent(normalized, i);
                     }
                 }
+
+                // Also register key alias variants so old files still work
+                colMap.putIfAbsent(COL_CONTENT_TEXT, colMap.getOrDefault("Tiêu đề bài tập / Yêu cầu",
+                        colMap.getOrDefault("Tiêu đề", colMap.get("Yêu cầu"))));
+                colMap.putIfAbsent(COL_REGION, colMap.getOrDefault("Vùng miền",
+                        colMap.getOrDefault("Region", colMap.get("Miền"))));
+                colMap.values().removeIf(v -> v == null);
+
+                // Debug: log detected columns
+                log.info("[Excel Import] Sheet '{}' headers: {}", st.name(), colMap.keySet());
 
                 for (int r = 1; r <= sheet.getLastRowNum(); r++) {
                     Row row = sheet.getRow(r);
@@ -564,8 +594,22 @@ public class ChallengeExcelService {
             }
             case LISTENING -> {
                 meta.put("audioUrl", getCsvValue(cols, colMap, COL_AUDIO_URL));
-                meta.put("options", splitPipe(getCsvValue(cols, colMap, COL_OPTIONS)));
-                meta.put("correctAnswer", getCsvValue(cols, colMap, COL_CORRECT_ANSWER));
+                String csvO1 = getCsvValue(cols, colMap, COL_LISTENING_OPT1);
+                String csvO2 = getCsvValue(cols, colMap, COL_LISTENING_OPT2);
+                String csvO3 = getCsvValue(cols, colMap, COL_LISTENING_OPT3);
+                String csvO4 = getCsvValue(cols, colMap, COL_LISTENING_OPT4);
+                if (csvO1.isBlank() && csvO2.isBlank()) {
+                    meta.put("options", splitPipe(getCsvValue(cols, colMap, COL_OPTIONS)));
+                    meta.put("correctAnswer", getCsvValue(cols, colMap, COL_CORRECT_ANSWER));
+                } else {
+                    java.util.List<String> csvOpts = new ArrayList<>();
+                    if (!csvO1.isBlank()) csvOpts.add(csvO1);
+                    if (!csvO2.isBlank()) csvOpts.add(csvO2);
+                    if (!csvO3.isBlank()) csvOpts.add(csvO3);
+                    if (!csvO4.isBlank()) csvOpts.add(csvO4);
+                    meta.put("options", csvOpts);
+                    meta.put("correctAnswer", getCsvValue(cols, colMap, COL_LISTENING_CORRECT));
+                }
                 meta.put("transcript", getCsvValue(cols, colMap, COL_TRANSCRIPT));
             }
             case WRITING -> {
@@ -619,8 +663,22 @@ public class ChallengeExcelService {
             }
             case LISTENING -> {
                 meta.put("audioUrl", getCellValue(row, colMap, COL_AUDIO_URL));
-                meta.put("options", splitPipe(getCellValue(row, colMap, COL_OPTIONS)));
-                meta.put("correctAnswer", getCellValue(row, colMap, COL_CORRECT_ANSWER));
+                String xO1 = getCellValue(row, colMap, COL_LISTENING_OPT1);
+                String xO2 = getCellValue(row, colMap, COL_LISTENING_OPT2);
+                String xO3 = getCellValue(row, colMap, COL_LISTENING_OPT3);
+                String xO4 = getCellValue(row, colMap, COL_LISTENING_OPT4);
+                if ((xO1 == null || xO1.isBlank()) && (xO2 == null || xO2.isBlank())) {
+                    meta.put("options", splitPipe(getCellValue(row, colMap, COL_OPTIONS)));
+                    meta.put("correctAnswer", getCellValue(row, colMap, COL_CORRECT_ANSWER));
+                } else {
+                    java.util.List<String> xOpts = new ArrayList<>();
+                    if (xO1 != null && !xO1.isBlank()) xOpts.add(xO1);
+                    if (xO2 != null && !xO2.isBlank()) xOpts.add(xO2);
+                    if (xO3 != null && !xO3.isBlank()) xOpts.add(xO3);
+                    if (xO4 != null && !xO4.isBlank()) xOpts.add(xO4);
+                    meta.put("options", xOpts);
+                    meta.put("correctAnswer", getCellValue(row, colMap, COL_LISTENING_CORRECT));
+                }
                 meta.put("transcript", getCellValue(row, colMap, COL_TRANSCRIPT));
             }
             case WRITING -> {
@@ -741,7 +799,12 @@ public class ChallengeExcelService {
                 }
                 case LISTENING -> {
                     row.createCell(col++).setCellValue(str(meta.get("audioUrl")));
-                    row.createCell(col++).setCellValue(joinList(meta.get("options")));
+                    Object wo = meta.get("options");
+                    java.util.List<?> wol = wo instanceof java.util.List<?> wl ? wl : java.util.List.of();
+                    row.createCell(col++).setCellValue(wol.size() > 0 ? str(wol.get(0)) : "");
+                    row.createCell(col++).setCellValue(wol.size() > 1 ? str(wol.get(1)) : "");
+                    row.createCell(col++).setCellValue(wol.size() > 2 ? str(wol.get(2)) : "");
+                    row.createCell(col++).setCellValue(wol.size() > 3 ? str(wol.get(3)) : "");
                     row.createCell(col++).setCellValue(str(meta.get("correctAnswer")));
                     row.createCell(col).setCellValue(str(meta.get("transcript")));
                 }
@@ -807,14 +870,6 @@ public class ChallengeExcelService {
         return value != null ? value.toString() : "";
     }
 
-    private DifficultyTag parseDifficulty(String s) {
-        if (s == null || s.isBlank()) return DifficultyTag.BEGINNER;
-        try {
-            return DifficultyTag.valueOf(s.trim().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return DifficultyTag.BEGINNER;
-        }
-    }
 
     private String parseRegion(String s) {
         if (s == null || s.isBlank()) return "BAC";
