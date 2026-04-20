@@ -18,8 +18,16 @@ import lombok.*;
 public class EducatorFeedback extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "attempt_id", nullable = false)
+    @JoinColumn(name = "attempt_id", nullable = true)
     private SessionDetail sessionDetail;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "speaking_attempt_id", nullable = true)
+    private SpeakingAttempt speakingAttempt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "student_id", nullable = false)
+    private Account student;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "educator_id", nullable = false)

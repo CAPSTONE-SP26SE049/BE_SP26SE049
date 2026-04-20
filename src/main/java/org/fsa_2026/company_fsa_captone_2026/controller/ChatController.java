@@ -36,9 +36,8 @@ public class ChatController {
     @GetMapping(Constants.API_PREFIX + "/chat/history/{friendId}")
     @ResponseBody
     public ResponseEntity<List<ChatMessageDto>> getHistory(
-            @PathVariable UUID friendId,
-            Authentication authentication
-    ) {
+            @PathVariable("friendId") UUID friendId,
+            Authentication authentication) {
         UUID currentUserId = chatMessageService.resolveUserId(authentication != null ? authentication.getName() : null);
         return ResponseEntity.ok(chatMessageService.getChatHistory(currentUserId, friendId));
     }
@@ -93,7 +92,8 @@ public class ChatController {
             return;
         }
 
-        if (incoming == null || incoming.getRecipientId() == null) return;
+        if (incoming == null || incoming.getRecipientId() == null)
+            return;
 
         // Trust senderId from Principal (UUID from JWT sub) to avoid spoofing
         ChatMessageDto dto = new ChatMessageDto(
@@ -102,8 +102,7 @@ public class ChatController {
                 incoming.getRecipientId(),
                 incoming.getContent(),
                 incoming.getTimestamp() != null ? incoming.getTimestamp() : LocalDateTime.now(),
-                incoming.getStatus() != null ? incoming.getStatus() : MessageStatus.SENT.name()
-        );
+                incoming.getStatus() != null ? incoming.getStatus() : MessageStatus.SENT.name());
 
         ChatMessageDto savedDto = chatMessageService.saveMessage(dto);
 
@@ -114,7 +113,8 @@ public class ChatController {
 
     @MessageMapping("/chat.read")
     public void processReadReceipt(@Payload ChatMessageDto payload) {
-        if (payload == null || payload.getSenderId() == null || payload.getRecipientId() == null) return;
+        if (payload == null || payload.getSenderId() == null || payload.getRecipientId() == null)
+            return;
 
         // Payload: senderId là người MỚI ĐỌC (recipient của tin nhắn gốc),
         // recipientId là NGƯỜI GỬI TIN NHẮN GỐC
@@ -130,4 +130,3 @@ public class ChatController {
         simpMessagingTemplate.convertAndSend("/topic/chat/" + payload.getRecipientId(), receipt);
     }
 }
-

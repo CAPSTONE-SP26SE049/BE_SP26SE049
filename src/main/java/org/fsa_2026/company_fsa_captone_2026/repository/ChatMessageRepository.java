@@ -13,21 +13,21 @@ import java.util.UUID;
 @Repository
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> {
 
-    List<ChatMessage> findBySenderIdAndRecipientIdOrSenderIdAndRecipientIdOrderByTimestampAsc(
-            UUID sender1,
-            UUID recipient1,
-            UUID sender2,
-            UUID recipient2
-    );
+        @Query("SELECT c FROM ChatMessage c " +
+                        "WHERE (c.senderId = :user1 AND c.recipientId = :user2) " +
+                        "OR (c.senderId = :user2 AND c.recipientId = :user1) " +
+                        "ORDER BY c.timestamp ASC")
+        List<ChatMessage> findFullConversation(@Param("user1") UUID user1, @Param("user2") UUID user2);
 
-    @Modifying
-    @Query("UPDATE ChatMessage m SET m.status = 'READ' " +
-            "WHERE m.senderId = :senderId AND m.recipientId = :recipientId AND m.status != 'READ'")
-    int markMessagesAsRead(@Param("senderId") UUID senderId, @Param("recipientId") UUID recipientId);
+        @Modifying
+        @Query("UPDATE ChatMessage m SET m.status = org.fsa_2026.company_fsa_captone_2026.entity.enums.MessageStatus.READ "
+                        +
+                        "WHERE m.senderId = :senderId AND m.recipientId = :recipientId AND m.status <> org.fsa_2026.company_fsa_captone_2026.entity.enums.MessageStatus.READ")
+        int markMessagesAsRead(@Param("senderId") UUID senderId, @Param("recipientId") UUID recipientId);
 
-    @Query("SELECT c.senderId, COUNT(c) FROM ChatMessage c " +
-            "WHERE c.recipientId = :userId AND c.status <> org.fsa_2026.company_fsa_captone_2026.entity.enums.MessageStatus.READ " +
-            "GROUP BY c.senderId")
-    List<Object[]> countUnreadMessagesGroupedBySender(@Param("userId") UUID userId);
+        @Query("SELECT c.senderId, COUNT(c) FROM ChatMessage c " +
+                        "WHERE c.recipientId = :userId AND c.status <> org.fsa_2026.company_fsa_captone_2026.entity.enums.MessageStatus.READ "
+                        +
+                        "GROUP BY c.senderId")
+        List<Object[]> countUnreadMessagesGroupedBySender(@Param("userId") UUID userId);
 }
-

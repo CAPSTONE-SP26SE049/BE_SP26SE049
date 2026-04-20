@@ -195,7 +195,6 @@ public class AdminService {
         return response;
     }
 
-
     // ==========================================
     // User Management
     // ==========================================
@@ -210,15 +209,14 @@ public class AdminService {
 
         // 3. Bulk fetch progress for all users to avoid N+1 issue
         List<UUID> userIds = users.stream().map(Account::getId).collect(Collectors.toList());
-        List<AccountLearningUnitRepository.UserProgressProjection> progressList =
-                accountLearningUnitRepository.findProgressByAccountIds(userIds);
+        List<AccountLearningUnitRepository.UserProgressProjection> progressList = accountLearningUnitRepository
+                .findProgressByAccountIds(userIds);
 
         // Map for quick lookup O(1)
         Map<UUID, AccountLearningUnitRepository.UserProgressProjection> progressMap = progressList.stream()
                 .collect(Collectors.toMap(
                         AccountLearningUnitRepository.UserProgressProjection::getAccountId,
-                        p -> p
-                ));
+                        p -> p));
 
         return users.stream().map(user -> {
             AccountLearningUnitRepository.UserProgressProjection p = progressMap.get(user.getId());
@@ -562,7 +560,7 @@ public class AdminService {
     @Transactional(readOnly = true)
     public Map<String, Object> getErrorHeatmaps() {
         Map<String, Object> stats = new HashMap<>();
-        String[] dialects = {"NORTH", "SOUTH", "CENTRAL"};
+        String[] dialects = { "NORTH", "SOUTH", "CENTRAL" };
 
         for (String d : dialects) {
             long total = speakingAttemptRepository.countByDialectAndConsentGivenTrue(d);
@@ -657,14 +655,15 @@ public class AdminService {
     public void attachRewardToQuiz(UUID rewardId, UUID quizId) {
         LearningUnit quiz = learningUnitRepository.findById(quizId)
                 .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy bài kiểm tra"));
-        
+
         RewardCatalog reward = rewardCatalogRepository.findById(rewardId)
                 .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy thành tựu"));
 
         // Rule: Each reward can only be assigned to one quiz
         Optional<LearningUnit> otherQuiz = learningUnitRepository.findByRewardCatalogId(rewardId);
         if (otherQuiz.isPresent() && !otherQuiz.get().getId().equals(quizId)) {
-            throw new ApiException("CONFLICT", "Thành tựu này đã được gán cho bài kiểm tra: " + otherQuiz.get().getName());
+            throw new ApiException("CONFLICT",
+                    "Thành tựu này đã được gán cho bài kiểm tra: " + otherQuiz.get().getName());
         }
 
         // Toggle logic
