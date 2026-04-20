@@ -8,6 +8,7 @@ import org.fsa_2026.company_fsa_captone_2026.dto.ApiResponse;
 import org.fsa_2026.company_fsa_captone_2026.entity.enums.SkillType;
 import org.fsa_2026.company_fsa_captone_2026.service.AdminChallengeBankExcelService;
 import org.fsa_2026.company_fsa_captone_2026.service.AdminLevelExcelService;
+import org.fsa_2026.company_fsa_captone_2026.service.AdminRewardExcelService;
 import org.fsa_2026.company_fsa_captone_2026.service.AdminUserExcelService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -33,6 +34,7 @@ public class AdminExcelController {
     private final AdminUserExcelService adminUserExcelService;
     private final AdminLevelExcelService adminLevelExcelService;
     private final AdminChallengeBankExcelService adminChallengeBankExcelService;
+    private final AdminRewardExcelService adminRewardExcelService;
 
     // =========================
     // USERS (Educators)
@@ -124,6 +126,35 @@ public class AdminExcelController {
         byte[] file = adminChallengeBankExcelService.exportToExcel(st);
         String filename = st != null ? ("challenge_bank_" + st.name().toLowerCase() + ".xlsx") : "challenge_bank_all.xlsx";
         return asAttachment(file, filename);
+    }
+
+    // =========================
+    // REWARDS / ACHIEVEMENTS
+    // =========================
+
+    @GetMapping("/rewards/template")
+    @Operation(summary = "Tải template Excel tạo thành tựu/huy hiệu",
+            description = "Cột: Tên thành tựu, Mã code, URL Hình ảnh, Trạng thái")
+    public ResponseEntity<byte[]> downloadRewardsTemplate() {
+        byte[] file = adminRewardExcelService.generateTemplate();
+        return asAttachment(file, "template_achievements.xlsx");
+    }
+
+    @PostMapping(value = "/rewards/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Import thành tựu từ Excel",
+            description = "Đọc từng dòng → RewardCreateRequest → gọi adminService.createReward()")
+    public ResponseEntity<ApiResponse<AdminRewardExcelService.ImportResult>> importRewards(
+            @RequestParam("file") MultipartFile file) {
+        var result = adminRewardExcelService.importFromExcel(file);
+        return ResponseEntity.ok(ApiResponse.success("Import hoàn tất", result));
+    }
+
+    @GetMapping("/rewards/export")
+    @Operation(summary = "Export danh sách thành tựu ra Excel",
+            description = "Xuất toàn bộ huy hiệu trong catalog")
+    public ResponseEntity<byte[]> exportRewards() {
+        byte[] file = adminRewardExcelService.exportToExcel();
+        return asAttachment(file, "achievements_export.xlsx");
     }
 
     private ResponseEntity<byte[]> asAttachment(byte[] file, String filename) {

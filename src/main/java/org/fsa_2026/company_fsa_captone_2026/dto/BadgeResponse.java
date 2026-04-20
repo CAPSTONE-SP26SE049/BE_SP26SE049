@@ -20,7 +20,6 @@ public class BadgeResponse implements Serializable {
     private String id;
     private String code;
     private String name;
-    private String description;
     private String iconUrl;
 
     public static BadgeResponse fromEntity(RewardCatalog badge) {
@@ -30,7 +29,6 @@ public class BadgeResponse implements Serializable {
                 .id(badge.getId().toString())
                 .code(badge.getCode())
                 .name(badge.getName())
-                .description(badge.getDescription())
                 .iconUrl(badge.getIconUrl())
                 .build();
     }

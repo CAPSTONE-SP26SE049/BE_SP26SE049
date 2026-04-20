@@ -8,6 +8,8 @@ import org.fsa_2026.company_fsa_captone_2026.repository.LearningUnitRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
+import org.fsa_2026.company_fsa_captone_2026.entity.Account;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -21,6 +23,7 @@ public class LevelService {
 
     private final LearningUnitRepository learningUnitRepository;
     private final org.fsa_2026.company_fsa_captone_2026.repository.AccountLearningUnitRepository accountLearningUnitRepository;
+    private final AccountRepository accountRepository;
 
     @Transactional(readOnly = true)
     public List<LevelResponse> getLevelsByDialect(String dialectId) {
@@ -47,9 +50,13 @@ public class LevelService {
 
     @Transactional(readOnly = true)
     public List<LevelResponse> getUserRoadmap(String email, String dialectId) {
+        Account account = accountRepository.findByEmail(email).orElse(null);
+        
         if (dialectId != null && !dialectId.isEmpty()) {
             try {
-                // Return levels that are children of this specific dialectId
+                if (account != null) {
+                    return getLevelsWithProgress(dialectId, account);
+                }
                 return getLevelsByDialect(dialectId);
             } catch (Exception e) {
                 log.warn("Invalid dialectId provided: {}", dialectId);
@@ -57,12 +64,19 @@ public class LevelService {
         }
 
         // Fallback: return all levels if no dialectId specified or invalid
-        return learningUnitRepository.findByType("LEVEL")
+        List<LevelResponse> levels = learningUnitRepository.findByType("LEVEL")
                 .stream()
                 .map(LevelResponse::fromEntity)
                 .filter(r -> r.getStatus() == null || (!"REJECTED".equals(r.getStatus()) && !"DELETED".equals(r.getStatus())))
                 .sorted(java.util.Comparator.comparingInt(r -> r.getLevelOrder() != null ? r.getLevelOrder() : 0))
                 .collect(java.util.stream.Collectors.toList());
+                
+        if (account != null) {
+             // We can't use getLevelsWithProgress easily here because it expects a dialectId
+             // But for fallback we just return basic levels for now or implement global progress
+        }
+        
+        return levels;
     }
 
     @Transactional(readOnly = true)

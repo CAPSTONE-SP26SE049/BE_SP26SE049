@@ -26,9 +26,6 @@ public class RewardCatalog extends BaseEntity {
     @Column(name = "name", nullable = false, length = 200)
     private String name;
 
-    @Column(name = "description", columnDefinition = "TEXT")
-    private String description;
-
     /**
      * Loại phần thưởng: ACHIEVEMENT hoặc BADGE
      */
@@ -48,4 +45,3 @@ public class RewardCatalog extends BaseEntity {
     @Builder.Default
     private boolean isActive = true;
 }
-

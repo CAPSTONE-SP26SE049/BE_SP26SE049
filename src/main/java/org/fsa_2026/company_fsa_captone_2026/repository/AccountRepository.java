@@ -45,9 +45,9 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
     List<Account> findTop50ByIsActiveTrueOrderByTotalExperienceDesc();
 
     /**
-     * Top 50 active accounts globally, ordered by totalStars DESC.
+     * Top 50 active accounts globally, ordered by totalStars DESC, badgeCount DESC, streak DESC.
      */
-    List<Account> findTop50ByIsActiveTrueOrderByTotalStarsDesc();
+    List<Account> findTop50ByIsActiveTrueOrderByTotalStarsDescBadgeCountDescCurrentStreakDaysDesc();
 
     /**
      * Top 50 active accounts for a region, ordered by totalExperience DESC.
@@ -55,9 +55,9 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
     List<Account> findTop50ByRegionIgnoreCaseAndIsActiveTrueOrderByTotalExperienceDesc(String region);
 
     /**
-     * Top 50 active accounts for a region, ordered by totalStars DESC.
+     * Top 50 active accounts for a region, ordered by totalStars DESC, badgeCount DESC, streak DESC.
      */
-    List<Account> findTop50ByRegionIgnoreCaseAndIsActiveTrueOrderByTotalStarsDesc(String region);
+    List<Account> findTop50ByRegionIgnoreCaseAndIsActiveTrueOrderByTotalStarsDescBadgeCountDescCurrentStreakDaysDesc(String region);
 
     /**
      * Search active accounts by fullName or email containing a keyword

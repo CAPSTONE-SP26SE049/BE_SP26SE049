@@ -28,6 +28,7 @@ public class LeaderboardEntryResponse implements Serializable {
     private Integer totalStars;
     private Integer currentStreakDays;
     private Integer challengesCompleted;
+    private Integer badgeCount;
     private String region;
 
     /**
@@ -43,6 +44,7 @@ public class LeaderboardEntryResponse implements Serializable {
                 .totalExperience(account.getTotalExperience())
                 .totalStars(account.getTotalStars())
                 .currentStreakDays(account.getCurrentStreakDays())
+                .badgeCount(account.getBadgeCount())
                 .region(account.getRegion())
                 .build();
     }
@@ -63,6 +65,7 @@ public class LeaderboardEntryResponse implements Serializable {
                 .totalStars(entry.getTotalStars())
                 .currentStreakDays(entry.getStreakDays())
                 .challengesCompleted(entry.getChallengesCompleted())
+                .badgeCount(entry.getBadgeCount())
                 .region(account != null ? account.getRegion() : null)
                 .build();
     }

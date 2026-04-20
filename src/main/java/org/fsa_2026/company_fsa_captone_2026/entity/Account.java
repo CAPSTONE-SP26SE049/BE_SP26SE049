@@ -85,6 +85,10 @@ public class Account extends BaseEntity {
     @Builder.Default
     private Integer currentStreakDays = 0;
 
+    @Column(name = "badge_count", nullable = false)
+    @Builder.Default
+    private Integer badgeCount = 0;
+
     /**
      * Date of the most recent login — used to calculate daily streak.
      * null for accounts that have never logged in after this feature was added.

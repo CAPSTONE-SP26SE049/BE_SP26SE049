@@ -604,7 +604,6 @@ public class AdminService {
         RewardCatalog reward = RewardCatalog.builder()
                 .code(request.getCode())
                 .name(request.getName())
-                .description(request.getDescription())
                 .rewardType(org.fsa_2026.company_fsa_captone_2026.entity.enums.RewardType.BADGE)
                 .iconUrl(request.getIconUrl())
                 .xpReward(0)
@@ -619,7 +618,6 @@ public class AdminService {
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy phần thưởng"));
         reward.setCode(request.getCode());
         reward.setName(request.getName());
-        reward.setDescription(request.getDescription());
         reward.setIconUrl(request.getIconUrl());
         reward.setActive(request.getIsActive() != null ? request.getIsActive() : reward.isActive());
         return enrichRewardResponse(rewardCatalogRepository.save(reward));

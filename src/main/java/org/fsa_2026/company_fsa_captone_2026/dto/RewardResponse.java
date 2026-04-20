@@ -24,7 +24,6 @@ public class RewardResponse implements Serializable {
     private String id;
     private String code;
     private String name;
-    private String description;
     private String iconUrl;
 
     /**
@@ -48,7 +47,6 @@ public class RewardResponse implements Serializable {
                 .id(entity.getId().toString())
                 .code(entity.getCode())
                 .name(entity.getName())
-                .description(entity.getDescription())
                 .iconUrl(entity.getIconUrl())
                 .isActive(entity.isActive())
                 .createdAt(entity.getCreatedAt())

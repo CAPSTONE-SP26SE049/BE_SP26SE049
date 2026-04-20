@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet id="49-add-badge-count-to-ranking" author="antigravity">
+        <addColumn tableName="account">
+            <column name="badge_count" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <addColumn tableName="leaderboard_entry">
+            <column name="badge_count" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <sql>
+            UPDATE account a 
+            SET badge_count = (
+                SELECT COUNT(*) 
+                FROM account_reward ar 
+                WHERE ar.account_id = a.id AND ar.status = 'UNLOCKED'
+            );
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>
