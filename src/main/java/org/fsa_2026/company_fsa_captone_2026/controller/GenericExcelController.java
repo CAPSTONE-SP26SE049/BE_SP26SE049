@@ -19,7 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 import jakarta.annotation.PostConstruct;
 
 @RestController
-@RequestMapping("/api/v1/excel")
+@RequestMapping("/api/v1/admin/excel")
 @RequiredArgsConstructor
 @Tag(name = "Generic Excel Import/Export", description = "API dùng chung cho nhiều trang để Import và Export dữ liệu Excel")
 @SecurityRequirement(name = "bearer-jwt")
@@ -32,69 +32,95 @@ public class GenericExcelController {
 
     @PostConstruct
     public void init() {
-        // Cần khởi tạo tĩnh để map class Entity với JpaRepository của nó
         this.repositories = new Repositories(applicationContext);
     }
 
-    @GetMapping("/export/{entityClassName}")
+    @GetMapping("/{entityClassName}/export")
     @Operation(summary = "Export dữ liệu của bất kỳ Entity nào", description = "entityClassName là tên class Entity (ví dụ: ChallengeBank, Classroom, User)")
-    @SuppressWarnings("unchecked")
     public void exportFile(
             @PathVariable String entityClassName,
             @RequestParam(defaultValue = "EXCEL") FileFormat format,
             HttpServletResponse response
     ) throws Exception {
-        // 1. Tìm Entity Class từ String
         Class<?> entityClass = resolveEntityClass(entityClassName);
-        
-        // 2. Tìm Repository tương ứng
-        JpaRepository<Object, ?> repository = getRepository(entityClass);
-
-        // 3. Thực thi export dùng hàm thư viện đã có
-        exportService.export(
-                format,
-                repository.findAll(),
-                (Class<Object>) entityClass,
-                response
-        );
+        invokeExport(entityClass, format, response);
     }
 
-    @PostMapping(value = "/import/{entityClassName}", consumes = "multipart/form-data")
+    @PostMapping(value = "/{entityClassName}/import", consumes = "multipart/form-data")
     @Operation(summary = "Import dữ liệu bằng File Excel cho bất kỳ Entity nào")
-    @SuppressWarnings("unchecked")
     public ResponseEntity<ApiResponse<ImportResult>> importFile(
             @PathVariable String entityClassName,
             @RequestParam("file") MultipartFile file
     ) throws Exception {
         Class<?> entityClass = resolveEntityClass(entityClassName);
-        JpaRepository<Object, ?> repository = getRepository(entityClass);
-
-        ImportResult result = importService.importFile(
-                file,
-                (Class<Object>) entityClass,
-                (JpaRepository<Object, Object>) repository
-        );
-
+        ImportResult result = invokeImport(entityClass, file);
         return ResponseEntity.ok(ApiResponse.success("Import thành công dữ liệu " + entityClassName, result));
     }
 
-    // --- HELPER METHODS ---
-    
+    @GetMapping("/{entityClassName}/template")
+    @Operation(summary = "Tải file template Excel cho Entity")
+    public void getTemplate(
+            @PathVariable String entityClassName,
+            HttpServletResponse response
+    ) throws Exception {
+        Class<?> entityClass = resolveEntityClass(entityClassName);
+        invokeTemplate(entityClass, response);
+    }
+
+    // --- GENERIC HELPERS TO CAPTURE CAPTURE#1 of ? ---
+
     @SuppressWarnings("unchecked")
-    private JpaRepository<Object, ?> getRepository(Class<?> entityClass) {
-        return (JpaRepository<Object, ?>) repositories.getRepositoryFor(entityClass)
+    private <T> void invokeExport(Class<T> entityClass, FileFormat format, HttpServletResponse response) throws Exception {
+        JpaRepository<T, ?> repository = (JpaRepository<T, ?>) getRepository(entityClass);
+        exportService.export(
+                format,
+                repository.findAll(),
+                entityClass,
+                response
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T, ID> ImportResult invokeImport(Class<T> entityClass, MultipartFile file) {
+        JpaRepository<T, ID> repository = (JpaRepository<T, ID>) getRepository(entityClass);
+        return importService.importFile(
+                file,
+                entityClass,
+                repository
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> void invokeTemplate(Class<T> entityClass, HttpServletResponse response) throws Exception {
+        exportService.export(
+                FileFormat.EXCEL,
+                java.util.List.of(),
+                entityClass,
+                response
+        );
+    }
+
+    private JpaRepository<?, ?> getRepository(Class<?> entityClass) {
+        return (JpaRepository<?, ?>) repositories.getRepositoryFor(entityClass)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy JpaRepository cho Entity: " + entityClass.getSimpleName()));
     }
 
-    private Class<?> resolveEntityClass(String entityName) throws ClassNotFoundException {
-        // Assume entities are mostly in the main entity package. Bạn có thể sửa map động nếu entity ở nhiều package.
+    private Class<?> resolveEntityClass(String entityName) {
         String basePackage = "org.fsa_2026.company_fsa_captone_2026.entity.";
-        // Xử lý viết hoa chữ cái đầu cho chắc chắn
-        String normalizedName = entityName.substring(0, 1).toUpperCase() + entityName.substring(1);
+        
+        // Handle aliases
+        String className = switch (entityName.toLowerCase()) {
+            case "users", "user", "accounts", "account" -> "Account";
+            case "levels", "level" -> "LearningUnit"; // Levels are stored in LearningUnit table
+            case "challenges", "challenge", "challenge-bank" -> "ChallengeBank";
+            case "classrooms", "classroom" -> "Classroom";
+            default -> entityName.substring(0, 1).toUpperCase() + entityName.substring(1);
+        };
+
         try {
-            return Class.forName(basePackage + normalizedName);
+            return Class.forName(basePackage + className);
         } catch (ClassNotFoundException e) {
-            throw new IllegalArgumentException("Thực thể " + normalizedName + " không tồn tại trong hệ thống. Vui lòng truyền đúng tên class Entity.");
+            throw new IllegalArgumentException("Thực thể " + className + " không tồn tại trong hệ thống. Vui lòng truyền đúng tên class Entity.");
         }
     }
 }
