@@ -294,9 +294,15 @@ public class QuizService {
                         .unlockedAt(Instant.now())
                         .build();
                 accountRewardRepository.save(ar);
+
+                // Increment badge_count on Account for ranking
+                int currentBadges = account.getBadgeCount() != null ? account.getBadgeCount() : 0;
+                account.setBadgeCount(currentBadges + 1);
+                accountRepository.save(account);
+
                 earnedReward = RewardResponse.fromEntity(reward);
-                log.info("Reward '{}' granted to user '{}' after completing quiz '{}'",
-                        reward.getName(), userEmail, quiz.getName());
+                log.info("Reward '{}' granted to user '{}'. New badgeCount: {}",
+                        reward.getName(), userEmail, account.getBadgeCount());
             } else {
                 alreadyEarned = true;
                 log.info("User '{}' already has reward '{}', skipping", userEmail, reward.getName());

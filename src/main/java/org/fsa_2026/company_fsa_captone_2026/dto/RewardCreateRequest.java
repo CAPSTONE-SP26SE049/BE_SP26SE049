@@ -25,8 +25,6 @@ public class RewardCreateRequest implements Serializable {
     @NotBlank(message = "Tên huy hiệu không được để trống")
     private String name;
 
-    private String description;
-
     private String iconUrl;
 
     /** FIX: Use Boolean (wrapper) instead of boolean (primitive) to allow null from FE */

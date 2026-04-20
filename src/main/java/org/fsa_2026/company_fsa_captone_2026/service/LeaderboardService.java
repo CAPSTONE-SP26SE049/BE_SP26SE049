@@ -177,6 +177,7 @@ public class LeaderboardService {
                         .challengesCompleted(0) // Account entity does not track this directly
                         .averageScore(BigDecimal.ZERO)
                         .streakDays(account.getCurrentStreakDays() != null ? account.getCurrentStreakDays() : 0)
+                        .badgeCount(account.getBadgeCount() != null ? account.getBadgeCount() : 0)
                         .build())
                 .collect(Collectors.toList());
 
@@ -203,9 +204,9 @@ public class LeaderboardService {
      */
     private List<Account> getTop50AccountsForScope(LeaderboardScope scope, String regionCode) {
         if (scope == LeaderboardScope.REGIONAL && regionCode != null) {
-            return accountRepository.findTop50ByRegionIgnoreCaseAndIsActiveTrueOrderByTotalStarsDesc(regionCode);
+            return accountRepository.findTop50ByRegionIgnoreCaseAndIsActiveTrueOrderByTotalStarsDescBadgeCountDescCurrentStreakDaysDesc(regionCode);
         }
-        return accountRepository.findTop50ByIsActiveTrueOrderByTotalStarsDesc();
+        return accountRepository.findTop50ByIsActiveTrueOrderByTotalStarsDescBadgeCountDescCurrentStreakDaysDesc();
     }
 
     private LeaderboardEntryResponse findMyRank(Leaderboard leaderboard, String userEmail) {
