@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="31-drop-fk-leaderboard-classroom" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="leaderboard"/>
+            <foreignKeyConstraintExists foreignKeyName="fk_leaderboard_classroom"/>
+        </preConditions>
+
+        <dropForeignKeyConstraint
+                baseTableName="leaderboard"
+                constraintName="fk_leaderboard_classroom"/>
+
+    </changeSet>
+
+    <changeSet id="31-drop-leaderboard-classroom-column" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="leaderboard"/>
+            <columnExists tableName="leaderboard" columnName="classroom_id"/>
+        </preConditions>
+
+        <dropColumn tableName="leaderboard" columnName="classroom_id"/>
+    </changeSet>
+
+    <changeSet id="31-drop-classroom-member-table" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="classroom_member"/>
+        </preConditions>
+
+        <dropTable tableName="classroom_member" cascadeConstraints="true"/>
+    </changeSet>
+
+    <changeSet id="31-drop-classroom-table" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="classroom"/>
+        </preConditions>
+
+        <dropTable tableName="classroom" cascadeConstraints="true"/>
+    </changeSet>
+
+</databaseChangeLog>

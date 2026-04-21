@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="44-add-processing-time-to-speaking-attempt" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="speaking_attempt" columnName="processing_time_ms"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="speaking_attempt">
+            <column name="processing_time_ms" type="BIGINT">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

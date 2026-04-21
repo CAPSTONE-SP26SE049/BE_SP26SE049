@@ -27,7 +27,7 @@ public class BadgeService {
 
     @Transactional(readOnly = true)
     public List<BadgeResponse> getAllBadges() {
-        return rewardCatalogRepository.findByRewardTypeAndIsActiveTrue(RewardType.BADGE)
+        return rewardCatalogRepository.findByIsActiveTrue()
                 .stream()
                 .map(BadgeResponse::fromEntity)
                 .collect(Collectors.toList());
@@ -38,7 +38,7 @@ public class BadgeService {
         Account account = accountRepository.findByEmail(email)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Người dùng không tồn tại"));
 
-        return accountRewardRepository.findByAccountIdAndRewardType(account.getId(), RewardType.BADGE)
+        return accountRewardRepository.findByAccountIdAndStatusIgnoreCase(account.getId(), "UNLOCKED")
                 .stream()
                 .map(AccountBadgeResponse::fromEntity)
                 .collect(Collectors.toList());

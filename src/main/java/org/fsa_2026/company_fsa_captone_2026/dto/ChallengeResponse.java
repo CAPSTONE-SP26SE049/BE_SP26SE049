@@ -1,15 +1,17 @@
 package org.fsa_2026.company_fsa_captone_2026.dto;
 
+import java.io.Serializable;
+import java.util.Map;
+
+import org.fsa_2026.company_fsa_captone_2026.entity.ContentItem;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.fsa_2026.company_fsa_captone_2026.entity.ContentItem;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.io.Serializable;
-import java.time.Instant;
-import java.util.Map;
 
 /**
  * Challenge Response DTO
@@ -24,7 +26,6 @@ public class ChallengeResponse implements Serializable {
     private String levelId;
     private String type;
     private String skillType;
-    private String difficulty;
     private String contentText;
     private String phoneticTranscriptionIpa;
     private String referenceAudioUrl;
@@ -34,6 +35,7 @@ public class ChallengeResponse implements Serializable {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
+    @SuppressWarnings("unchecked")
     public static ChallengeResponse fromEntity(ContentItem challenge) {
         if (challenge == null)
             return null;
@@ -42,7 +44,6 @@ public class ChallengeResponse implements Serializable {
         String phoneticTranscriptionIpa = "";
         String referenceAudioUrl = "";
         String focusPhonemes = "";
-        String difficulty = "";
         String rejectionReason = "";
         String skillType = "";
 
@@ -54,17 +55,17 @@ public class ChallengeResponse implements Serializable {
                 referenceAudioUrl = (String) metadata.get("reference_audio_url");
                 focusPhonemes = (String) metadata.get("focus_phonemes");
                 skillType = (String) metadata.get("skill_type");
-                difficulty = (String) metadata.get("difficulty");
                 rejectionReason = (String) metadata.get("rejection_reason");
             }
-        } catch (Exception e) { }
+        } catch (JsonProcessingException | ClassCastException ignored) {
+            // Keep default response values when metadata parsing fails.
+        }
 
         return ChallengeResponse.builder()
                 .id(challenge.getId().toString())
                 .levelId(challenge.getLearningUnit() != null ? challenge.getLearningUnit().getId().toString() : null)
                 .type(challenge.getType())
                 .skillType(skillType)
-                .difficulty(difficulty)
                 .contentText(contentText)
                 .phoneticTranscriptionIpa(phoneticTranscriptionIpa)
                 .referenceAudioUrl(referenceAudioUrl)

@@ -4,6 +4,7 @@ import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -44,12 +45,11 @@ public class OpenApiConfig {
                                 .info(new Info()
                                                 .title(apiTitle)
                                                 .description(apiDescription
-                                                                + " - Development Mode: No Authentication Required for Swagger")
+                                                                + " - Development Mode: Use Authorize button to set JWT token")
                                                 .version(apiVersion)
                                                 .contact(new Contact()
                                                                 .name(contactName)
-                                                                .email(contactEmail)));
-                // Removed addSecurityItem for development mode
-                // .addSecurityItem(new SecurityRequirement().addList("bearer-jwt"));
+                                                                .email(contactEmail)))
+                                .addSecurityItem(new SecurityRequirement().addList("bearer-jwt"));
         }
 }

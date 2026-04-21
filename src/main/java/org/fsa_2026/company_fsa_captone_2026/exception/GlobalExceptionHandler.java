@@ -21,12 +21,10 @@ import java.util.Map;
 
 @RestControllerAdvice
 @Slf4j
-public class GlobalExceptionHandler
-{
+public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex)
-    {
+    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex) {
         log.warn("[404] ResourceNotFound: {}", ex.getMessage());
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.NOT_FOUND.value(),
@@ -36,8 +34,7 @@ public class GlobalExceptionHandler
     }
 
     @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<ErrorResponse> handleBadRequestException(BadRequestException ex)
-    {
+    public ResponseEntity<ErrorResponse> handleBadRequestException(BadRequestException ex) {
         log.warn("[400] BadRequest: {}", ex.getMessage());
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.BAD_REQUEST.value(),
@@ -47,8 +44,7 @@ public class GlobalExceptionHandler
     }
 
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ErrorResponse> handleBadCredentialsException(BadCredentialsException ex)
-    {
+    public ResponseEntity<ErrorResponse> handleBadCredentialsException(BadCredentialsException ex) {
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.UNAUTHORIZED.value(),
                 "Invalid email or password",
@@ -57,8 +53,7 @@ public class GlobalExceptionHandler
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex)
-    {
+    public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex) {
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.FORBIDDEN.value(),
                 "You don't have permission to access this resource",
@@ -76,14 +71,12 @@ public class GlobalExceptionHandler
 
             errors.computeIfAbsent(
                     fieldError.getField(),
-                    key -> new ArrayList<>()
-            ).add(fieldError.getDefaultMessage());
+                    key -> new ArrayList<>()).add(fieldError.getDefaultMessage());
         }
 
         ValidationErrorResponse response = new ValidationErrorResponse(
                 "Validation failed",
-                errors
-        );
+                errors);
 
         return ResponseEntity.badRequest().body(response);
     }
@@ -102,8 +95,7 @@ public class GlobalExceptionHandler
                     .add(violation.getMessage());
         }
 
-        ValidationErrorResponse response =
-                new ValidationErrorResponse("Validation failed", errors);
+        ValidationErrorResponse response = new ValidationErrorResponse("Validation failed", errors);
 
         return ResponseEntity.badRequest().body(response);
     }
@@ -112,15 +104,13 @@ public class GlobalExceptionHandler
     public ResponseEntity<ValidationErrorResponse> handleBusiness(
             BusinessValidationException ex) {
 
-        ValidationErrorResponse response =
-                new ValidationErrorResponse("Validation failed", ex.getErrors());
+        ValidationErrorResponse response = new ValidationErrorResponse("Validation failed", ex.getErrors());
 
         return ResponseEntity.badRequest().body(response);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGlobalException(Exception ex)
-    {
+    public ResponseEntity<ErrorResponse> handleGlobalException(Exception ex) {
         ex.printStackTrace();
         String message = ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName();
         ErrorResponse error = new ErrorResponse(
@@ -131,37 +121,72 @@ public class GlobalExceptionHandler
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex)
-    {
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.BAD_REQUEST.value(),
                 ex.getMessage(),
                 LocalDateTime.now());
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Handle ApiException with correct HTTP status based on error code.
+     * Previously this fell through to handleRuntimeException and always returned
+     * 400.
+     */
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<ErrorResponse> handleApiException(ApiException ex) {
+        HttpStatus status = switch (ex.getCode().toUpperCase()) {
+            case "UNAUTHORIZED" -> HttpStatus.UNAUTHORIZED;
+            case "NOT_FOUND" -> HttpStatus.NOT_FOUND;
+            case "CONFLICT" -> HttpStatus.CONFLICT;
+            case "FORBIDDEN" -> HttpStatus.FORBIDDEN;
+            default -> HttpStatus.BAD_REQUEST;
+        };
+        log.warn("[{}] ApiException: code={}, message={}", status.value(), ex.getCode(), ex.getMessage());
+        ErrorResponse error = new ErrorResponse(status.value(), ex.getMessage(), LocalDateTime.now());
+        return new ResponseEntity<>(error, status);
     }
 
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex)
-    {
+    public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex) {
+        log.error("Runtime exception: ", ex);
         ErrorResponse error = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                ex.getMessage(),
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "Lỗi hệ thống: " + ex.getMessage(),
                 LocalDateTime.now());
-        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @ExceptionHandler(UnauthenticatedException.class)
-    public ResponseEntity<ErrorResponse> handleUnauthenticatedException(UnauthenticatedException ex)
-    {
+    public ResponseEntity<ErrorResponse> handleUnauthenticatedException(UnauthenticatedException ex) {
         var err = new ErrorResponse(
                 HttpStatus.UNAUTHORIZED.value(),
                 ex.getMessage(),
-                LocalDateTime.now()
-        );
+                LocalDateTime.now());
         return new ResponseEntity<>(err, HttpStatus.UNAUTHORIZED);
     }
 
-    public record ErrorResponse(int status, String message, LocalDateTime timestamp)
-    {
+    @ExceptionHandler(org.fsa_2026.company_fsa_captone_2026.service.AuthService.ValidationException.class)
+    public ResponseEntity<ValidationErrorResponse> handleAuthValidationException(
+            org.fsa_2026.company_fsa_captone_2026.service.AuthService.ValidationException ex) {
+
+        Map<String, java.util.List<String>> errors = new HashMap<>();
+        if (ex.getErrors() != null) {
+            ex.getErrors().forEach((key, value) -> {
+                java.util.List<String> list = new java.util.ArrayList<>();
+                list.add(value);
+                errors.put(key, list);
+            });
+        }
+
+        ValidationErrorResponse response = new ValidationErrorResponse(
+                "Validation failed",
+                errors);
+
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    public record ErrorResponse(int status, String message, LocalDateTime timestamp) {
     }
 }

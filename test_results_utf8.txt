@@ -1,0 +1,144 @@
+﻿[INFO] Scanning for projects...
+[INFO] 
+[INFO] ---------------< org.fsa_2026:company_fsa_captone_2026 >----------------
+[INFO] Building com.company.FSA_Captone_2026 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ company_fsa_captone_2026 ---
+[INFO] Copying 2 resources from src\main\resources to target\classes
+[INFO] Copying 45 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.14.1:compile (default-compile) @ company_fsa_captone_2026 ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ company_fsa_captone_2026 ---
+[INFO] skip non existing resourceDirectory D:\Capstone_git_real\BE_SP26SE049\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.14.1:testCompile (default-testCompile) @ company_fsa_captone_2026 ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 4 source files with javac [debug parameters release 17] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.4:test (default-test) @ company_fsa_captone_2026 ---
+[WARNING]  Parameter 'systemProperties' is deprecated: Use systemPropertyVariables instead.
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running org.fsa_2026.company_fsa_captone_2026.ApplicationTests
+07:01:31.820 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [org.fsa_2026.company_fsa_captone_2026.ApplicationTests]: ApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+07:01:31.919 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration org.fsa_2026.company_fsa_captone_2026.Application for test class org.fsa_2026.company_fsa_captone_2026.ApplicationTests
+07:01:32.061 [main] INFO org.springframework.boot.devtools.restart.RestartApplicationListener -- Restart disabled due to context in which it is running
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.0.2)
+
+2026-04-04 07:01:32 - Starting ApplicationTests using Java 17.0.12 with PID 15788 (started by ADMIN in D:\Capstone_git_real\BE_SP26SE049)
+2026-04-04 07:01:32 - Running with Spring Boot v4.0.2, Spring v7.0.3
+2026-04-04 07:01:32 - No active profile set, falling back to 1 default profile: "default"
+2026-04-04 07:01:33 - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-04 07:01:33 - Finished Spring Data repository scanning in 83 ms. Found 20 JPA repository interfaces.
+2026-04-04 07:01:34 - HikariPool-1 - Starting...
+2026-04-04 07:01:37 - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@13cc31df
+2026-04-04 07:01:37 - HikariPool-1 - Start completed.
+2026-04-04 07:01:38 - Set default schema name to public
+2026-04-04 07:01:39 - Reading from public.databasechangelog
+2026-04-04 07:01:42 - Database is up to date, no changesets to execute
+2026-04-04 07:01:43 - Reading from public.databasechangelog
+2026-04-04 07:01:43 - UPDATE SUMMARY
+2026-04-04 07:01:43 - Run:                          0
+2026-04-04 07:01:43 - Previously run:              24
+2026-04-04 07:01:43 - Filtered out:                 0
+2026-04-04 07:01:43 - -------------------------------
+2026-04-04 07:01:43 - Total change sets:           24
+2026-04-04 07:01:43 - Update summary generated
+2026-04-04 07:01:43 - Command execution complete
+2026-04-04 07:01:44 - HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-04-04 07:01:44 - HHH000001: Hibernate ORM core version 7.2.1.Final
+2026-04-04 07:01:45 - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-04 07:01:45 - HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-04 07:01:46 - HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://speak-journeyvn123.postgres.database.azure.com:5432/postgres]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 17.8
+	Default catalog/schema: postgres/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-04-04 07:01:47 - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-04 07:01:48 - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-04 07:01:49 - Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-04 07:01:49 - Reflections took 10 ms to scan 0 urls, producing 0 keys and 0 values
+2026-04-04 07:01:51 - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-04 07:01:51 - Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2026-04-04 07:01:51 - Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+2026-04-04 07:01:52 - Will secure any request with filters: DisableEncodeUrlFilter, WebAsyncManagerIntegrationFilter, SecurityContextHolderFilter, HeaderWriterFilter, CorsFilter, LogoutFilter, JwtAuthenticationFilter, RequestCacheAwareFilter, SecurityContextHolderAwareRequestFilter, AnonymousAuthenticationFilter, SessionManagementFilter, ExceptionTranslationFilter, AuthorizationFilter
+???????????????????????????????????????????????????????????????????
+? Server starting on port: 8082
+???????????????????????????????????????????????????????????????????
+2026-04-04 07:01:53 - Server will listen on port: 8082
+2026-04-04 07:01:53 - Exposing 1 endpoint beneath base path '/actuator'
+2026-04-04 07:01:53 - Started ApplicationTests in 21.124 seconds (process running for 22.18)
+.\mvnw : Java HotSpot(TM) 64-Bit Server VM 
+warning: Sharing is only supported for boot 
+loader classes because bootstrap classpath 
+has been appended
+At line:1 char:1
++ .\mvnw test > test_results.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: 
+    (Java HotSpot(TM...s been appended:Str  
+  ing) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommand 
+   Error
+ 
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 21.90 s -- in org.fsa_2026.company_fsa_captone_2026.ApplicationTests
+[INFO] Running org.fsa_2026.company_fsa_captone_2026.service.EducatorServiceExtensionTest
+[ERROR] Tests run: 3, Failures: 0, Errors: 2, Skipped: 0, Time elapsed: 0.815 s <<< FAILURE! -- in org.fsa_2026.company_fsa_captone_2026.service.EducatorServiceExtensionTest
+[ERROR] org.fsa_2026.company_fsa_captone_2026.service.EducatorServiceExtensionTest.testCreateQuiz -- Time elapsed: 0.021 s <<< ERROR!
+java.lang.NullPointerException: Cannot invoke "com.fasterxml.jackson.databind.ObjectMapper.writeValueAsString(Object)" because "this.objectMapper" is null
+	at org.fsa_2026.company_fsa_captone_2026.service.EducatorService.createQuiz(EducatorService.java:303)
+	at org.fsa_2026.company_fsa_captone_2026.service.EducatorServiceExtensionTest.testCreateQuiz(EducatorServiceExtensionTest.java:144)
+
+[ERROR] org.fsa_2026.company_fsa_captone_2026.service.EducatorServiceExtensionTest.testUpdateQuiz_ApprovedCreatesDraft -- Time elapsed: 0.008 s <<< ERROR!
+java.lang.NullPointerException: Cannot invoke "com.fasterxml.jackson.databind.ObjectMapper.writeValueAsString(Object)" because "this.objectMapper" is null
+	at org.fsa_2026.company_fsa_captone_2026.service.EducatorService.updateQuiz(EducatorService.java:332)
+	at org.fsa_2026.company_fsa_captone_2026.service.EducatorServiceExtensionTest.testUpdateQuiz_ApprovedCreatesDraft(EducatorServiceExtensionTest.java:195)
+
+[INFO] 
+[INFO] Results:
+[INFO] 
+[ERROR] Errors: 
+[ERROR]   EducatorServiceExtensionTest.testCreateQuiz:144 ╗ NullPointer Cannot invoke "com.fasterxml.jackson.databind.ObjectMapper.writeValueAsString(Object)" because "this.objectMapper" is null
+[ERROR]   EducatorServiceExtensionTest.testUpdateQuiz_ApprovedCreatesDraft:195 ╗ NullPointer Cannot invoke "com.fasterxml.jackson.databind.ObjectMapper.writeValueAsString(Object)" because "this.objectMapper" is null
+[INFO] 
+[ERROR] Tests run: 4, Failures: 0, Errors: 2, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  29.801 s
+[INFO] Finished at: 2026-04-04T07:01:56+07:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.4:test (default-test) on project company_fsa_captone_2026: 
+[ERROR] 
+[ERROR] See D:\Capstone_git_real\BE_SP26SE049\target\surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

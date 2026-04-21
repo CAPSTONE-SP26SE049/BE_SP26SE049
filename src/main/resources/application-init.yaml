@@ -15,16 +15,10 @@ spring:
         jdbc:
           time_zone: UTC
 
-  # Spring Data JPA
-  data:
-    jpa:
-      repositories:
-        bootstrap-mode: default
-
   datasource:
     url: jdbc:postgresql://localhost:5432/speakvn_db
     username: postgres
-    password: postgres
+    password: ${PGPASSWORD:}
     driver-class-name: org.postgresql.Driver
 
   # Jackson Configuration
@@ -38,8 +32,8 @@ spring:
       max-request-size: 10MB
 
 server:
-  port: ${SERVER_PORT:8082}
-  shutdown: graceful
+  port: 8082
+  shutdown: GRACEFUL
 
 # JWT Configuration
 jwt:

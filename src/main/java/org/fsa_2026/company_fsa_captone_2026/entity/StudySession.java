@@ -2,6 +2,8 @@ package org.fsa_2026.company_fsa_captone_2026.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 
 /**
@@ -30,6 +32,7 @@ public class StudySession extends BaseEntity {
     @Column(name = "ended_at")
     private Instant endedAt;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "summary_json", columnDefinition = "jsonb")
     private String summaryJson;
 }

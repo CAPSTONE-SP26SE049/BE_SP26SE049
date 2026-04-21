@@ -32,13 +32,21 @@ public class QuizCreateRequest implements Serializable {
     @NotNull(message = "Passing score is required")
     private Integer passingScore;
 
-    private Integer timeLimitMinutes;
+    private Integer timeLimitSeconds;
 
     private Integer questionCount;
 
+    private Integer pointsPerQuestion;
+
+
     private String comment;
 
+    private String skillType;
+
     @jakarta.validation.Valid
-    @jakarta.validation.constraints.NotEmpty(message = "Quiz must contain at least one question")
     private java.util.List<QuizQuestionRequest> questions;
+
+    /** ID thành tựu gắn cho quiz (nullable — không bắt buộc) */
+    private UUID rewardCatalogId;
+    private Integer orderIndex;
 }

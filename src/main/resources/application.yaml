@@ -1,3 +1,5 @@
+
+
 spring:
   application:
     name: com.company.FSA_Captone_2026
@@ -15,39 +17,41 @@ spring:
         jdbc:
           time_zone: UTC  # ISO 8601 compliance
 
-  # Spring Data JPA
-  data:
-    jpa:
-      repositories:
-        bootstrap-mode: default
-
   datasource:
     url: jdbc:postgresql://${PGHOST:speak-journeyvn123.postgres.database.azure.com}:${PGPORT:5432}/${PGDATABASE:postgres}
     username: ${PGUSER:postgres}
     password: ${PGPASSWORD:Pen1112003@}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      connection-timeout: 20000
+      leak-detection-threshold: 60000  # 60s — avoids false-positive from slow scheduled tasks
+
 
   # Liquibase Configuration
   liquibase:
     enabled: true
     change-log: classpath:db/changelog/db.changelog-master.xml
 
-  # Jackson Configuration
+  # Jackson Configuration (JavaTimeModule & disable timestamps via JacksonConfig.java)
   jackson:
     default-property-inclusion: non_null
 
   # Servlet Configuration
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+      max-file-size: 25MB
+      max-request-size: 25MB
 
   # Mail Configuration (Gmail SMTP)
   mail:
     host: smtp.gmail.com
     port: 587
     username: ${MAIL_USERNAME:nguyenductuan11012003@gmail.com}
-    password: ${MAIL_PASSWORD:mpeyxysuqkrnwoqx}
+    password: "xsosfgekfcundmxv"
     properties:
       mail:
         smtp:
@@ -66,13 +70,12 @@ mail:
   base-url: ${MAIL_BASE_URL:http://localhost:5173}
 
 server:
-  port: ${SERVER_PORT:8082}  # Use environment variable or default 8082
-  # If port is in use, can also use: port: 0 (auto-assign available port)
-  shutdown: graceful  # Graceful shutdown on SIGTERM
+  port: 8082
+  shutdown: GRACEFUL
 
 # JWT Configuration
 jwt:
-  secret: F4/Bv1CjoyB+R3EhxoD4GaGmKzfskIKsyog/ABCL04xKSut2anfVIzvneaT2ZVReoQA5nX9oK8TS782AAOLrmg==
+  secret: ${JWT_SECRET:}
   access-token-expiration: 3600000      # 1 hour in milliseconds
   refresh-token-expiration: 2592000000  # 30 days in milliseconds
 
@@ -113,3 +116,21 @@ logging:
     org.fsa_2026: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# Social Login Configuration
+social:
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:1086072031174-fk0iepl3k13dol2u53tjsueo3c3vq70j.apps.googleusercontent.com}
+  facebook:
+    app-id: ${FACEBOOK_APP_ID:1169205748542841}
+    app-secret: ${FACEBOOK_APP_SECRET:}
+
+gemini:
+  api-key: "${GOOGLE_API_KEY:AIzaSyDZY_KXMu5O-d6R-R9O565fELBTzuBugCI}"
+  endpoint: https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent
+
+groq:
+  api-key: "${GROQ_API_KEY:}"
+  model: "llama-3.3-70b-versatile"
+  fallback-models: "llama-3.3-70b-versatile,llama-3.1-70b-versatile,llama-3.1-8b-instant"
+  endpoint: https://api.groq.com/openai/v1/chat/completions

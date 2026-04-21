@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.23.xsd">
+
+    <!--
+        Fix: Quiz orderIndex values that are all duplicated (= 1) cause
+        Godot roadmap nodes to render in wrong order (wrong icon/color for node 4+).
+        This changeset uses a window function to assign a stable sequential orderIndex
+        to each quiz within its level, ordered by the quiz's creation timestamp (id).
+    -->
+    <changeSet id="44-fix-quiz-orderindex" author="antigravity">
+        <sql splitStatements="false">
+DO $$
+DECLARE
+    r RECORD;
+    prev_parent UUID := NULL;
+    counter INTEGER := 0;
+    parsed JSONB;
+BEGIN
+    FOR r IN
+        SELECT id, parent_id, metadata_json
+        FROM learning_unit
+        WHERE type = 'QUIZ'
+          AND parent_id IS NOT NULL
+          AND metadata_json IS NOT NULL
+        ORDER BY parent_id, id
+    LOOP
+        BEGIN
+            parsed := r.metadata_json;
+        EXCEPTION WHEN OTHERS THEN
+            CONTINUE;
+        END;
+
+        IF r.parent_id IS DISTINCT FROM prev_parent THEN
+            counter := 1;
+            prev_parent := r.parent_id;
+        ELSE
+            counter := counter + 1;
+        END IF;
+
+        UPDATE learning_unit
+        SET metadata_json = jsonb_set(parsed, '{orderIndex}', to_jsonb(counter))
+        WHERE id = r.id;
+    END LOOP;
+END $$;
+        </sql>
+        <rollback>
+            <sql>-- Non-destructive; no rollback available without a backup.</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

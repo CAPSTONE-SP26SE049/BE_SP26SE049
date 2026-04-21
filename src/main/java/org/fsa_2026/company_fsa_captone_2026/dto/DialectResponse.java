@@ -1,14 +1,17 @@
 package org.fsa_2026.company_fsa_captone_2026.dto;
 
+import java.io.Serializable;
+import java.util.Map;
+
+import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.io.Serializable;
-import java.util.Map;
 
 /**
  * Dialect Response DTO
@@ -25,6 +28,7 @@ public class DialectResponse implements Serializable {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
+    @SuppressWarnings("unchecked")
     public static DialectResponse fromEntity(LearningUnit dialect) {
         if (dialect == null)
             return null;
@@ -35,8 +39,8 @@ public class DialectResponse implements Serializable {
                 Map<String, Object> metadata = objectMapper.readValue(dialect.getMetadataJson(), Map.class);
                 description = (String) metadata.get("description");
             }
-        } catch (Exception e) {
-            // Log or ignore
+        } catch (JsonProcessingException | ClassCastException ignored) {
+            // Keep empty description when metadata parsing fails.
         }
 
         return DialectResponse.builder()

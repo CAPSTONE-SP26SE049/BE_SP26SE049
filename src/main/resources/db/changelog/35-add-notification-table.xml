@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="35-add-notification-table" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="notification"/>
+            </not>
+        </preConditions>
+
+        <createTable tableName="notification">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="recipient_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="title" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="message" type="VARCHAR(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reference_id" type="UUID"/>
+            <column name="is_read" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="notification"
+                baseColumnNames="recipient_id"
+                constraintName="fk_notification_recipient"
+                referencedTableName="account"
+                referencedColumnNames="id"/>
+
+        <createIndex tableName="notification" indexName="idx_notification_recipient">
+            <column name="recipient_id"/>
+        </createIndex>
+
+        <createIndex tableName="notification" indexName="idx_notification_recipient_unread">
+            <column name="recipient_id"/>
+            <column name="is_read"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

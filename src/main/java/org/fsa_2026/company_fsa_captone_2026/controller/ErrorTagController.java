@@ -3,7 +3,9 @@ package org.fsa_2026.company_fsa_captone_2026.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
 import org.fsa_2026.company_fsa_captone_2026.dto.ApiResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.ErrorTagCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.ErrorTagResponse;
 import org.fsa_2026.company_fsa_captone_2026.service.ErrorTagService;
 import org.springframework.http.ResponseEntity;
@@ -30,23 +32,19 @@ public class ErrorTagController {
     // --- Admin APIs (Assume secured by SecurityConfig) ---
 
     @PostMapping("/admin/error-tags")
-    @Operation(summary = "Create an Error Tag", description = "Admin creates a new error tag")
+    @Operation(summary = "Create an Error Tag", description = "Admin creates a new error tag from JSON body")
     public ResponseEntity<ApiResponse<ErrorTagResponse>> createErrorTag(
-            @RequestParam String tagCode,
-            @RequestParam String name,
-            @RequestParam(required = false) String description) {
-        ErrorTagResponse res = errorTagService.createErrorTag(tagCode, name, description);
+            @Valid @RequestBody ErrorTagCreateRequest request) {
+        ErrorTagResponse res = errorTagService.createErrorTag(request);
         return ResponseEntity.ok(ApiResponse.success("Created successfully", res));
     }
 
     @PutMapping("/admin/error-tags/{id}")
-    @Operation(summary = "Update an Error Tag", description = "Admin updates an existing error tag")
+    @Operation(summary = "Update an Error Tag", description = "Admin updates an existing error tag from JSON body")
     public ResponseEntity<ApiResponse<ErrorTagResponse>> updateErrorTag(
             @PathVariable UUID id,
-            @RequestParam(required = false) String tagCode,
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) String description) {
-        ErrorTagResponse res = errorTagService.updateErrorTag(id, tagCode, name, description);
+            @Valid @RequestBody ErrorTagCreateRequest request) {
+        ErrorTagResponse res = errorTagService.updateErrorTag(id, request);
         return ResponseEntity.ok(ApiResponse.success("Updated successfully", res));
     }
 

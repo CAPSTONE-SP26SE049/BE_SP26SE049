@@ -18,7 +18,6 @@ public class QuizQuestionRequest implements Serializable {
     @NotBlank(message = "Skill type is required")
     private String skillType;
 
-    private String difficulty;
 
     @NotNull(message = "Question order is required")
     private Integer questionOrder;

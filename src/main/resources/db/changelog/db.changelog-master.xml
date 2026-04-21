@@ -1,77 +1,88 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <databaseChangeLog
-    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="29-rename-classroom-max-students" author="antigravity">
+        <renameColumn
+                tableName="classroom"
+                oldColumnName="max_students"
+                newColumnName="current_students"
+                columnDataType="INTEGER"/>
+    </changeSet>
 
-    <!-- Include all changelog files -->
-    <include file="01-create-initial-schema.xml" relativeToChangelogFile="true"/>
-    <include file="02-update-game-schema.xml" relativeToChangelogFile="true"/>
-    <include file="03-add-daily-analytics.xml" relativeToChangelogFile="true"/>
-    <include file="04-add-educator-extensions.xml" relativeToChangelogFile="true"/>
-    <include file="05-seed-dialect-levels.xml" relativeToChangelogFile="true"/>
-    <include file="06-seed-test-accounts.xml" relativeToChangelogFile="true"/>
-    <!-- Content Approval Workflow additions -->
-    <include file="db/changelog/07-add-content-approval-fields.xml"/>
-    
-    <!-- ISO standards compliance fixes and Error Tag table -->
-    <include file="db/changelog/08-database-iso-fixes-and-error-tag.xml"/>
+    <include file="db/changelog/30-add-classroom-extended-fields.xml"/>
 
-    <!-- Missing Entity Relationships Links -->
-    <include file="db/changelog/09-add-missing-relationships.xml"/>
+    <changeSet id="31-add-region-to-challenge-bank" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="challenge_bank" columnName="region"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="challenge_bank">
+            <column name="region" type="VARCHAR(20)" defaultValue="BAC">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
 
-    <!-- Content Approval History (Audit Log) -->
-    <include file="db/changelog/10-add-content-approval-history.xml"/>
+    <include file="db/changelog/31-drop-classroom-entity.xml"/>
 
-    <!-- Draft Live Implementation -->
-    <include file="db/changelog/11-add-draft-live-content.xml"/>
+    <include file="db/changelog/32-update-reward-catalog-icons.xml"/>
 
-    <!-- Content Snapshot Implementation -->
-    <include file="db/changelog/12-add-content-snapshot-to-history.xml"/>
+    <include file="db/changelog/33-seed-new-reward-catalog-badges.xml"/>
 
-    <!-- Seed Error Tag Rules and Placement Rules -->
-    <include file="db/changelog/13-seed-error-tag-rules.xml"/>
+    <include file="db/changelog/34-add-last-login-date.xml"/>
+    <changeSet id="32-add-account-learning-unit" author="antigravity">
+        <createTable tableName="account_learning_unit">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+            <column name="account_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_alu_account" referencedTableName="account" referencedColumnNames="id"/>
+            </column>
+            <column name="learning_unit_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_alu_learning_unit" referencedTableName="learning_unit" referencedColumnNames="id"/>
+            </column>
+            <column name="stars_earned" type="INTEGER" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_completed" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="highest_score" type="NUMERIC(5,2)"/>
+        </createTable>
+        <addUniqueConstraint tableName="account_learning_unit" columnNames="account_id, learning_unit_id" constraintName="uniq_alu_account_unit"/>
+    </changeSet>
 
-    <!-- FE-04: Achievement & Badge System + FE-05: Leaderboard & Tournament System -->
-    <include file="14-add-achievement-and-leaderboard-tables.xml" relativeToChangelogFile="true"/>
+    <include file="db/changelog/35-add-notification-table.xml"/>
 
-    <!-- FE-04: Seed 50+ Badges -->
-    <include file="15-seed-badges.xml" relativeToChangelogFile="true"/>
+    <include file="db/changelog/36-simplify-reward-catalog.xml"/>
 
-    <!-- Quizzes -->
-    <include file="16-add-quiz-tables.xml" relativeToChangelogFile="true"/>
+    <include file="db/changelog/37-add-sort-by-to-leaderboard.xml"/>
 
-    <!-- Centralized Question Bank Standardization -->
-    <include file="17-standardize-challenge-quiz-centralization.xml" relativeToChangelogFile="true"/>
+    <include file="db/changelog/38-data-cleanup.xml"/>
 
-    <!-- Consolidate User Profile into Account -->
-    <include file="18-consolidate-user-profile.xml" relativeToChangelogFile="true"/>
-
-    <!-- Fix missing reward_type in achievement table -->
-    <include file="19-add-reward-type-to-achievement.xml" relativeToChangelogFile="true"/>
-
-    <!-- Fix missing content_snapshot_json in attempt table -->
-    <include file="20-add-content-snapshot-to-attempt.xml" relativeToChangelogFile="true"/>
-
-    <!-- Fix missing quiz_attempt_id in attempt table -->
-    <include file="21-add-quiz-attempt-to-attempt.xml" relativeToChangelogFile="true"/>
-
-    <!-- Make session_id nullable in attempt table -->
-    <include file="22-make-attempt-session-nullable.xml" relativeToChangelogFile="true"/>
-
-    <!-- Finalise Badge Migration (Database) -->
-    <include file="23-merge-badges-data.xml" relativeToChangelogFile="true"/>
-
-    <!-- Merge Prediction & Phoneme Feedback to Attempt (Phase 3) -->
-    <include file="24-merge-prediction-and-phoneme-feedback.xml" relativeToChangelogFile="true"/>
-
-    <!-- Phase 1: Super Entity Merges -->
-    <include file="25-create-and-migrate-content.xml" relativeToChangelogFile="true"/>
-    <include file="26-create-and-migrate-activity.xml" relativeToChangelogFile="true"/>
-    <include file="27-cleanup-and-rename.xml" relativeToChangelogFile="true"/>
-
-    <!-- Finalize merged schema: fix account_reward FK, seed error_tags, restore placement_rule FKs, add indexes -->
-    <include file="28-finalize-merged-schema.xml" relativeToChangelogFile="true"/>
-
+    <include file="db/changelog/39-drop-reward-catalog-data.xml"/>
+    <include file="db/changelog/40-seed-achievements.xml"/>
+    <include file="db/changelog/41-create-speaking-attempt.xml"/>
+    <include file="db/changelog/42-create-chat-message-table.xml"/>
+    <include file="db/changelog/43-index-chat-message.xml"/>
+    <include file="db/changelog/44-fix-quiz-orderindex.xml"/>
+    <include file="db/changelog/45-add-processing-time-to-speaking-attempt.xml"/>
+    <include file="db/changelog/46-add-asr-latency-and-feedback.xml"/>
+    <include file="db/changelog/46-add-custom-learning-path-tables.xml"/>
+    <include file="db/changelog/47-remove-difficulty-tag.xml"/>
+    <include file="db/changelog/47-update-educator-feedback.xml"/>
+    <include file="db/changelog/48-remove-reward-description.xml"/>
+    <include file="db/changelog/49-add-badge-count-to-ranking.xml"/>
 </databaseChangeLog>

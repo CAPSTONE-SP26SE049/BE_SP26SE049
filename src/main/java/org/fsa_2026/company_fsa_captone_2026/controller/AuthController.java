@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.fsa_2026.company_fsa_captone_2026.common.Constants;
 import org.fsa_2026.company_fsa_captone_2026.dto.*;
 import org.fsa_2026.company_fsa_captone_2026.service.AuthService;
+import org.fsa_2026.company_fsa_captone_2026.service.SocialLoginService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
         private final AuthService authService;
+        private final SocialLoginService socialLoginService;
 
         /**
          * Register - POST /api/v1/auth/register
@@ -178,5 +180,22 @@ public class AuthController {
 
                 return ResponseEntity
                                 .ok(ApiResponse.success("Đăng xuất thành công", null));
+        }
+
+        /**
+         * Social Login - POST /api/v1/auth/social-login
+         * Login with Google or Facebook OAuth2
+         */
+        @PostMapping("/social-login")
+        @Operation(summary = "Social Login", description = "Đăng nhập bằng Google hoặc Facebook")
+        public ResponseEntity<ApiResponse<LoginResponse>> socialLogin(
+                        @Valid @RequestBody SocialLoginRequest request) {
+
+                log.info("Social login attempt: provider={}", request.getProvider());
+
+                LoginResponse response = socialLoginService.socialLogin(request);
+
+                return ResponseEntity
+                                .ok(ApiResponse.success("Đăng nhập thành công", response));
         }
 }

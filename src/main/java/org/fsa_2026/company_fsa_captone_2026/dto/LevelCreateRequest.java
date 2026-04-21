@@ -1,6 +1,7 @@
 package org.fsa_2026.company_fsa_captone_2026.dto;
 
-import jakarta.validation.constraints.Min;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -8,6 +9,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Map;
 import java.util.UUID;
 
 @Data
@@ -16,22 +18,24 @@ import java.util.UUID;
 @AllArgsConstructor
 public class LevelCreateRequest {
 
-    @NotNull(message = "Dialect ID is required")
-    private UUID dialectId;
-
-    @NotNull(message = "Level order is required")
-    @Min(value = 1, message = "Level order must be at least 1")
-    private Integer levelOrder;
-
-    @NotBlank(message = "Level name is required")
+    @NotBlank(message = "Name is required")
+    @Schema(example = "Level 1")
     private String name;
 
-    private java.util.UUID errorTagId;
+    @NotBlank(message = "Type is required")
+    @Schema(example = "LEVEL")
+    private String type;
 
-    private String description;
+    @NotNull(message = "Parent ID is required")
+    @JsonProperty("parent_id")
+    @Schema(example = "00000000-0000-0000-0001-000000000001")
+    private UUID parentId;
 
-    @Min(value = 0, message = "Minimum stars required must be 0 or greater")
-    private Integer minStarsRequired;
+    @NotNull(message = "Metadata JSON is required")
+    @JsonProperty("metadata_json")
+    @Schema(example = "{\"status\":\"APPROVED\",\"audio_url\":null,\"level_order\":2,\"ai_threshold\":75,\"error_tag_id\":\"00000000-0000-0000-0002-000000000001\",\"rejection_reason\":null,\"min_stars_required\":3}")
+    private Map<String, Object> metadataJson;
 
+    @Schema(example = "Educator updated content description")
     private String comment;
 }

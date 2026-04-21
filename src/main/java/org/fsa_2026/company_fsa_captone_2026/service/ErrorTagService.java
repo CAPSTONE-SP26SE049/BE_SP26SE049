@@ -1,6 +1,11 @@
 package org.fsa_2026.company_fsa_captone_2026.service;
 
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.fsa_2026.company_fsa_captone_2026.dto.ErrorTagCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.ErrorTagResponse;
 import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
 import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
@@ -9,12 +14,10 @@ import org.fsa_2026.company_fsa_captone_2026.repository.PlacementRuleRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 /**
  * ErrorTagService
@@ -23,6 +26,9 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ErrorTagService {
+
+    private static final String TYPE_ERROR_TAG = "ERROR_TAG";
+    private static final String META_TAG_CODE = "tag_code";
 
     private final LearningUnitRepository learningUnitRepository;
     private final PlacementRuleRepository placementRuleRepository;
@@ -33,29 +39,43 @@ public class ErrorTagService {
         if (dialectId == null) {
             return getAllErrorTags();
         }
-        return placementRuleRepository.findByTargetDialectId(dialectId).stream()
+        List<ErrorTagResponse> tags = placementRuleRepository.findByTargetDialectId(dialectId).stream()
                 .map(rule -> ErrorTagResponse.fromEntity(rule.getErrorTag()))
                 .distinct()
                 .collect(Collectors.toList());
+
+        // If no specifically linked tags via placement rules, return all tags
+        // so the teacher can select and create a new rule/assignment.
+        if (tags.isEmpty()) {
+            return getAllErrorTags();
+        }
+        return tags;
     }
 
     @Transactional(readOnly = true)
     public List<ErrorTagResponse> getAllErrorTags() {
-        return learningUnitRepository.findByType("ERROR_TAG").stream()
+        return learningUnitRepository.findByType(TYPE_ERROR_TAG).stream()
                 .map(ErrorTagResponse::fromEntity)
                 .collect(Collectors.toList());
     }
 
     @Transactional
-    public ErrorTagResponse createErrorTag(String tagCode, String name, String description) {
-        boolean exists = learningUnitRepository.findByType("ERROR_TAG").stream()
+    public ErrorTagResponse createErrorTag(ErrorTagCreateRequest request) {
+        String tagCode = request.getTagCode();
+        String name = request.getName();
+        String description = request.getDescription();
+        List<String> regions = request.getRegions();
+
+        boolean exists = learningUnitRepository.findByType(TYPE_ERROR_TAG).stream()
                 .anyMatch(u -> {
                     try {
                         if (u.getMetadataJson() != null) {
                             Map<?, ?> meta = objectMapper.readValue(u.getMetadataJson(), Map.class);
-                            return tagCode.equals(meta.get("tag_code"));
+                            return tagCode.equals(meta.get(META_TAG_CODE));
                         }
-                    } catch (Exception ignored) {}
+                    } catch (JsonProcessingException | ClassCastException ignored) {
+                        // Ignore malformed metadata entries and continue scanning.
+                    }
                     return false;
                 });
 
@@ -65,18 +85,19 @@ public class ErrorTagService {
 
         String metadataJson;
         try {
-            Map<String, Object> metadata = Map.of(
-                    "tag_code", tagCode,
-                    "description", description != null ? description : ""
-            );
+            Map<String, Object> metadata = new java.util.HashMap<>();
+            metadata.put(META_TAG_CODE, tagCode);
+            metadata.put("description", description != null ? description : "");
+            metadata.put("regions", regions != null ? regions : new java.util.ArrayList<String>());
+            
             metadataJson = objectMapper.writeValueAsString(metadata);
-        } catch (Exception e) {
+        } catch (JsonProcessingException e) {
             metadataJson = "{}";
         }
 
         LearningUnit tag = LearningUnit.builder()
                 .name(name)
-                .type("ERROR_TAG")
+                .type(TYPE_ERROR_TAG)
                 .metadataJson(metadataJson)
                 .build();
 
@@ -84,11 +105,17 @@ public class ErrorTagService {
     }
 
     @Transactional
-    public ErrorTagResponse updateErrorTag(UUID id, String tagCode, String name, String description) {
+    @SuppressWarnings("unchecked")
+    public ErrorTagResponse updateErrorTag(UUID id, ErrorTagCreateRequest request) {
+        String tagCode = request.getTagCode();
+        String name = request.getName();
+        String description = request.getDescription();
+        List<String> regions = request.getRegions();
+
         LearningUnit tag = learningUnitRepository.findById(id)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy mã lỗi"));
 
-        if (!"ERROR_TAG".equals(tag.getType())) {
+        if (!TYPE_ERROR_TAG.equals(tag.getType())) {
             throw new ApiException("BAD_REQUEST", "ID không phải Error Tag");
         }
 
@@ -98,13 +125,16 @@ public class ErrorTagService {
                     : new java.util.HashMap<>();
 
             if (tagCode != null) {
-                metadata.put("tag_code", tagCode);
+                metadata.put(META_TAG_CODE, tagCode);
             }
             if (description != null) {
                 metadata.put("description", description);
             }
+            if (regions != null) {
+                metadata.put("regions", regions);
+            }
             tag.setMetadataJson(objectMapper.writeValueAsString(metadata));
-        } catch (Exception e) {
+        } catch (JsonProcessingException e) {
             throw new ApiException("INTERNAL_ERROR", "Lỗi khi cập nhật metadata");
         }
 
@@ -120,7 +150,7 @@ public class ErrorTagService {
         LearningUnit tag = learningUnitRepository.findById(id)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy mã lỗi"));
 
-        if (!"ERROR_TAG".equals(tag.getType())) {
+        if (!TYPE_ERROR_TAG.equals(tag.getType())) {
             throw new ApiException("BAD_REQUEST", "ID không phải Error Tag");
         }
 

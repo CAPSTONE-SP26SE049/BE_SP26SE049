@@ -21,16 +21,18 @@ public class RegisterRequest implements Serializable {
 
     @NotBlank(message = "Mật khẩu không được để trống")
     @Size(min = 8, message = "Mật khẩu phải có ít nhất 8 ký tự")
-    @Pattern(regexp = "^(?=.*[A-Z])(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]).*$", message = "Mật khẩu phải chứa ít nhất một chữ hoa và một ký tự đặc biệt")
+    @Pattern(
+            regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]).*$",
+            message = "Mật khẩu phải chứa ít nhất một chữ hoa, một chữ thường, một số và một ký tự đặc biệt"
+    )
     private String password;
 
     @NotBlank(message = "Họ tên không được để trống")
+    @Size(min = 2, max = 50, message = "Họ tên phải từ 2 đến 50 ký tự")
     private String fullName;
 
     @NotBlank(message = "Số điện thoại không được để trống")
     @Pattern(regexp = "^\\d+$", message = "Số điện thoại chỉ được chứa chữ số")
+    @Size(min = 10, max = 15, message = "Số điện thoại phải từ 10 đến 15 số")
     private String phone;
-
-    @NotBlank(message = "Vùng miền không được để trống")
-    private String region;
 }
