@@ -36,8 +36,8 @@ public class FeedbackDtos {
         private UUID attemptId;
         private String targetText;
         private String audioUrl;
-        private Integer geminiScore;
-        private String geminiFeedback;
+        private Integer groqScore;
+        private String groqFeedback;
         private String asrTranscription;
     }
 
@@ -50,8 +50,8 @@ public class FeedbackDtos {
         private String targetText;
         private String asrTranscription;
         private String audioUrl;
-        private Integer geminiScore;
-        private String geminiFeedback;
+        private Integer groqScore;
+        private String groqFeedback;
         private Instant createdAt;
     }
 }

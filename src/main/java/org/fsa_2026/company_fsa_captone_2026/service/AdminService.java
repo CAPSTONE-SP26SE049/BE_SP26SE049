@@ -523,7 +523,7 @@ public class AdminService {
 
         long totalUsers = accountRepository.count();
         long totalAttempts = speakingAttemptRepository.countByConsentGivenTrue();
-        double averageScore = speakingAttemptRepository.averageGeminiScoreWithConsentGivenTrue();
+        double averageScore = speakingAttemptRepository.averageGroqScoreWithConsentGivenTrue();
         java.time.Instant sevenDaysAgo = java.time.Instant.now().minus(7, java.time.temporal.ChronoUnit.DAYS);
         long activeUsers7Days = studySessionRepository.countDistinctAccountByStartedAtAfter(sevenDaysAgo);
 
@@ -555,7 +555,7 @@ public class AdminService {
 
     /**
      * Get Error Heatmaps from DB by dialect
-     * Rate = (count gemini_score < 80) / (total count)
+     * Rate = (count groq_score < 80) / (total count)
      */
     @Transactional(readOnly = true)
     public Map<String, Object> getErrorHeatmaps() {
@@ -564,7 +564,7 @@ public class AdminService {
 
         for (String d : dialects) {
             long total = speakingAttemptRepository.countByDialectAndConsentGivenTrue(d);
-            long errors = speakingAttemptRepository.countByDialectAndConsentGivenTrueAndGeminiScoreLessThan(d, 80);
+            long errors = speakingAttemptRepository.countByDialectAndConsentGivenTrueAndGroqScoreLessThan(d, 80);
 
             double rate = total > 0 ? (double) errors / total : 0.0;
             stats.put(d.toLowerCase(), rate);

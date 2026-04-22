@@ -19,11 +19,11 @@ public class SpeakingAttemptLogResponse {
     private String targetText;
     private String asrTranscription;
     private String audioUrl;
-    private Integer geminiScore;
-    private String geminiFeedback;
+    private Integer groqScore;
+    private String groqFeedback;
     private Boolean isCorrect;
     private String dialect;
-    private Long processingTimeMs;   // Gemini latency
+    private Long processingTimeMs;   // Groq latency
     private Long asrProcessingTimeMs; // Parakeet latency
     private Instant createdAt;
 }

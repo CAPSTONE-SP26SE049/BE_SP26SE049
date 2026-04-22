@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -30,16 +29,18 @@ public class LevelService {
         UUID parentId = UUID.fromString(dialectId);
         List<LearningUnit> allLevels = new java.util.ArrayList<>();
         fetchAllDescendantLevels(parentId, allLevels);
-        
+
         return allLevels.stream()
                 .map(LevelResponse::fromEntity)
-                .filter(r -> r.getStatus() == null || (!"REJECTED".equals(r.getStatus()) && !"DELETED".equals(r.getStatus())))
+                .filter(r -> r.getStatus() == null
+                        || (!"REJECTED".equals(r.getStatus()) && !"DELETED".equals(r.getStatus())))
                 .sorted(Comparator.comparingInt(r -> r.getLevelOrder() != null ? r.getLevelOrder() : 0))
                 .collect(Collectors.toList());
     }
 
     private void fetchAllDescendantLevels(UUID parentId, List<LearningUnit> accumulator) {
-        // Direct children that are levels (Optimized: removes N+1 recursive calls for Quizzes/Sub-units)
+        // Direct children that are levels (Optimized: removes N+1 recursive calls for
+        // Quizzes/Sub-units)
         List<LearningUnit> children = learningUnitRepository.findByParentId(parentId);
         for (LearningUnit child : children) {
             if ("LEVEL".equals(child.getType())) {
@@ -51,7 +52,7 @@ public class LevelService {
     @Transactional(readOnly = true)
     public List<LevelResponse> getUserRoadmap(String email, String dialectId) {
         Account account = accountRepository.findByEmail(email).orElse(null);
-        
+
         if (dialectId != null && !dialectId.isEmpty()) {
             try {
                 if (account != null) {
@@ -67,26 +68,30 @@ public class LevelService {
         List<LevelResponse> levels = learningUnitRepository.findByType("LEVEL")
                 .stream()
                 .map(LevelResponse::fromEntity)
-                .filter(r -> r.getStatus() == null || (!"REJECTED".equals(r.getStatus()) && !"DELETED".equals(r.getStatus())))
+                .filter(r -> r.getStatus() == null
+                        || (!"REJECTED".equals(r.getStatus()) && !"DELETED".equals(r.getStatus())))
                 .sorted(java.util.Comparator.comparingInt(r -> r.getLevelOrder() != null ? r.getLevelOrder() : 0))
                 .collect(java.util.stream.Collectors.toList());
-                
+
         if (account != null) {
-             // We can't use getLevelsWithProgress easily here because it expects a dialectId
-             // But for fallback we just return basic levels for now or implement global progress
+            // We can't use getLevelsWithProgress easily here because it expects a dialectId
+            // But for fallback we just return basic levels for now or implement global
+            // progress
         }
-        
+
         return levels;
     }
 
     @Transactional(readOnly = true)
-    public List<LevelResponse> getLevelsWithProgress(String dialectId, org.fsa_2026.company_fsa_captone_2026.entity.Account account) {
+    public List<LevelResponse> getLevelsWithProgress(String dialectId,
+            org.fsa_2026.company_fsa_captone_2026.entity.Account account) {
         List<LevelResponse> levels = getLevelsByDialect(dialectId);
-        
-        java.util.List<org.fsa_2026.company_fsa_captone_2026.entity.AccountLearningUnit> progressList = 
-                accountLearningUnitRepository.findByAccountIdWithLearningUnit(account.getId());
-                
-        java.util.Map<UUID, org.fsa_2026.company_fsa_captone_2026.entity.AccountLearningUnit> progressMap = progressList.stream()
+
+        java.util.List<org.fsa_2026.company_fsa_captone_2026.entity.AccountLearningUnit> progressList = accountLearningUnitRepository
+                .findByAccountIdWithLearningUnit(account.getId());
+
+        java.util.Map<UUID, org.fsa_2026.company_fsa_captone_2026.entity.AccountLearningUnit> progressMap = progressList
+                .stream()
                 .collect(java.util.stream.Collectors.toMap(
                         al -> al.getLearningUnit().getId(),
                         al -> al,
@@ -94,25 +99,28 @@ public class LevelService {
                 ));
 
         boolean previousCompleted = true; // Level 1 is always unlocked
-        
+
         for (LevelResponse level : levels) {
-            org.fsa_2026.company_fsa_captone_2026.entity.AccountLearningUnit progress = 
-                    progressMap.get(UUID.fromString(level.getId()));
-                    
+            org.fsa_2026.company_fsa_captone_2026.entity.AccountLearningUnit progress = progressMap
+                    .get(UUID.fromString(level.getId()));
+
             if (progress != null) {
                 level.setStarsEarned(progress.getStarsEarned());
                 level.setIsCompleted(progress.getIsCompleted());
             }
-            
-            // Logic mở khóa: 
+
+            // Logic mở khóa:
             // Level 1 luôn mở (do previousCompleted = true)
-            // Level n mở nếu Level n-1 đã hoàn thành (isCompleted = true)
-            level.setIsLocked(!previousCompleted);
-            
+            // Hoặc nếu level đã được mở khóa thủ công (isUnlocked = true)
+            // Hoặc Level n mở nếu Level n-1 đã hoàn thành (isCompleted = true)
+            boolean isUnlockedManually = progress != null && progress.getIsUnlocked() != null
+                    && progress.getIsUnlocked();
+            level.setIsLocked(!previousCompleted && !isUnlockedManually);
+
             // Cập nhật cho level tiếp theo
-            previousCompleted = level.getIsCompleted() != null && level.getIsCompleted();
+            previousCompleted = (level.getIsCompleted() != null && level.getIsCompleted());
         }
-        
+
         return levels;
     }
 }

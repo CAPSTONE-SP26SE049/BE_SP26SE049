@@ -30,5 +30,6 @@ public class UserProfileResponse implements Serializable {
     private Integer totalStars;
     private Integer currentStreakDays;
     private Integer totalExperience;
+    private Boolean hasDoneEntryTest;
     private Instant createdAt;
 }
