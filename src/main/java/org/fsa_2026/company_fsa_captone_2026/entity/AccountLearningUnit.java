@@ -5,11 +5,12 @@ import lombok.*;
 import java.math.BigDecimal;
 
 /**
- * AccountLearningUnit Entity - Tracks user progress on specific LearningUnits (Levels).
+ * AccountLearningUnit Entity - Tracks user progress on specific LearningUnits
+ * (Levels).
  */
 @Entity
 @Table(name = "account_learning_unit", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"account_id", "learning_unit_id"})
+        @UniqueConstraint(columnNames = { "account_id", "learning_unit_id" })
 })
 @Getter
 @Setter
@@ -36,4 +37,8 @@ public class AccountLearningUnit extends BaseEntity {
 
     @Column(name = "highest_score", precision = 5, scale = 2)
     private BigDecimal highestScore;
+
+    @Column(name = "is_unlocked", nullable = false)
+    @Builder.Default
+    private Boolean isUnlocked = false;
 }

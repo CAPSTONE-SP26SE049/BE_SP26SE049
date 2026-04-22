@@ -70,7 +70,7 @@ public class AuthService {
                 passwordEncoder.encode(request.getPassword()),
                 request.getPhone(),
                 null);
-        
+
         account.setEmailVerifyCode(verifyCode);
         account.setEmailVerifyExpiresAt(Instant.now().plusSeconds(900)); // 15 phút
         account.setFullName(request.getFullName());
@@ -204,6 +204,7 @@ public class AuthService {
                         .currentStreakDays(account.getCurrentStreakDays())
                         .totalStars(account.getTotalStars() != null ? account.getTotalStars() : 0)
                         .totalExperience(account.getTotalExperience() != null ? account.getTotalExperience() : 0)
+                        .hasDoneEntryTest(account.getHasDoneEntryTest() != null && account.getHasDoneEntryTest())
                         .build())
                 .build();
 
@@ -281,6 +282,7 @@ public class AuthService {
                 .totalStars(account.getTotalStars())
                 .currentStreakDays(account.getCurrentStreakDays())
                 .totalExperience(account.getTotalExperience())
+                .hasDoneEntryTest(account.getHasDoneEntryTest() != null && account.getHasDoneEntryTest())
                 .createdAt(account.getCreatedAt())
                 .build();
     }
@@ -289,10 +291,10 @@ public class AuthService {
      * Update login streak for the given account.
      *
      * Rules:
-     *   - First ever login (lastLoginDate == null)  → streak = 1
-     *   - Same day login                            → no change (already counted)
-     *   - Logged in yesterday                       → streak++
-     *   - Missed one or more days                   → streak reset to 1
+     * - First ever login (lastLoginDate == null) → streak = 1
+     * - Same day login → no change (already counted)
+     * - Logged in yesterday → streak++
+     * - Missed one or more days → streak reset to 1
      *
      * Must be called BEFORE saving the account.
      */

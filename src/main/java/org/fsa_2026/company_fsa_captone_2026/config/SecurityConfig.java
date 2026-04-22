@@ -146,6 +146,12 @@ public class SecurityConfig {
                             // Learner endpoints
                             .requestMatchers("/api/v1/learner/**").hasRole("USER")
 
+                            // Entry Test Admin endpoints – chỉ ADMIN
+                            .requestMatchers("/api/v1/test/admin/**").hasRole("ADMIN")
+
+                            // Entry Test endpoints – yêu cầu đăng nhập với role USER
+                            .requestMatchers("/api/v1/test/**").hasRole("USER")
+
                             // All other requests require authentication
                             .anyRequest().authenticated())
                     .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

@@ -56,7 +56,7 @@ public class AdminController {
     private final ChallengeBankService challengeBankService;
     private final org.fsa_2026.company_fsa_captone_2026.service.QuizService quizService;
     private final SpeakingAttemptService speakingAttemptService;
-
+    private final org.fsa_2026.company_fsa_captone_2026.service.EntryTestService entryTestService;
 
     /**
      * Create Educator Account - POST /api/v1/admin/educators
@@ -97,7 +97,6 @@ public class AdminController {
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Tạo tài khoản thành công. Mật khẩu đã được gửi qua email.", response));
     }
-
 
     // ==========================================
     // 1. User Management APIs
@@ -192,8 +191,6 @@ public class AdminController {
     // ==========================================
     // 1c. Content Management: Dialects
     // ==========================================
-
-
 
     // ==========================================
     // 1c. Content Management: Levels
@@ -309,7 +306,8 @@ public class AdminController {
     @Operation(summary = "Get Reward by ID", description = "Get details of a specific reward/badge by ID")
     public ResponseEntity<ApiResponse<RewardResponse>> getRewardById(@PathVariable UUID id) {
         log.info("Admin retrieving reward detail ID: {}", id);
-        return ResponseEntity.ok(ApiResponse.success("Lấy thông tin thành tựu thành công", adminService.getRewardById(id)));
+        return ResponseEntity
+                .ok(ApiResponse.success("Lấy thông tin thành tựu thành công", adminService.getRewardById(id)));
     }
 
     @PostMapping("/rewards")
@@ -327,7 +325,8 @@ public class AdminController {
             @PathVariable UUID id,
             @Valid @RequestBody org.fsa_2026.company_fsa_captone_2026.dto.RewardCreateRequest request) {
         log.info("Admin updating reward ID: {}", id);
-        return ResponseEntity.ok(ApiResponse.success("Cập nhật thành tựu thành công", adminService.updateReward(id, request)));
+        return ResponseEntity
+                .ok(ApiResponse.success("Cập nhật thành tựu thành công", adminService.updateReward(id, request)));
     }
 
     @DeleteMapping("/rewards/{id}")
@@ -342,7 +341,8 @@ public class AdminController {
     @Operation(summary = "Toggle Reward Status", description = "Turn a reward active status on or off")
     public ResponseEntity<ApiResponse<RewardResponse>> toggleReward(@PathVariable UUID id) {
         log.info("Admin toggling reward status ID: {}", id);
-        return ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái thành tựu thành công", adminService.toggleRewardActive(id)));
+        return ResponseEntity.ok(
+                ApiResponse.success("Cập nhật trạng thái thành tựu thành công", adminService.toggleRewardActive(id)));
     }
 
     @PostMapping("/rewards/{rewardId}/attach/{quizId}")
@@ -414,7 +414,7 @@ public class AdminController {
                 .status("UP")
                 .databaseStatus("CONNECTED")
                 .parakeetStatus("ONLINE")
-                .geminiStatus("CONNECTED")
+                .groqStatus("CONNECTED")
                 .uptimeSeconds(86400)
                 .build();
         return ResponseEntity.ok(ApiResponse.success("Thành công", mockResponse));
@@ -447,8 +447,8 @@ public class AdminController {
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuizzes(
             @RequestParam(value = "levelId", required = false) UUID levelId) {
         log.info("Admin retrieving quizzes. Level filter: {}", levelId);
-        List<Map<String, Object>> responses = levelId != null 
-                ? quizService.getQuizzesByLevel(levelId) 
+        List<Map<String, Object>> responses = levelId != null
+                ? quizService.getQuizzesByLevel(levelId)
                 : quizService.getAllQuizzes();
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách quiz thành công", responses));
     }
@@ -494,13 +494,12 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success("Thay đổi thứ tự bài tập thành công", null));
     }
 
-
     @GetMapping("/content/quizzes/{id}/challenges")
     @Operation(summary = "Get Quiz Challenges", description = "Get challenges assigned to a quiz")
     public ResponseEntity<ApiResponse<List<org.fsa_2026.company_fsa_captone_2026.dto.QuizChallengeItemResponse>>> getQuizChallenges(
             @PathVariable UUID id) {
         log.info("Admin retrieving challenges for quiz ID: {}", id);
-        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách thử thách của quiz thành công", 
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách thử thách của quiz thành công",
                 challengeBankService.getChallengesByQuizId(id)));
     }
 
@@ -547,6 +546,46 @@ public class AdminController {
         log.info("Admin retrieving speaking dataset stats");
         Map<String, Long> stats = speakingAttemptService.getStats();
         return ResponseEntity.ok(ApiResponse.success("Thống kê dataset giọng nói thành công", stats));
+    }
+
+    // ==========================================
+    // 6. Entry Test Question CRUD
+    // ==========================================
+
+    @GetMapping("/content/entry-test-questions")
+    @Operation(summary = "Get All Entry Test Questions", description = "Retrieves all questions for the entry test")
+    public ResponseEntity<ApiResponse<List<org.fsa_2026.company_fsa_captone_2026.dto.EntryTestQuestionResponse>>> getAllEntryTestQuestions() {
+        log.info("Admin retrieving all entry test questions");
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách câu hỏi entry test thành công",
+                entryTestService.getAllQuestions()));
+    }
+
+    @PostMapping("/content/entry-test-questions")
+    @Operation(summary = "Create Entry Test Question", description = "Create a new entry test question")
+    public ResponseEntity<ApiResponse<org.fsa_2026.company_fsa_captone_2026.dto.EntryTestQuestionResponse>> createEntryTestQuestion(
+            @Valid @RequestBody org.fsa_2026.company_fsa_captone_2026.dto.EntryTestQuestionRequest request) {
+        log.info("Admin creating entry test question: {}", request.getTargetText());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Tạo câu hỏi entry test thành công",
+                        entryTestService.createQuestion(request)));
+    }
+
+    @PutMapping("/content/entry-test-questions/{id}")
+    @Operation(summary = "Update Entry Test Question", description = "Update an existing entry test question")
+    public ResponseEntity<ApiResponse<org.fsa_2026.company_fsa_captone_2026.dto.EntryTestQuestionResponse>> updateEntryTestQuestion(
+            @PathVariable UUID id,
+            @Valid @RequestBody org.fsa_2026.company_fsa_captone_2026.dto.EntryTestQuestionRequest request) {
+        log.info("Admin updating entry test question ID: {}", id);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật câu hỏi entry test thành công",
+                entryTestService.updateQuestion(id, request)));
+    }
+
+    @DeleteMapping("/content/entry-test-questions/{id}")
+    @Operation(summary = "Delete Entry Test Question", description = "Delete an entry test question")
+    public ResponseEntity<ApiResponse<Void>> deleteEntryTestQuestion(@PathVariable UUID id) {
+        log.info("Admin deleting entry test question ID: {}", id);
+        entryTestService.deleteQuestion(id);
+        return ResponseEntity.ok(ApiResponse.success("Xóa câu hỏi entry test thành công", null));
     }
 
 }

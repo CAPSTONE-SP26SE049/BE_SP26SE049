@@ -88,7 +88,7 @@ public class AIController {
         result.put("endTime", endTime);
         result.put("processingTimeMs", processingTimeMs);
         result.put("feedback", aiFeedback);
-        result.put("geminiFeedback", aiFeedback);
+        result.put("groqFeedback", aiFeedback);
         result.put("aiScore", result.get("accuracy"));
         result.put("score", result.get("accuracy"));
         result.put("suggestion", aiFeedback);
@@ -127,10 +127,10 @@ public class AIController {
     }
 
     /**
-     * Chat đơn giản với Gemini Flash.
+     * Chat đơn giản với Groq.
      * Request body:
      * {
-     *   "message": "Xin chào Gemini"
+     *   "message": "Xin chào Groq"
      * }
      */
     @PostMapping("/chat")
@@ -139,7 +139,7 @@ public class AIController {
         if (message == null || message.isBlank()) {
             throw new ApiException("BAD_REQUEST", "Thiếu message");
         }
-        return aiService.chatWithGeminiFlash(message);
+        return aiService.chatWithGroq(message);
     }
 
     private Long extractLong(Object value) {
