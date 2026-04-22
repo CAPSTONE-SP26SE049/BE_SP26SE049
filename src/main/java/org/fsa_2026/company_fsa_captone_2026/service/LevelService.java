@@ -12,6 +12,7 @@ import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
 import org.fsa_2026.company_fsa_captone_2026.entity.Account;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -24,6 +25,7 @@ public class LevelService {
     private final org.fsa_2026.company_fsa_captone_2026.repository.AccountLearningUnitRepository accountLearningUnitRepository;
     private final AccountRepository accountRepository;
     private final org.fsa_2026.company_fsa_captone_2026.repository.CustomLearningPathRepository customLearningPathRepository;
+    private final org.fsa_2026.company_fsa_captone_2026.repository.EntryTestResultRepository resultRepository;
 
     @Transactional(readOnly = true)
     public List<LevelResponse> getLevelsByDialect(String dialectId) {
@@ -82,7 +84,7 @@ public class LevelService {
                 .sorted(java.util.Comparator.comparingInt(r -> r.getLevelOrder() != null ? r.getLevelOrder() : 0))
                 .collect(java.util.stream.Collectors.toList());
 
-        return levels;
+        return populateProgressAndUnlocking(levels, account);
     }
 
     private List<LevelResponse> getCustomPathLevels(
@@ -111,10 +113,21 @@ public class LevelService {
                         al -> al,
                         (existing, replacement) -> existing));
 
-        boolean previousCompleted = true; // First level in any roadmap is unlocked by default unless otherwise
-                                          // restricted
+        // TỰ ĐỘNG KHÔI PHỤC: Lấy kết quả Entry Test gần nhất để đảm bảo mở khóa đúng lộ trình
+        Optional<org.fsa_2026.company_fsa_captone_2026.entity.EntryTestResult> lastTest = resultRepository
+                .findFirstByAccountIdOrderByCreatedAtDesc(account.getId());
+        int entryTestUnlockedCount = 1;
+        if (lastTest.isPresent()) {
+            double score = lastTest.get().getOverallScore();
+            if (score >= 100) entryTestUnlockedCount = 4;
+            else if (score >= 80) entryTestUnlockedCount = 3;
+            else if (score >= 60) entryTestUnlockedCount = 2;
+        }
 
-        for (LevelResponse level : levels) {
+        boolean previousCompleted = true; // First level in any roadmap is unlocked by default
+
+        for (int i = 0; i < levels.size(); i++) {
+            LevelResponse level = levels.get(i);
             org.fsa_2026.company_fsa_captone_2026.entity.AccountLearningUnit progress = progressMap
                     .get(UUID.fromString(level.getId()));
 
@@ -124,13 +137,15 @@ public class LevelService {
             }
 
             // Logic mở khóa:
-            // Level 1 luôn mở (do previousCompleted = true)
-            // Hoặc nếu level đã được mở khóa thủ công (isUnlocked = true) - Dùng cho Entry
-            // Test
-            // Hoặc Level n mở nếu Level n-1 đã hoàn thành (isCompleted = true)
+            // 1. Level 1 luôn mở
+            // 2. Hoặc nếu i < entryTestUnlockedCount (Dựa trên Entry Test đã làm)
+            // 3. Hoặc nếu level đã được mở khóa thủ công (isUnlocked = true)
+            // 4. Hoặc Level n mở nếu Level n-1 đã hoàn thành (isCompleted = true)
             boolean isUnlockedManually = progress != null && progress.getIsUnlocked() != null
                     && progress.getIsUnlocked();
-            level.setIsLocked(!previousCompleted && !isUnlockedManually);
+            boolean isUnlockedByTest = (i < entryTestUnlockedCount);
+
+            level.setIsLocked(!previousCompleted && !isUnlockedManually && !isUnlockedByTest);
 
             // Cập nhật cho level tiếp theo
             previousCompleted = level.getIsCompleted() != null && level.getIsCompleted();

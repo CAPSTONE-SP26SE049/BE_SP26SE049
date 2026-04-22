@@ -247,6 +247,7 @@ public class AIService {
         result.put("score", accuracy);
         result.put("suggestion", feedback);
         result.put("errorDetail", feedback);
+        result.put("isRegional", asBoolean(raw.get("isRegional"), false));
         result.put("aiProvider", "groq");
         if (reason != null) result.put("ai_error_debug", reason);
         return result;
