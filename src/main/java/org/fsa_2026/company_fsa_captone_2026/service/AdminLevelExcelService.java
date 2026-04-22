@@ -30,14 +30,15 @@ public class AdminLevelExcelService {
     // =========================================================
     // Lưu ý: dù hệ thống lưu DB theo UUID/metadata_json, file Excel sẽ dùng tiếng Việt
     // và backend sẽ tự map "Phương ngữ" <-> UUID dialect để người dùng không phải copy UUID.
-    private static final String COL_NAME_VN = "Tên chương học";
-    private static final String COL_DIALECT_VN = "Phương ngữ";
-    private static final String COL_DESCRIPTION_VN = "Mô tả";
+    private static final String COL_NAME_VN = "Tên chương / Level Name";
+    private static final String COL_DIALECT_VN = "Vùng miền / Dialect (NORTH/CENTRAL/SOUTH)";
+    private static final String COL_DESCRIPTION_VN = "Mô tả / Description";
 
     // Dropdown list cố định cho "Phương ngữ" theo yêu cầu (có thể nâng cấp thành query DB động sau)
-    private static final String DIALECT_NORTH_VN = "Miền Bắc";
-    private static final String DIALECT_CENTRAL_VN = "Miền Trung";
-    private static final String DIALECT_SOUTH_VN = "Miền Nam";
+    // Dropdown list constants
+    private static final String DIALECT_NORTH = "NORTH";
+    private static final String DIALECT_CENTRAL = "CENTRAL";
+    private static final String DIALECT_SOUTH = "SOUTH";
 
     // Type trong DB cho Dialect/Level (đang dùng trong AdminService)
     private static final String TYPE_LEVEL = "LEVEL";
@@ -66,20 +67,20 @@ public class AdminLevelExcelService {
                 cell.setCellStyle(headerStyle);
             }
 
-            // Data Validation (Dropdown list) cho cột "Phương ngữ"
+            // Data Validation (Dropdown list) cho cột "Dialect"
             addDropdownValidationIfPresent(sheet, headers, COL_DIALECT_VN,
-                    new String[]{DIALECT_NORTH_VN, DIALECT_CENTRAL_VN, DIALECT_SOUTH_VN});
+                    new String[]{DIALECT_NORTH, DIALECT_CENTRAL, DIALECT_SOUTH});
 
             // Sample rows
             Row r1 = sheet.createRow(1);
-            r1.createCell(0).setCellValue("Nhóm âm L/N - Cơ bản");
-            r1.createCell(1).setCellValue(DIALECT_SOUTH_VN);
-            r1.createCell(2).setCellValue("Luyện phân biệt L/N qua từ vựng cơ bản.");
+            r1.createCell(0).setCellValue("L/N Sound Group - Basic");
+            r1.createCell(1).setCellValue(DIALECT_NORTH);
+            r1.createCell(2).setCellValue("Practice distinguishing L/N via basic vocabulary.");
 
             Row r2 = sheet.createRow(2);
-            r2.createCell(0).setCellValue("Nhóm âm CH/TR - Trung bình");
-            r2.createCell(1).setCellValue(DIALECT_CENTRAL_VN);
-            r2.createCell(2).setCellValue("Bài tập nghe-nói để phân biệt CH/TR.");
+            r2.createCell(0).setCellValue("CH/TR Sound Group - Intermediate");
+            r2.createCell(1).setCellValue(DIALECT_CENTRAL);
+            r2.createCell(2).setCellValue("Listening and speaking exercises for CH/TR.");
 
             autosize(sheet, headers.size());
 
@@ -162,10 +163,10 @@ public class AdminLevelExcelService {
                 }
 
                 try {
-                    // Mapping "Phương ngữ" (Tiếng Việt) -> UUID dialect trong DB
-                    String dialectKey = mapDialectVietnameseToDbName(dialectText);
+                    // Mapping "Dialect" (English) -> UUID dialect trong DB
+                    String dialectKey = mapDialectExcelToDbName(dialectText);
                     UUID parentId = learningUnitRepository.findByTypeAndNameIgnoreCase(TYPE_DIALECT, dialectKey)
-                            .orElseThrow(() -> new RuntimeException("Phương ngữ không hợp lệ: " + dialectText))
+                            .orElseThrow(() -> new RuntimeException("Invalid dialect: " + dialectText))
                             .getId();
 
                     // Check trùng tại DB
@@ -245,13 +246,13 @@ public class AdminLevelExcelService {
                 Row row = sheet.createRow(i + 1);
                 row.createCell(0).setCellValue(l.getName() != null ? l.getName() : "");
 
-                // Mapping UUID dialectId -> Tên Phương ngữ tiếng Việt khi export
+                // Mapping UUID dialectId -> English dialect name khi export
                 String dialectLabel = "";
                 if (l.getDialectId() != null && !l.getDialectId().isBlank()) {
                     try {
                         UUID dialectId = UUID.fromString(l.getDialectId());
                         dialectLabel = learningUnitRepository.findById(dialectId)
-                                .map(d -> mapDialectDbNameToVietnamese(d.getName()))
+                                .map(d -> mapDialectDbNameToExcel(d.getName()))
                                 .orElse("");
                     } catch (Exception ignored) {
                         dialectLabel = "";
@@ -333,32 +334,32 @@ public class AdminLevelExcelService {
     }
 
     // =========================================================
-    // Mapper Phương ngữ (Tiếng Việt) <-> Dialect name trong DB
+    // Mapper Dialect (English) <-> Dialect name trong DB
     // =========================================================
 
     /**
-     * Map tiếng Việt trong Excel -> dialect.name trong DB.
-     * Ví dụ: "Miền Bắc" -> "NORTH"
+     * Map English in Excel -> dialect.name trong DB.
+     * Ví dụ: "NORTH" -> "NORTH"
      */
-    private String mapDialectVietnameseToDbName(String dialectText) {
+    private String mapDialectExcelToDbName(String dialectText) {
         String s = dialectText == null ? "" : dialectText.trim().toLowerCase();
         return switch (s) {
-            case "miền bắc" -> "NORTH";
-            case "miền trung" -> "CENTRAL";
-            case "miền nam" -> "SOUTH";
-            default -> throw new IllegalArgumentException("Phương ngữ không hợp lệ: " + dialectText);
+            case "north", "miền bắc" -> "NORTH";
+            case "central", "miền trung" -> "CENTRAL";
+            case "south", "miền nam" -> "SOUTH";
+            default -> throw new IllegalArgumentException("Invalid dialect: " + dialectText);
         };
     }
 
     /**
-     * Map dialect.name trong DB -> tiếng Việt để hiển thị trên Excel.
+     * Map dialect.name trong DB -> English để hiển thị trên Excel.
      */
-    private String mapDialectDbNameToVietnamese(String dbName) {
+    private String mapDialectDbNameToExcel(String dbName) {
         if (dbName == null) return "";
         return switch (dbName.trim().toUpperCase()) {
-            case "NORTH" -> "Miền Bắc";
-            case "CENTRAL" -> "Miền Trung";
-            case "SOUTH" -> "Miền Nam";
+            case "NORTH" -> "NORTH";
+            case "CENTRAL" -> "CENTRAL";
+            case "SOUTH" -> "SOUTH";
             default -> "";
         };
     }

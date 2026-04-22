@@ -42,7 +42,7 @@ public class ChallengeExcelService {
 
     /** Các cột chung cho tất cả kỹ năng */
     private static final String COL_CONTENT_TEXT  = "Tiêu đề / Yêu cầu";
-    private static final String COL_REGION        = "Miền (BAC/TRUNG/NAM)";
+    private static final String COL_REGION        = "Region (NORTH/CENTRAL/SOUTH)";
 
     /** Cột riêng theo kỹ năng */
     private static final String COL_OPTIONS        = "Các lựa chọn (phân cách bằng |)";
@@ -197,33 +197,33 @@ public class ChallengeExcelService {
     private List<List<String>> getSampleData(SkillType skillType) {
         return switch (skillType) {
             case READING -> List.of(
-                List.of("Tìm lỗi sai L/N trong câu", "BAC",
+                List.of("Tìm lỗi sai L/N trong câu", "NORTH",
                          "Con trâu đang ăn cỏ trên lồng.", "lồng.", "đồng", "Cánh đồng rộng lớn."),
-                List.of("Tìm từ viết SAI trong câu", "TRUNG",
+                List.of("Tìm từ viết SAI trong câu", "CENTRAL",
                          "Trời nạnh quá mọi người mặc áo ấm", "nạnh", "lạnh", "L/N, nạnh -> lạnh")
             );
             case LISTENING -> List.of(
-                List.of("Nghe và chọn từ đúng", "NAM",
+                List.of("Nghe và chọn từ đúng", "SOUTH",
                          "", "Lúa nếp", "Lúa nết", "Núa nếp", "Lúa tẻ", "Lúa nếp", "Lúa nếp là lúa nếp làng"),
-                List.of("Nghe và chọn từ đúng", "NAM",
+                List.of("Nghe và chọn từ đúng", "SOUTH",
                          "", "Nón lá", "Lón lá", "Nón nà", "Nóm lá", "Nón lá", "Chiếc nón lá Việt Nam")
             );
             case WRITING -> List.of(
-                List.of("Chọn từ đúng chính tả để điền vào chỗ trống", "BAC",
-                         "Lúa _ là lúa nếp làng", "nếp", "nếp cái,nếp thơm", "Ngược lại với nếp là tẻ"),
-                List.of("Điền từ vào chỗ trống", "TRUNG",
+                List.of("Chọn từ đúng chính tả để điền vào chỗ trống", "NORTH",
+                         "Lúa _ là lúa nếp làng", "nếp", "nếp cái,nếp thơm", "Ngược lại with nếp là tẻ"),
+                List.of("Điền từ vào chỗ trống", "CENTRAL",
                          "Chiếc nón _ Việt Nam", "lá", "", "Làm từ lá cọ")
             );
             case SPEAKING -> List.of(
-                List.of("Đọc to câu sau", "NAM",
+                List.of("Đọc to câu sau", "SOUTH",
                          "https://example.com/ref1.mp3", "Lúa nếp là lúa nếp làng", "Chú ý phân biệt N và L"),
-                List.of("Phát âm câu sau", "BAC",
+                List.of("Phát âm câu sau", "NORTH",
                          "https://example.com/ref2.mp3", "Con lợn nằm trong chuồng", "Chú ý âm đầu L")
             );
             case ENTRY_TEST -> List.of(
-                List.of("Vui lòng đọc câu sau để đánh giá giọng đọc của bạn", "BAC",
+                List.of("Vui lòng đọc câu sau để đánh giá giọng đọc của bạn", "NORTH",
                         "", "Lúa nếp là lúa nếp làng", "Hãy đọc chậm và rõ ràng"),
-                List.of("Vui lòng đọc câu sau", "TRUNG",
+                List.of("Vui lòng đọc câu sau", "CENTRAL",
                         "", "Trời nắng chang chang vườn hoa vẫy gọi", "Chú ý âm sắc")
             );
         };
@@ -769,7 +769,7 @@ public class ChallengeExcelService {
 
             // Common columns
             row.createCell(0).setCellValue(cb.getContentText());
-            row.createCell(1).setCellValue(cb.getRegion() != null ? cb.getRegion() : "BAC");
+            row.createCell(1).setCellValue(mapRegionToEnglish(cb.getRegion()));
 
             // Skill-specific columns
             int col = 2;
@@ -875,10 +875,20 @@ public class ChallengeExcelService {
         if (s == null || s.isBlank()) return "BAC";
         String upper = s.trim().toUpperCase();
         return switch (upper) {
-            case "BAC", "BẮC", "NORTH" -> "BAC";
-            case "TRUNG", "CENTRAL" -> "TRUNG";
-            case "NAM", "SOUTH" -> "NAM";
+            case "NORTH", "NORTHERN", "BAC", "BẮC" -> "BAC";
+            case "CENTRAL", "TRUNG" -> "TRUNG";
+            case "SOUTH", "SOUTHERN", "NAM" -> "NAM";
             default -> "BAC";
+        };
+    }
+
+    private String mapRegionToEnglish(String regionCode) {
+        if (regionCode == null) return "NORTH";
+        return switch (regionCode.toUpperCase()) {
+            case "BAC" -> "NORTH";
+            case "TRUNG" -> "CENTRAL";
+            case "NAM" -> "SOUTH";
+            default -> "NORTH";
         };
     }
 }

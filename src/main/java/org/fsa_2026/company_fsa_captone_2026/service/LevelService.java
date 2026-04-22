@@ -24,6 +24,7 @@ public class LevelService {
     private final LearningUnitRepository learningUnitRepository;
     private final org.fsa_2026.company_fsa_captone_2026.repository.AccountLearningUnitRepository accountLearningUnitRepository;
     private final AccountRepository accountRepository;
+    private final org.fsa_2026.company_fsa_captone_2026.repository.CustomLearningPathRepository customLearningPathRepository;
 
     @Transactional(readOnly = true)
     public List<LevelResponse> getLevelsByDialect(String dialectId) {
@@ -49,15 +50,22 @@ public class LevelService {
     }
 
     @Transactional(readOnly = true)
-    public List<LevelResponse> getUserRoadmap(String email, String dialectId) {
+    public List<LevelResponse> getUserRoadmap(String email, String dialectId, String type) {
         Account account = accountRepository.findByEmail(email).orElse(null);
+        if (account == null) return List.of();
+
+        // If explicitly requested custom path, or if no dialect is provided and user HAS an active custom path
+        if ("custom".equalsIgnoreCase(type)) {
+            var activePath = customLearningPathRepository.findFirstByStudentIdAndIsActiveTrueOrderByCreatedAtDesc(account.getId());
+            if (activePath.isPresent()) {
+                log.info("Returning personalized roadmap for user {}", email);
+                return getCustomPathLevels(activePath.get(), account);
+            }
+        }
         
         if (dialectId != null && !dialectId.isEmpty()) {
             try {
-                if (account != null) {
-                    return getLevelsWithProgress(dialectId, account);
-                }
-                return getLevelsByDialect(dialectId);
+                return getLevelsWithProgress(dialectId, account);
             } catch (Exception e) {
                 log.warn("Invalid dialectId provided: {}", dialectId);
             }
@@ -79,40 +87,51 @@ public class LevelService {
         return levels;
     }
 
-    @Transactional(readOnly = true)
-    public List<LevelResponse> getLevelsWithProgress(String dialectId, org.fsa_2026.company_fsa_captone_2026.entity.Account account) {
-        List<LevelResponse> levels = getLevelsByDialect(dialectId);
-        
-        java.util.List<org.fsa_2026.company_fsa_captone_2026.entity.AccountLearningUnit> progressList = 
+    private List<LevelResponse> getCustomPathLevels(org.fsa_2026.company_fsa_captone_2026.entity.CustomLearningPath activePath, Account account) {
+        List<LevelResponse> levels = activePath.getLevels().stream()
+                .sorted(Comparator.comparingInt(org.fsa_2026.company_fsa_captone_2026.entity.CustomPathLevel::getOrderIndex))
+                .map(pl -> {
+                    LevelResponse resp = LevelResponse.fromEntity(pl.getLevel());
+                    resp.setLevelOrder(pl.getOrderIndex() + 1); // Display as 1-based index
+                    return resp;
+                })
+                .collect(Collectors.toList());
+
+        return populateProgressAndUnlocking(levels, account);
+    }
+
+    private List<LevelResponse> populateProgressAndUnlocking(List<LevelResponse> levels, Account account) {
+        List<org.fsa_2026.company_fsa_captone_2026.entity.AccountLearningUnit> progressList =
                 accountLearningUnitRepository.findByAccountIdWithLearningUnit(account.getId());
-                
+
         java.util.Map<UUID, org.fsa_2026.company_fsa_captone_2026.entity.AccountLearningUnit> progressMap = progressList.stream()
-                .collect(java.util.stream.Collectors.toMap(
+                .collect(Collectors.toMap(
                         al -> al.getLearningUnit().getId(),
                         al -> al,
-                        (existing, replacement) -> existing // Guard against duplicates
+                        (existing, replacement) -> existing
                 ));
 
-        boolean previousCompleted = true; // Level 1 is always unlocked
-        
+        boolean previousCompleted = true; // First level in any roadmap is unlocked
+
         for (LevelResponse level : levels) {
-            org.fsa_2026.company_fsa_captone_2026.entity.AccountLearningUnit progress = 
+            org.fsa_2026.company_fsa_captone_2026.entity.AccountLearningUnit progress =
                     progressMap.get(UUID.fromString(level.getId()));
-                    
+
             if (progress != null) {
                 level.setStarsEarned(progress.getStarsEarned());
                 level.setIsCompleted(progress.getIsCompleted());
             }
-            
-            // Logic mở khóa: 
-            // Level 1 luôn mở (do previousCompleted = true)
-            // Level n mở nếu Level n-1 đã hoàn thành (isCompleted = true)
+
             level.setIsLocked(!previousCompleted);
-            
-            // Cập nhật cho level tiếp theo
             previousCompleted = level.getIsCompleted() != null && level.getIsCompleted();
         }
-        
+
         return levels;
+    }
+
+    @Transactional(readOnly = true)
+    public List<LevelResponse> getLevelsWithProgress(String dialectId, org.fsa_2026.company_fsa_captone_2026.entity.Account account) {
+        List<LevelResponse> levels = getLevelsByDialect(dialectId);
+        return populateProgressAndUnlocking(levels, account);
     }
 }
