@@ -315,9 +315,8 @@ public class EntryTestService {
         else if (score >= 60)
             levelsToUnlock = 2;
 
-        // Find Dialect LearningUnit
-        LearningUnit dialect = learningUnitRepository.findByTypeAndNameIgnoreCase("DIALECT", region.name())
-                .orElse(null);
+        // Use more robust dialect lookup
+        LearningUnit dialect = findDialectByRegionCode(region);
 
         if (dialect != null) {
             List<LearningUnit> levels = learningUnitRepository.findByParentAndType(dialect, "LEVEL");
@@ -354,13 +353,37 @@ public class EntryTestService {
 
     private void assignLearningPath(Account account, RegionCode region) {
         // Automatically assign chapters of the detected region to LearningPath
-        LearningUnit dialect = learningUnitRepository.findByTypeAndNameIgnoreCase("DIALECT", region.name())
-                .orElse(null);
+        LearningUnit dialect = findDialectByRegionCode(region);
 
         if (dialect != null) {
             // Simply creating or updating a CustomLearningPath for this student
             customLearningPathService.createAutoPath(account, dialect);
         }
+    }
+
+    /** Robust lookup for the dialect LearningUnit by trying multiple name variations */
+    private LearningUnit findDialectByRegionCode(RegionCode region) {
+        String internalName = region.name(); // "NORTH", "CENTRAL", "SOUTH"
+        Optional<LearningUnit> byInternal = learningUnitRepository.findByTypeAndNameIgnoreCase("DIALECT", internalName);
+        if (byInternal.isPresent()) return byInternal.get();
+
+        // Try Vietnamese names
+        String vnName = switch (region) {
+            case NORTH -> "Miền Bắc";
+            case CENTRAL -> "Miền Trung";
+            case SOUTH -> "Miền Nam";
+        };
+        Optional<LearningUnit> byVnName = learningUnitRepository.findByTypeAndNameIgnoreCase("DIALECT", vnName);
+        if (byVnName.isPresent()) return byVnName.get();
+
+        // Last resort: search all dialects and check if they contain the keyword
+        return learningUnitRepository.findByType("DIALECT").stream()
+                .filter(lu -> {
+                    String name = lu.getName().toUpperCase();
+                    return name.contains(internalName) || name.contains(vnName.toUpperCase());
+                })
+                .findFirst()
+                .orElse(null);
     }
 
     private String serializeDetails(List<Map<String, Object>> details) {
