@@ -53,8 +53,12 @@ public class CustomPathDtos {
     public static class PathQuizResponse {
         private UUID quizId;
         private String title;
+        private Integer orderIndex;
+        private String skillType;
         private Integer score;
         private Boolean isCompleted;
+        private String rewardName;
+        private String rewardIconUrl;
     }
 
     @Data

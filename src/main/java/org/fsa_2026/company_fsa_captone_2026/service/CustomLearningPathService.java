@@ -9,8 +9,11 @@ import org.fsa_2026.company_fsa_captone_2026.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Comparator;
 import java.util.List;
+import org.fsa_2026.company_fsa_captone_2026.repository.AccountLearningUnitRepository;
+import org.fsa_2026.company_fsa_captone_2026.entity.AccountLearningUnit;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -24,8 +27,53 @@ public class CustomLearningPathService {
     private final CustomPathProgressRepository progressRepository;
     private final AccountRepository accountRepository;
     private final LearningUnitRepository learningUnitRepository;
+    private final AccountLearningUnitRepository accountLearningUnitRepository;
 
     private static final String NOT_FOUND = "NOT_FOUND";
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    /** Parse order (level_order or orderIndex) from metadataJson safely */
+    @SuppressWarnings("unchecked")
+    private int parseLevelOrder(LearningUnit unit) {
+        try {
+            if (unit.getMetadataJson() != null) {
+                Map<String, Object> meta = OBJECT_MAPPER.readValue(unit.getMetadataJson(), Map.class);
+                // Levels typically use level_order, Quizzes use orderIndex
+                Object order = meta.get("orderIndex");
+                if (order == null) order = meta.get("level_order");
+                
+                if (order instanceof Number) return ((Number) order).intValue();
+                if (order instanceof String) return Integer.parseInt((String) order);
+            }
+        } catch (Exception ignored) {}
+        return 0; // Default to 0 instead of MAX_VALUE to avoid pushing all to end
+    }
+
+    /** Parse skillType from metadataJson safely */
+    @SuppressWarnings("unchecked")
+    private String parseSkillType(LearningUnit unit) {
+        if (unit.getMetadataJson() != null && !unit.getMetadataJson().isBlank()) {
+            try {
+                Map<String, Object> meta = OBJECT_MAPPER.readValue(unit.getMetadataJson(), Map.class);
+                Object st = meta.get("skill_type");
+                if (st == null) st = meta.get("skillType");
+                if (st instanceof String && !((String) st).isBlank()) {
+                    return ((String) st).toUpperCase();
+                }
+            } catch (Exception ignored) {}
+        }
+        return inferSkillTypeFromName(unit.getName());
+    }
+
+    private String inferSkillTypeFromName(String name) {
+        if (name == null || name.isBlank()) return "MIXED";
+        String lower = name.toLowerCase();
+        if (lower.contains("viết") || lower.contains("writ")) return "WRITING";
+        if (lower.contains("nghe") || lower.contains("listen")) return "LISTENING";
+        if (lower.contains("nói") || lower.contains("speak") || lower.contains("phát âm")) return "SPEAKING";
+        if (lower.contains("đọc") || lower.contains("read")) return "READING";
+        return "MIXED";
+    }
 
     @Transactional
     public CustomPathResponse createCustomPath(String educatorEmail, UUID studentId, CreateCustomPathRequest request) {
@@ -111,13 +159,19 @@ public class CustomLearningPathService {
                     List<LearningUnit> quizzes = learningUnitRepository.findByParentId(level.getId());
 
                     List<PathQuizResponse> quizResponses = quizzes.stream()
+                            // Sort quiz theo level_order trong metadataJson (numeric sort)
+                            .sorted(Comparator.comparingInt(this::parseLevelOrder))
                             .map(q -> {
                                 CustomPathProgress p = progressMap.get(q.getId());
                                 return PathQuizResponse.builder()
                                         .quizId(q.getId())
                                         .title(q.getName())
+                                        .orderIndex(parseLevelOrder(q))
+                                        .skillType(parseSkillType(q))
                                         .score(p != null ? p.getScore() : 0)
                                         .isCompleted(p != null ? p.getIsCompleted() : false)
+                                        .rewardName(q.getRewardCatalog() != null ? q.getRewardCatalog().getName() : null)
+                                        .rewardIconUrl(q.getRewardCatalog() != null ? q.getRewardCatalog().getIconUrl() : null)
                                         .build();
                             }).collect(Collectors.toList());
 

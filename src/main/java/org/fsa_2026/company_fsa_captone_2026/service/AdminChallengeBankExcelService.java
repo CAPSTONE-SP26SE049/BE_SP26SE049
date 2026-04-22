@@ -77,15 +77,15 @@ public class AdminChallengeBankExcelService {
             addDropdownValidation(sheet, headers, COL_SKILL_TYPE,
                     new String[]{"Đọc hiểu", "Nghe hiểu", "Viết", "Nói", "Kiểm tra đầu vào"});
             addDropdownValidation(sheet, headers, COL_REGION,
-                    new String[]{"Miền Bắc", "Miền Trung", "Miền Nam"});
+                    new String[]{"NORTH", "CENTRAL", "SOUTH"});
 
             // Sample rows (3 kỹ năng đại diện)
             Row r1 = sheet.createRow(1);
             setRow(r1, headers, Map.of(
                     COL_CONTENT_TEXT, "Chọn từ sai chính tả trong câu sau:",
                     COL_SKILL_TYPE, "Đọc hiểu",
-                    COL_REGION, "Miền Bắc",
-                    COL_HINT, "Chú ý phân biệt âm đầu L và N.",
+                    COL_REGION, "NORTH",
+                    COL_HINT, "Chú ý phân biệt âm đầu L and N.",
                     COL_SENTENCE_WITH_ERROR, "Con nợn đang ăn cỏ ngoài đồng.",
                     COL_WRONG_WORD, "nợn",
                     COL_CORRECT_WORD, "lợn"
@@ -95,7 +95,7 @@ public class AdminChallengeBankExcelService {
             setRow(r2, headers, Map.of(
                     COL_CONTENT_TEXT, "Nghe và chọn câu đúng với âm thanh.",
                     COL_SKILL_TYPE, "Nghe hiểu",
-                    COL_REGION, "Miền Trung",
+                    COL_REGION, "CENTRAL",
                     COL_AUDIO_URL, "https://example.com/audio/listening_001.mp3",
                     COL_OPTIONS, "Lúa nếp là lúa nếp làng, Lúa nết là lúa nết làng, Núa nếp là núa nếp làng",
                     COL_CORRECT_ANSWER, "Lúa nếp là lúa nếp làng",
@@ -106,7 +106,7 @@ public class AdminChallengeBankExcelService {
             setRow(r3, headers, Map.of(
                     COL_CONTENT_TEXT, "Sắp xếp lại câu đúng.",
                     COL_SKILL_TYPE, "Viết",
-                    COL_REGION, "Miền Nam",
+                    COL_REGION, "SOUTH",
                     COL_HINT, "Sắp xếp theo ngữ nghĩa.",
                     COL_SCRAMBLED_WORDS, "Lúa, nếp, là, lúa, nếp, làng",
                     COL_CORRECT_SENTENCE, "Lúa nếp là lúa nếp làng"
@@ -193,11 +193,10 @@ public class AdminChallengeBankExcelService {
                     continue;
                 }
 
-                // Map tiếng Việt -> string code nội bộ (BAC/TRUNG/NAM)
-                // TUYỆT ĐỐI không dùng RegionCode enum ở đây (theo yêu cầu).
+                // Map string code nội bộ (NORTH/CENTRAL/SOUTH)
                 String region;
                 try {
-                    region = mapRegionFromVietnamese(get(row, colMap, COL_REGION));
+                    region = mapRegionFromExcel(get(row, colMap, COL_REGION));
                 } catch (Exception e) {
                     error++;
                     messages.add("Dòng " + (r + 1) + ": Cột Vùng miền có giá trị không hợp lệ");
@@ -262,9 +261,9 @@ public class AdminChallengeBankExcelService {
                 Map<String, Object> meta = cb.getMetadataJson() != null ? cb.getMetadataJson() : Map.of();
 
                 put(row, headers, COL_CONTENT_TEXT, cb.getContentText());
-                // Export: map enum/code nội bộ -> tiếng Việt để user nhìn dễ hiểu
+                // Export: map enum/code nội bộ -> English
                 put(row, headers, COL_SKILL_TYPE, cb.getSkillType() != null ? mapSkillTypeToVietnamese(cb.getSkillType()) : "");
-                put(row, headers, COL_REGION, cb.getRegion() != null ? mapRegionToVietnamese(cb.getRegion()) : "Miền Bắc");
+                put(row, headers, COL_REGION, cb.getRegion() != null ? mapRegionToExcel(cb.getRegion()) : "NORTH");
 
                 // hint
                 put(row, headers, COL_HINT, str(meta.get("hint")));
@@ -391,34 +390,33 @@ public class AdminChallengeBankExcelService {
 
 
     /**
-     * Map cột Vùng miền từ tiếng Việt -> String code hệ thống dùng trong ChallengeBankRequest.
-     * Lưu ý quan trọng: DTO dùng String region, nên TUYỆT ĐỐI không dùng enum RegionCode ở đây.
-     * Ví dụ: "Miền Bắc" -> "BAC"
+     * Map cột Vùng miền từ Excel -> String code hệ thống dùng trong ChallengeBankRequest.
+     * Ví dụ: "NORTH" -> "BAC" (Internal DB still uses BAC/TRUNG/NAM for now or we can migrate)
+     * Let's keep internal as it is but allow English in Excel.
      */
-    private String mapRegionFromVietnamese(String input) {
+    private String mapRegionFromExcel(String input) {
         String s = normalizeExcelText(input);
         if (s.isBlank()) {
-            throw new IllegalArgumentException("Vùng miền bị trống");
+            throw new IllegalArgumentException("Region is empty");
         }
         return switch (s) {
-            case "miền bắc" -> "BAC";
-            case "miền trung" -> "TRUNG";
-            case "miền nam" -> "NAM";
-            default -> throw new IllegalArgumentException("Vùng miền không hợp lệ: " + input);
+            case "north", "miền bắc", "bac" -> "BAC";
+            case "central", "miền trung", "trung" -> "TRUNG";
+            case "south", "miền nam", "nam" -> "NAM";
+            default -> throw new IllegalArgumentException("Invalid region: " + input);
         };
     }
 
     /**
-     * Map String code nội bộ (BAC/TRUNG/NAM) -> tiếng Việt để ghi ra Excel.
+     * Map String code nội bộ (BAC/TRUNG/NAM) -> English để ghi ra Excel.
      */
-    private String mapRegionToVietnamese(String regionCode) {
-        String s = normalizeExcelText(regionCode);
-        if (s.isBlank()) return "";
-        return switch (s.toUpperCase()) {
-            case "BAC" -> "Miền Bắc";
-            case "TRUNG" -> "Miền Trung";
-            case "NAM" -> "Miền Nam";
-            default -> "Miền Bắc"; // fallback an toàn (không làm crash export)
+    private String mapRegionToExcel(String regionCode) {
+        if (regionCode == null || regionCode.isBlank()) return "NORTH";
+        return switch (regionCode.toUpperCase()) {
+            case "BAC" -> "NORTH";
+            case "TRUNG" -> "CENTRAL";
+            case "NAM" -> "SOUTH";
+            default -> "NORTH";
         };
     }
 
