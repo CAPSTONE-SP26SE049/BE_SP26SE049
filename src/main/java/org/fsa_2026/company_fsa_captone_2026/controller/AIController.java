@@ -93,6 +93,7 @@ public class AIController {
         result.put("score", result.get("accuracy"));
         result.put("suggestion", aiFeedback);
         result.put("errorDetail", aiFeedback);
+        result.put("transcribedText", transcribedText);
 
         if (consentGiven && authentication != null) {
             int score = 0;

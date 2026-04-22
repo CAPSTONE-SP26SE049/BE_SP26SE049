@@ -57,9 +57,10 @@ public class LevelController {
     @Operation(summary = "Get User Roadmap Levels", description = "Get chapters (levels) tailored for the current user's dialect", security = @SecurityRequirement(name = "bearer-jwt"))
     public ResponseEntity<ApiResponse<List<LevelResponse>>> getUserLevels(
             @RequestParam(required = false) String dialectId,
+            @RequestParam(required = false) String type,
             Authentication authentication) {
-        log.info("Get roadmap levels for user: {} with dialectId: {}", authentication.getName(), dialectId);
-        List<LevelResponse> levels = levelService.getUserRoadmap(authentication.getName(), dialectId);
+        log.info("Get roadmap levels for user: {} with dialectId: {} type: {}", authentication.getName(), dialectId, type);
+        List<LevelResponse> levels = levelService.getUserRoadmap(authentication.getName(), dialectId, type);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách chương (roadmap) của người dùng thành công", levels));
     }
 }

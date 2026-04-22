@@ -18,6 +18,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -40,7 +41,22 @@ public class CustomPathController {
     @Operation(summary = "Get All Levels", description = "Educator gets all available chapters for custom path selection")
     public ResponseEntity<ApiResponse<List<PathLevelResponse>>> getAllLevels() {
         List<LearningUnit> levels = learningUnitRepository.findByType("LEVEL");
+        com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
         List<PathLevelResponse> responses = levels.stream()
+                .sorted(Comparator.comparingInt(l -> {
+                    try {
+                        if (l.getMetadataJson() != null) {
+                            @SuppressWarnings("unchecked")
+                            java.util.Map<String, Object> meta = om.readValue(l.getMetadataJson(), java.util.Map.class);
+                            Object order = meta.get("orderIndex");
+                            if (order == null) order = meta.get("level_order");
+                            
+                            if (order instanceof Number) return ((Number) order).intValue();
+                            if (order instanceof String) return Integer.parseInt((String) order);
+                        }
+                    } catch (Exception ignored) {}
+                    return 0;
+                }))
                 .map(l -> PathLevelResponse.builder()
                         .levelId(l.getId())
                         .levelName(l.getName())
@@ -49,6 +65,7 @@ public class CustomPathController {
                 .collect(Collectors.toList());
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách chương thành công", responses));
     }
+
 
     @PostMapping("/educator/students/{studentId}/custom-path")
     @PreAuthorize("hasAnyRole('EDUCATOR', 'ADMIN')")

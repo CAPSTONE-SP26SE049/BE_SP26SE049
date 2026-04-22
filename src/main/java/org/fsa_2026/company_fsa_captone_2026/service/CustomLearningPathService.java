@@ -8,6 +8,7 @@ import org.fsa_2026.company_fsa_captone_2026.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,60 @@ public class CustomLearningPathService {
         private final LearningUnitRepository learningUnitRepository;
 
         private static final String NOT_FOUND = "NOT_FOUND";
+        private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+        /** Parse order (level_order or orderIndex) from metadataJson safely */
+        @SuppressWarnings("unchecked")
+        private int parseLevelOrder(LearningUnit unit) {
+                try {
+                        if (unit.getMetadataJson() != null) {
+                                Map<String, Object> meta = OBJECT_MAPPER.readValue(unit.getMetadataJson(), Map.class);
+                                Object order = meta.get("orderIndex");
+                                if (order == null)
+                                        order = meta.get("level_order");
+
+                                if (order instanceof Number)
+                                        return ((Number) order).intValue();
+                                if (order instanceof String)
+                                        return Integer.parseInt((String) order);
+                        }
+                } catch (Exception ignored) {
+                }
+                return 0;
+        }
+
+        /** Parse skillType from metadataJson safely */
+        @SuppressWarnings("unchecked")
+        private String parseSkillType(LearningUnit unit) {
+                if (unit.getMetadataJson() != null && !unit.getMetadataJson().isBlank()) {
+                        try {
+                                Map<String, Object> meta = OBJECT_MAPPER.readValue(unit.getMetadataJson(), Map.class);
+                                Object st = meta.get("skill_type");
+                                if (st == null)
+                                        st = meta.get("skillType");
+                                if (st instanceof String && !((String) st).isBlank()) {
+                                        return ((String) st).toUpperCase();
+                                }
+                        } catch (Exception ignored) {
+                        }
+                }
+                return inferSkillTypeFromName(unit.getName());
+        }
+
+        private String inferSkillTypeFromName(String name) {
+                if (name == null || name.isBlank())
+                        return "MIXED";
+                String lower = name.toLowerCase();
+                if (lower.contains("viết") || lower.contains("writ"))
+                        return "WRITING";
+                if (lower.contains("nghe") || lower.contains("listen"))
+                        return "LISTENING";
+                if (lower.contains("nói") || lower.contains("speak") || lower.contains("phát âm"))
+                        return "SPEAKING";
+                if (lower.contains("đọc") || lower.contains("read"))
+                        return "READING";
+                return "MIXED";
+        }
 
         @Transactional
         public CustomPathResponse createCustomPath(String educatorEmail, UUID studentId,
@@ -105,12 +160,10 @@ public class CustomLearningPathService {
 
         @Transactional
         public void createAutoPath(Account student, LearningUnit dialect) {
-                // Deactivate existing paths
                 List<CustomLearningPath> existingPaths = pathRepository.findByStudentIdAndIsActiveTrue(student.getId());
                 existingPaths.forEach(p -> p.setIsActive(false));
                 pathRepository.saveAll(existingPaths);
 
-                // Find a system educator (e.g., the first admin)
                 Account educator = accountRepository.findAll().stream()
                                 .filter(a -> a.getRoleCode() == org.fsa_2026.company_fsa_captone_2026.entity.enums.RoleCode.ADMIN)
                                 .findFirst()
@@ -127,16 +180,7 @@ public class CustomLearningPathService {
                                 .build();
 
                 List<LearningUnit> levels = learningUnitRepository.findByParentAndType(dialect, "LEVEL");
-                levels.sort(Comparator.comparingInt(lu -> {
-                        try {
-                                @SuppressWarnings("unchecked")
-                                Map<String, Object> meta = new com.fasterxml.jackson.databind.ObjectMapper()
-                                                .readValue(lu.getMetadataJson(), Map.class);
-                                return ((Number) meta.getOrDefault("level_order", 0)).intValue();
-                        } catch (Exception e) {
-                                return 0;
-                        }
-                }));
+                levels.sort(Comparator.comparingInt(this::parseLevelOrder));
 
                 for (int i = 0; i < levels.size(); i++) {
                         path.addLevel(levels.get(i), i);
@@ -148,7 +192,7 @@ public class CustomLearningPathService {
         private CustomPathResponse mapToResponse(CustomLearningPath path) {
                 List<CustomPathProgress> progressList = progressRepository.findByCustomPathId(path.getId());
                 Map<UUID, CustomPathProgress> progressMap = progressList.stream()
-                                .collect(Collectors.toMap(p -> p.getLearningUnit().getId(), p -> p));
+                                .collect(Collectors.toMap(p -> p.getLearningUnit().getId(), p -> p, (a, b) -> a));
 
                 List<PathLevelResponse> levelResponses = path.getLevels().stream()
                                 .map(pl -> {
@@ -157,15 +201,26 @@ public class CustomLearningPathService {
                                                         .findByParentId(level.getId());
 
                                         List<PathQuizResponse> quizResponses = quizzes.stream()
+                                                        .sorted(Comparator.comparingInt(this::parseLevelOrder))
                                                         .map(q -> {
                                                                 CustomPathProgress p = progressMap.get(q.getId());
                                                                 return PathQuizResponse.builder()
                                                                                 .quizId(q.getId())
                                                                                 .title(q.getName())
+                                                                                .orderIndex(parseLevelOrder(q))
+                                                                                .skillType(parseSkillType(q))
                                                                                 .score(p != null ? p.getScore() : 0)
                                                                                 .isCompleted(p != null
                                                                                                 ? p.getIsCompleted()
                                                                                                 : false)
+                                                                                .rewardName(q.getRewardCatalog() != null
+                                                                                                ? q.getRewardCatalog()
+                                                                                                                .getName()
+                                                                                                : null)
+                                                                                .rewardIconUrl(q.getRewardCatalog() != null
+                                                                                                ? q.getRewardCatalog()
+                                                                                                                .getIconUrl()
+                                                                                                : null)
                                                                                 .build();
                                                         }).collect(Collectors.toList());
 

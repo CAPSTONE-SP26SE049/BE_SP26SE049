@@ -28,4 +28,6 @@ public interface AccountRewardRepository extends JpaRepository<AccountReward, UU
     List<AccountReward> findByAccountIdAndStatusIgnoreCase(@Param("accountId") UUID accountId, @Param("status") String status);
 
     Optional<AccountReward> findByAccountIdAndRewardCatalogId(UUID accountId, UUID rewardCatalogId);
+
+    boolean existsByRewardCatalogId(UUID rewardCatalogId);
 }

@@ -23,6 +23,7 @@ public class LevelService {
     private final LearningUnitRepository learningUnitRepository;
     private final org.fsa_2026.company_fsa_captone_2026.repository.AccountLearningUnitRepository accountLearningUnitRepository;
     private final AccountRepository accountRepository;
+    private final org.fsa_2026.company_fsa_captone_2026.repository.CustomLearningPathRepository customLearningPathRepository;
 
     @Transactional(readOnly = true)
     public List<LevelResponse> getLevelsByDialect(String dialectId) {
@@ -39,8 +40,6 @@ public class LevelService {
     }
 
     private void fetchAllDescendantLevels(UUID parentId, List<LearningUnit> accumulator) {
-        // Direct children that are levels (Optimized: removes N+1 recursive calls for
-        // Quizzes/Sub-units)
         List<LearningUnit> children = learningUnitRepository.findByParentId(parentId);
         for (LearningUnit child : children) {
             if ("LEVEL".equals(child.getType())) {
@@ -50,15 +49,25 @@ public class LevelService {
     }
 
     @Transactional(readOnly = true)
-    public List<LevelResponse> getUserRoadmap(String email, String dialectId) {
+    public List<LevelResponse> getUserRoadmap(String email, String dialectId, String type) {
         Account account = accountRepository.findByEmail(email).orElse(null);
+        if (account == null)
+            return List.of();
+
+        // If explicitly requested custom path, or if no dialect is provided and user
+        // HAS an active custom path
+        if ("custom".equalsIgnoreCase(type)) {
+            var activePath = customLearningPathRepository
+                    .findFirstByStudentIdAndIsActiveTrueOrderByCreatedAtDesc(account.getId());
+            if (activePath.isPresent()) {
+                log.info("Returning personalized roadmap for user {}", email);
+                return getCustomPathLevels(activePath.get(), account);
+            }
+        }
 
         if (dialectId != null && !dialectId.isEmpty()) {
             try {
-                if (account != null) {
-                    return getLevelsWithProgress(dialectId, account);
-                }
-                return getLevelsByDialect(dialectId);
+                return getLevelsWithProgress(dialectId, account);
             } catch (Exception e) {
                 log.warn("Invalid dialectId provided: {}", dialectId);
             }
@@ -73,32 +82,37 @@ public class LevelService {
                 .sorted(java.util.Comparator.comparingInt(r -> r.getLevelOrder() != null ? r.getLevelOrder() : 0))
                 .collect(java.util.stream.Collectors.toList());
 
-        if (account != null) {
-            // We can't use getLevelsWithProgress easily here because it expects a dialectId
-            // But for fallback we just return basic levels for now or implement global
-            // progress
-        }
-
         return levels;
     }
 
-    @Transactional(readOnly = true)
-    public List<LevelResponse> getLevelsWithProgress(String dialectId,
-            org.fsa_2026.company_fsa_captone_2026.entity.Account account) {
-        List<LevelResponse> levels = getLevelsByDialect(dialectId);
+    private List<LevelResponse> getCustomPathLevels(
+            org.fsa_2026.company_fsa_captone_2026.entity.CustomLearningPath activePath, Account account) {
+        List<LevelResponse> levels = activePath.getLevels().stream()
+                .sorted(Comparator
+                        .comparingInt(org.fsa_2026.company_fsa_captone_2026.entity.CustomPathLevel::getOrderIndex))
+                .map(pl -> {
+                    LevelResponse resp = LevelResponse.fromEntity(pl.getLevel());
+                    resp.setLevelOrder(pl.getOrderIndex() + 1); // Display as 1-based index
+                    return resp;
+                })
+                .collect(Collectors.toList());
 
+        return populateProgressAndUnlocking(levels, account);
+    }
+
+    private List<LevelResponse> populateProgressAndUnlocking(List<LevelResponse> levels, Account account) {
         java.util.List<org.fsa_2026.company_fsa_captone_2026.entity.AccountLearningUnit> progressList = accountLearningUnitRepository
                 .findByAccountIdWithLearningUnit(account.getId());
 
         java.util.Map<UUID, org.fsa_2026.company_fsa_captone_2026.entity.AccountLearningUnit> progressMap = progressList
                 .stream()
-                .collect(java.util.stream.Collectors.toMap(
+                .collect(Collectors.toMap(
                         al -> al.getLearningUnit().getId(),
                         al -> al,
-                        (existing, replacement) -> existing // Guard against duplicates
-                ));
+                        (existing, replacement) -> existing));
 
-        boolean previousCompleted = true; // Level 1 is always unlocked
+        boolean previousCompleted = true; // First level in any roadmap is unlocked by default unless otherwise
+                                          // restricted
 
         for (LevelResponse level : levels) {
             org.fsa_2026.company_fsa_captone_2026.entity.AccountLearningUnit progress = progressMap
@@ -111,16 +125,23 @@ public class LevelService {
 
             // Logic mở khóa:
             // Level 1 luôn mở (do previousCompleted = true)
-            // Hoặc nếu level đã được mở khóa thủ công (isUnlocked = true)
+            // Hoặc nếu level đã được mở khóa thủ công (isUnlocked = true) - Dùng cho Entry
+            // Test
             // Hoặc Level n mở nếu Level n-1 đã hoàn thành (isCompleted = true)
             boolean isUnlockedManually = progress != null && progress.getIsUnlocked() != null
                     && progress.getIsUnlocked();
             level.setIsLocked(!previousCompleted && !isUnlockedManually);
 
             // Cập nhật cho level tiếp theo
-            previousCompleted = (level.getIsCompleted() != null && level.getIsCompleted());
+            previousCompleted = level.getIsCompleted() != null && level.getIsCompleted();
         }
 
         return levels;
+    }
+
+    @Transactional(readOnly = true)
+    public List<LevelResponse> getLevelsWithProgress(String dialectId, Account account) {
+        List<LevelResponse> levels = getLevelsByDialect(dialectId);
+        return populateProgressAndUnlocking(levels, account);
     }
 }

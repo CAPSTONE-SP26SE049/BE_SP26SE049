@@ -23,9 +23,10 @@ public class ErrorTagController {
     private final ErrorTagService errorTagService;
 
     @GetMapping("/public/error-tags")
-    @Operation(summary = "Get all Error Tags", description = "Retrieve a list of all phoneme error tags for dropdowns")
-    public ResponseEntity<ApiResponse<List<ErrorTagResponse>>> getAllErrorTags() {
-        List<ErrorTagResponse> tags = errorTagService.getAllErrorTags();
+    @Operation(summary = "Get Error Tags", description = "Retrieve a list of phoneme error tags, optionally filtered by dialect")
+    public ResponseEntity<ApiResponse<List<ErrorTagResponse>>> getAllErrorTags(
+            @RequestParam(required = false) UUID dialectId) {
+        List<ErrorTagResponse> tags = errorTagService.getErrorTagsByDialect(dialectId);
         return ResponseEntity.ok(ApiResponse.success("Success", tags));
     }
 

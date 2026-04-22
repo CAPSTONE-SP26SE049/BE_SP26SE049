@@ -113,7 +113,7 @@ public class FeedbackService {
         public List<SpeakingAttemptResponse> getRecentSpeakingAttempts(UUID studentId) {
                 return attemptRepository.findByAccountId(studentId).stream()
                                 .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
-                                .limit(20)
+                                .limit(100)
                                 .map(this::mapToAttemptResponse)
                                 .collect(Collectors.toList());
         }
