@@ -49,9 +49,10 @@ public class QuizController {
 
     @GetMapping("/levels/{levelId}/quizzes")
     @Operation(summary = "Get Quizzes by Level", description = "Fetch quizzes inside a specific level for user selection", security = @SecurityRequirement(name = "bearer-jwt"))
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuizzesByLevel(@PathVariable UUID levelId) {
-        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách quiz theo level thành công", quizService.getQuizzesByLevel(levelId)));
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuizzesByLevel(
+            @PathVariable("levelId") UUID levelId) {
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách quiz theo level thành công",
+                quizService.getQuizzesByLevel(levelId)));
     }
 
 }
-

@@ -20,4 +20,5 @@
     <include file="db/changelog/51-reset-entry-test-questions.xml"/>
     <include file="db/changelog/52-rename-gemini-columns-to-groq.xml"/>
     <include file="db/changelog/53-migrate-entry-test-questions.xml"/>
+    <include file="db/changelog/54-drop-quiz-data.xml"/>
 </databaseChangeLog>
