@@ -37,7 +37,6 @@ public class AdminChallengeBankExcelService {
     private static final String COL_WRONG_WORD = "wrongWord";
     private static final String COL_CORRECT_WORD = "correctWord";
     // LISTENING columns
-    private static final String COL_AUDIO_URL = "audioUrl";
     private static final String COL_OPTIONS = "options";
     private static final String COL_CORRECT_ANSWER = "correctAnswer";
     private static final String COL_TRANSCRIPT = "transcript";
@@ -96,7 +95,6 @@ public class AdminChallengeBankExcelService {
                     COL_CONTENT_TEXT, "Nghe và chọn câu đúng với âm thanh.",
                     COL_SKILL_TYPE, "Nghe hiểu",
                     COL_REGION, "CENTRAL",
-                    COL_AUDIO_URL, "https://example.com/audio/listening_001.mp3",
                     COL_OPTIONS, "Lúa nếp là lúa nếp làng, Lúa nết là lúa nết làng, Núa nếp là núa nếp làng",
                     COL_CORRECT_ANSWER, "Lúa nếp là lúa nếp làng",
                     COL_TRANSCRIPT, "Lúa nếp là lúa nếp làng"
@@ -272,7 +270,6 @@ public class AdminChallengeBankExcelService {
                 put(row, headers, COL_SENTENCE_WITH_ERROR, str(meta.get("sentenceWithError")));
                 put(row, headers, COL_WRONG_WORD, str(meta.get("wrongWord")));
                 put(row, headers, COL_CORRECT_WORD, str(meta.get("correctWord")));
-                put(row, headers, COL_AUDIO_URL, str(meta.get("audioUrl")));
                 put(row, headers, COL_OPTIONS, joinComma(meta.get("options")));
                 put(row, headers, COL_CORRECT_ANSWER, str(meta.get("correctAnswer")));
                 put(row, headers, COL_TRANSCRIPT, str(meta.get("transcript")));
@@ -296,7 +293,7 @@ public class AdminChallengeBankExcelService {
                 // READING
                 COL_SENTENCE_WITH_ERROR, COL_WRONG_WORD, COL_CORRECT_WORD,
                 // LISTENING
-                COL_AUDIO_URL, COL_OPTIONS, COL_CORRECT_ANSWER, COL_TRANSCRIPT,
+                COL_OPTIONS, COL_CORRECT_ANSWER, COL_TRANSCRIPT,
                 // WRITING
                 COL_SCRAMBLED_WORDS, COL_CORRECT_SENTENCE
         );
@@ -319,7 +316,6 @@ public class AdminChallengeBankExcelService {
                 meta.put("correctWord", get(row, colMap, COL_CORRECT_WORD));
             }
             case LISTENING -> {
-                meta.put("audioUrl", get(row, colMap, COL_AUDIO_URL));
                 meta.put("options", splitComma(get(row, colMap, COL_OPTIONS)));
                 meta.put("correctAnswer", get(row, colMap, COL_CORRECT_ANSWER));
                 meta.put("transcript", get(row, colMap, COL_TRANSCRIPT));
@@ -329,7 +325,6 @@ public class AdminChallengeBankExcelService {
                 meta.put("correctSentence", get(row, colMap, COL_CORRECT_SENTENCE));
             }
             case SPEAKING, ENTRY_TEST -> {
-                meta.put("audioUrl", get(row, colMap, COL_AUDIO_URL));
                 meta.put("transcript", get(row, colMap, COL_TRANSCRIPT));
             }
         }

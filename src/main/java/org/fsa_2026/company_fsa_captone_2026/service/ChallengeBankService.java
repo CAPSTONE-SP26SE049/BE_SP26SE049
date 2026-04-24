@@ -34,6 +34,7 @@ public class ChallengeBankService {
     private final AccountRepository accountRepository;
     private final ObjectMapper objectMapper;
     private final QuizService quizService;
+    private final TTSService ttsService;
 
     @Transactional
     public ChallengeBank createChallenge(ChallengeBankRequest request) {
@@ -41,11 +42,17 @@ public class ChallengeBankService {
         Account account = accountRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản để gán người tạo"));
 
+        Map<String, Object> metadata = request.getMetadataJson();
+        if (metadata == null) metadata = new LinkedHashMap<>();
+        
+        // Auto-generate audio if missing for Listening/Speaking
+        ensureAudioUrl(request.getSkillType(), metadata);
+
         ChallengeBank challenge = ChallengeBank.builder()
                 .contentText(request.getContentText())
                 .skillType(request.getSkillType())
                 .region(request.getRegion() != null ? request.getRegion() : "BAC")
-                .metadataJson(request.getMetadataJson())
+                .metadataJson(metadata)
                 .createdBy(account.getId())
                 .build();
         return challengeBankRepository.save(challenge);
@@ -107,9 +114,35 @@ public class ChallengeBankService {
         if (request.getContentText() != null) challenge.setContentText(request.getContentText());
         if (request.getSkillType() != null) challenge.setSkillType(request.getSkillType());
         if (request.getRegion() != null) challenge.setRegion(request.getRegion());
-        if (request.getMetadataJson() != null) challenge.setMetadataJson(request.getMetadataJson());
+        
+        if (request.getMetadataJson() != null) {
+            Map<String, Object> metadata = request.getMetadataJson();
+            ensureAudioUrl(challenge.getSkillType(), metadata);
+            challenge.setMetadataJson(metadata);
+        }
         
         return challengeBankRepository.save(challenge);
+    }
+
+    private void ensureAudioUrl(org.fsa_2026.company_fsa_captone_2026.entity.enums.SkillType skillType, Map<String, Object> metadata) {
+        if (skillType == org.fsa_2026.company_fsa_captone_2026.entity.enums.SkillType.LISTENING || 
+            skillType == org.fsa_2026.company_fsa_captone_2026.entity.enums.SkillType.SPEAKING) {
+            
+            Object transcript = metadata.get("transcript");
+            Object existingAudio = metadata.get("audioUrl");
+            
+            if (transcript != null && !transcript.toString().isBlank() && (existingAudio == null || existingAudio.toString().isBlank())) {
+                try {
+                    Map ttsResult = ttsService.synthesize(transcript.toString(), "banmai");
+                    if (ttsResult != null && ttsResult.containsKey("async")) {
+                        metadata.put("audioUrl", ttsResult.get("async"));
+                    }
+                } catch (Exception e) {
+                    // Log error but don't fail the whole request
+                    System.err.println("Auto TTS failed for challenge: " + e.getMessage());
+                }
+            }
+        }
     }
 
     @Transactional
