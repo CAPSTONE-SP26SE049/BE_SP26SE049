@@ -7,12 +7,14 @@ import org.fsa_2026.company_fsa_captone_2026.entity.Account;
 import org.fsa_2026.company_fsa_captone_2026.entity.ChallengeBank;
 import org.fsa_2026.company_fsa_captone_2026.entity.ContentItem;
 import org.fsa_2026.company_fsa_captone_2026.entity.QuizChallengeItem;
+import org.fsa_2026.company_fsa_captone_2026.entity.enums.SkillType;
 import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.ChallengeBankRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.ContentItemRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.LearningUnitRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.QuizChallengeItemRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChallengeBankService {
@@ -46,7 +49,7 @@ public class ChallengeBankService {
         if (metadata == null) metadata = new LinkedHashMap<>();
         
         // Auto-generate audio if missing for Listening/Speaking
-        ensureAudioUrl(request.getSkillType(), metadata);
+        ensureAudioUrl(request.getSkillType(), request.getRegion(), metadata);
 
         ChallengeBank challenge = ChallengeBank.builder()
                 .contentText(request.getContentText())
@@ -117,33 +120,14 @@ public class ChallengeBankService {
         
         if (request.getMetadataJson() != null) {
             Map<String, Object> metadata = request.getMetadataJson();
-            ensureAudioUrl(challenge.getSkillType(), metadata);
+            ensureAudioUrl(challenge.getSkillType(), challenge.getRegion(), metadata);
             challenge.setMetadataJson(metadata);
         }
         
         return challengeBankRepository.save(challenge);
     }
 
-    private void ensureAudioUrl(org.fsa_2026.company_fsa_captone_2026.entity.enums.SkillType skillType, Map<String, Object> metadata) {
-        if (skillType == org.fsa_2026.company_fsa_captone_2026.entity.enums.SkillType.LISTENING || 
-            skillType == org.fsa_2026.company_fsa_captone_2026.entity.enums.SkillType.SPEAKING) {
-            
-            Object transcript = metadata.get("transcript");
-            Object existingAudio = metadata.get("audioUrl");
-            
-            if (transcript != null && !transcript.toString().isBlank() && (existingAudio == null || existingAudio.toString().isBlank())) {
-                try {
-                    Map ttsResult = ttsService.synthesize(transcript.toString(), "banmai");
-                    if (ttsResult != null && ttsResult.containsKey("async")) {
-                        metadata.put("audioUrl", ttsResult.get("async"));
-                    }
-                } catch (Exception e) {
-                    // Log error but don't fail the whole request
-                    System.err.println("Auto TTS failed for challenge: " + e.getMessage());
-                }
-            }
-        }
-    }
+
 
     @Transactional
     public void deleteChallenge(UUID id) {
@@ -168,5 +152,31 @@ public class ChallengeBankService {
         response.put("removedChallengeId", challengeId);
         response.put("scoring", scoring);
         return response;
+    }
+
+    private void ensureAudioUrl(SkillType skillType, String region, Map<String, Object> metadata) {
+        if (skillType == SkillType.LISTENING || skillType == SkillType.SPEAKING || skillType == SkillType.ENTRY_TEST) {
+            String transcript = (String) metadata.get("transcript");
+            String audioUrl = (String) metadata.get("audioUrl");
+
+            if (transcript != null && !transcript.isBlank() && (audioUrl == null || audioUrl.isBlank())) {
+                try {
+                    String voice = "banmai"; // North
+                    if ("TRUNG".equalsIgnoreCase(region) || "CENTRAL".equalsIgnoreCase(region)) {
+                        voice = "hue";
+                    } else if ("NAM".equalsIgnoreCase(region) || "SOUTH".equalsIgnoreCase(region)) {
+                        voice = "linh";
+                    }
+
+                    Map<String, Object> ttsRes = ttsService.synthesize(transcript, voice);
+                    if (ttsRes != null && ttsRes.containsKey("async")) {
+                        metadata.put("audioUrl", ttsRes.get("async"));
+                        log.info("Auto-generated audio for challenge: {}", ttsRes.get("async"));
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to auto-generate audio in ensureAudioUrl: {}", e.getMessage());
+                }
+            }
+        }
     }
 }

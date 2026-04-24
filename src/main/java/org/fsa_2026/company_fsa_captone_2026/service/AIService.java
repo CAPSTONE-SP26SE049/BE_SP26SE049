@@ -336,26 +336,26 @@ public class AIService {
 
     public Map<String, Object> explainQuizAnswer(String question, String selectedAnswer, String correctAnswer,
             String skillType, String transcript, String correctSentence) {
+        boolean isTimeout = selectedAnswer.contains("chưa chọn đáp án");
+        String resultStatus = selectedAnswer.equalsIgnoreCase(correctAnswer) ? "CHÍNH XÁC" : "CHƯA ĐÚNG";
+
         String prompt = String.format(
-                "Bạn là giáo viên dạy Tiếng Việt vui nhộn và tận tâm. Hãy giải thích ngắn gọn, súc tích (1-2 câu) lý do vì sao đáp án này là %s. "
-                        +
-                        "Câu hỏi: \"%s\". " +
-                        "Người dùng chọn: \"%s\". " +
-                        "Đáp án đúng là: \"%s\". " +
-                        "Kỹ năng: %s. " +
-                        (transcript != null && !transcript.isBlank()
-                                ? "Nội dung bài nghe/nói (transcript): \"%s\". "
+                "Bạn là giáo viên dạy Tiếng Việt vui nhộn và tận tâm. Hãy giải thích ngắn gọn (1-3 câu) lý do vì sao đáp án là %s. "
+                        + (isTimeout
+                                ? "Đặc biệt lưu ý: Người dùng đã hết thời gian và CHƯA KỊP CHỌN ĐÁP ÁN. Hãy bắt đầu bằng việc nhắc nhở người dùng chưa chọn đáp án, sau đó chỉ ra đáp án đúng và giải thích. "
                                 : "")
-                        +
-                        (correctSentence != null && !correctSentence.isBlank()
-                                ? "Câu đúng hoàn chỉnh: \"%s\". Hãy bám sát vào câu đúng này và so sánh với transcript để chỉ ra từ bị đọc sai/ngọng nếu có. "
-                                : (transcript != null && !transcript.isBlank()
-                                        ? "Hãy bám sát vào transcript này để chỉ ra từ bị đọc sai/ngọng nếu có. "
-                                        : ""))
-                        +
-                        "Hãy giúp người dùng hiểu rõ kiến thức một cách thân thiện. Trả về JSON có field 'explanation'.",
-                (selectedAnswer.equalsIgnoreCase(correctAnswer) ? "CHÍNH XÁC" : "CHƯA ĐÚNG"),
-                question, selectedAnswer, correctAnswer, skillType, transcript, correctSentence);
+                        + "Câu hỏi: \"%s\". "
+                        + "Người dùng chọn: \"%s\". "
+                        + "Đáp án đúng là: \"%s\". "
+                        + "Kỹ năng: %s. "
+                        + (transcript != null && !transcript.isBlank()
+                                ? "Nội dung bài nghe (transcript): \"%s\". "
+                                : "")
+                        + (correctSentence != null && !correctSentence.isBlank()
+                                ? "Câu đúng: \"%s\". Hãy so sánh với transcript để chỉ ra từ bị phát âm sai/ngọng (ví dụ N thành L). "
+                                : "")
+                        + "Hãy giúp người dùng hiểu rõ kiến thức một cách thân thiện. Trả về JSON có field 'explanation'.",
+                resultStatus, question, selectedAnswer, correctAnswer, skillType, transcript, correctSentence);
         return chatWithGroq(prompt);
     }
 
