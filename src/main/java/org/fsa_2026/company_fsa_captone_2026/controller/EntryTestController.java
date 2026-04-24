@@ -38,9 +38,11 @@ public class EntryTestController {
     @GetMapping("/placement-set")
     @PreAuthorize("hasRole('USER')")
     @Operation(summary = "Get Placement Test Set")
-    public ResponseEntity<ApiResponse<List<EntryTestQuestionResponse>>> getPlacementSet(Principal principal) {
-        log.info("Fetching placement test set for user: {}", principal.getName());
-        List<EntryTestQuestionResponse> placementSet = entryTestService.getPlacementSet();
+    public ResponseEntity<ApiResponse<List<EntryTestQuestionResponse>>> getPlacementSet(
+            Principal principal,
+            @RequestParam(required = false) String region) {
+        log.info("Fetching placement test set for user: {}, region: {}", principal.getName(), region);
+        List<EntryTestQuestionResponse> placementSet = entryTestService.getPlacementSet(region);
         return ResponseEntity.ok(ApiResponse.success("Lấy bộ câu hỏi kiểm tra đầu vào thành công", placementSet));
     }
 

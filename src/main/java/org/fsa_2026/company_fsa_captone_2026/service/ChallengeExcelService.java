@@ -75,9 +75,9 @@ public class ChallengeExcelService {
 
         switch (skillType) {
             case READING -> headers.addAll(List.of(COL_READING_SENTENCE, COL_READING_WRONG_WORD, COL_READING_CORRECT_WORD, COL_HINT));
-            case LISTENING -> headers.addAll(List.of(COL_AUDIO_URL, COL_LISTENING_OPT1, COL_LISTENING_OPT2, COL_LISTENING_OPT3, COL_LISTENING_OPT4, COL_LISTENING_CORRECT, COL_TRANSCRIPT));
+            case LISTENING -> headers.addAll(List.of(COL_LISTENING_OPT1, COL_LISTENING_OPT2, COL_LISTENING_OPT3, COL_LISTENING_OPT4, COL_LISTENING_CORRECT, COL_TRANSCRIPT));
             case WRITING -> headers.addAll(List.of(COL_WRITING_BLANK_SENTENCE, COL_WRITING_CORRECT_ANSWER, COL_WRITING_ALTERNATIVES, COL_HINT));
-            case SPEAKING, ENTRY_TEST -> headers.addAll(List.of(COL_AUDIO_URL, COL_TRANSCRIPT, COL_HINT));
+            case SPEAKING, ENTRY_TEST -> headers.addAll(List.of(COL_TRANSCRIPT, COL_HINT));
         }
 
         return headers;
@@ -204,9 +204,9 @@ public class ChallengeExcelService {
             );
             case LISTENING -> List.of(
                 List.of("Nghe và chọn từ đúng", "SOUTH",
-                         "", "Lúa nếp", "Lúa nết", "Núa nếp", "Lúa tẻ", "Lúa nếp", "Lúa nếp là lúa nếp làng"),
+                         "Lúa nếp", "Lúa nết", "Núa nếp", "Lúa tẻ", "Lúa nếp", "Lúa nếp là lúa nếp làng"),
                 List.of("Nghe và chọn từ đúng", "SOUTH",
-                         "", "Nón lá", "Lón lá", "Nón nà", "Nóm lá", "Nón lá", "Chiếc nón lá Việt Nam")
+                         "Nón lá", "Lón lá", "Nón nà", "Nóm lá", "Nón lá", "Chiếc nón lá Việt Nam")
             );
             case WRITING -> List.of(
                 List.of("Chọn từ đúng chính tả để điền vào chỗ trống", "NORTH",
@@ -216,15 +216,15 @@ public class ChallengeExcelService {
             );
             case SPEAKING -> List.of(
                 List.of("Đọc to câu sau", "SOUTH",
-                         "https://example.com/ref1.mp3", "Lúa nếp là lúa nếp làng", "Chú ý phân biệt N và L"),
+                         "Lúa nếp là lúa nếp làng", "Chú ý phân biệt N và L"),
                 List.of("Phát âm câu sau", "NORTH",
-                         "https://example.com/ref2.mp3", "Con lợn nằm trong chuồng", "Chú ý âm đầu L")
+                         "Con lợn nằm trong chuồng", "Chú ý âm đầu L")
             );
             case ENTRY_TEST -> List.of(
                 List.of("Vui lòng đọc câu sau để đánh giá giọng đọc của bạn", "NORTH",
-                        "", "Lúa nếp là lúa nếp làng", "Hãy đọc chậm và rõ ràng"),
+                         "Lúa nếp là lúa nếp làng", "Hãy đọc chậm và rõ ràng"),
                 List.of("Vui lòng đọc câu sau", "CENTRAL",
-                        "", "Trời nắng chang chang vườn hoa vẫy gọi", "Chú ý âm sắc")
+                         "Trời nắng chang chang vườn hoa vẫy gọi", "Chú ý âm sắc")
             );
         };
     }
@@ -593,7 +593,6 @@ public class ChallengeExcelService {
                 meta.put("hint", getCsvValue(cols, colMap, COL_HINT));
             }
             case LISTENING -> {
-                meta.put("audioUrl", getCsvValue(cols, colMap, COL_AUDIO_URL));
                 String csvO1 = getCsvValue(cols, colMap, COL_LISTENING_OPT1);
                 String csvO2 = getCsvValue(cols, colMap, COL_LISTENING_OPT2);
                 String csvO3 = getCsvValue(cols, colMap, COL_LISTENING_OPT3);
@@ -620,7 +619,6 @@ public class ChallengeExcelService {
                 meta.put("hint", getCsvValue(cols, colMap, COL_HINT));
             }
             case SPEAKING, ENTRY_TEST -> {
-                meta.put("audioUrl", getCsvValue(cols, colMap, COL_AUDIO_URL));
                 meta.put("transcript", getCsvValue(cols, colMap, COL_TRANSCRIPT));
                 meta.put("hint", getCsvValue(cols, colMap, COL_HINT));
             }
@@ -662,7 +660,6 @@ public class ChallengeExcelService {
                 meta.put("hint", getCellValue(row, colMap, COL_HINT));
             }
             case LISTENING -> {
-                meta.put("audioUrl", getCellValue(row, colMap, COL_AUDIO_URL));
                 String xO1 = getCellValue(row, colMap, COL_LISTENING_OPT1);
                 String xO2 = getCellValue(row, colMap, COL_LISTENING_OPT2);
                 String xO3 = getCellValue(row, colMap, COL_LISTENING_OPT3);
@@ -689,7 +686,6 @@ public class ChallengeExcelService {
                 meta.put("hint", getCellValue(row, colMap, COL_HINT));
             }
             case SPEAKING, ENTRY_TEST -> {
-                meta.put("audioUrl", getCellValue(row, colMap, COL_AUDIO_URL));
                 meta.put("transcript", getCellValue(row, colMap, COL_TRANSCRIPT));
                 meta.put("hint", getCellValue(row, colMap, COL_HINT));
             }
@@ -798,7 +794,6 @@ public class ChallengeExcelService {
                     row.createCell(col).setCellValue(str(meta.get("hint")));
                 }
                 case LISTENING -> {
-                    row.createCell(col++).setCellValue(str(meta.get("audioUrl")));
                     Object wo = meta.get("options");
                     java.util.List<?> wol = wo instanceof java.util.List<?> wl ? wl : java.util.List.of();
                     row.createCell(col++).setCellValue(wol.size() > 0 ? str(wol.get(0)) : "");
@@ -817,7 +812,6 @@ public class ChallengeExcelService {
                     row.createCell(col).setCellValue(str(meta.get("hint")));
                 }
                 case SPEAKING, ENTRY_TEST -> {
-                    row.createCell(col++).setCellValue(str(meta.get("audioUrl")));
                     row.createCell(col++).setCellValue(str(meta.get("transcript")));
                     row.createCell(col).setCellValue(str(meta.get("hint")));
                 }

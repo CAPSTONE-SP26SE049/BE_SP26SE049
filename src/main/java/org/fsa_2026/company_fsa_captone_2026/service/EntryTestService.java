@@ -47,7 +47,7 @@ public class EntryTestService {
     private final AIService aiService;
     private final RestTemplate restTemplate = new RestTemplate();
 
-    @Value("${local-asr.endpoint:http://localhost:8000/asr}")
+    @Value("${asr.local.endpoint:http://localhost:8000/asr}")
     private String localAsrEndpoint;
 
     // CRUD Methods
@@ -107,23 +107,41 @@ public class EntryTestService {
     }
 
     // Placement Set Logic
-    public List<EntryTestQuestionResponse> getPlacementSet() {
+    public List<EntryTestQuestionResponse> getPlacementSet(String region) {
         List<EntryTestQuestion> questions = new ArrayList<>();
 
-        // Ensure 3 from each region to get 9, then 1 more random for 10
-        questions.addAll(questionRepository.findRandomByRegion(EntryTestRegionCategory.NORTH_NL.name(), 3));
-        questions.addAll(questionRepository.findRandomByRegion(EntryTestRegionCategory.CENTRAL_DGIR.name(), 3));
-        questions.addAll(questionRepository.findRandomByRegion(EntryTestRegionCategory.SOUTH_TRCH.name(), 3));
+        if (region != null && !region.trim().isEmpty()) {
+            // Lấy 10 câu ngẫu nhiên của miền được chọn
+            String categoryMap = switch (region.toUpperCase()) {
+                case "NORTH" -> EntryTestRegionCategory.NORTH_NL.name();
+                case "CENTRAL" -> EntryTestRegionCategory.CENTRAL_DGIR.name();
+                case "SOUTH" -> EntryTestRegionCategory.SOUTH_TRCH.name();
+                default -> null;
+            };
 
-        // Get all questions to pick one more random one that is not already in the list
-        List<UUID> existingIds = questions.stream().map(EntryTestQuestion::getId).collect(Collectors.toList());
-        List<EntryTestQuestion> remaining = questionRepository.findAll().stream()
-                .filter(q -> !existingIds.contains(q.getId()))
-                .collect(Collectors.toList());
+            if (categoryMap != null) {
+                questions.addAll(questionRepository.findRandomByRegion(categoryMap, 10));
+            }
+        }
 
-        if (!remaining.isEmpty()) {
-            Collections.shuffle(remaining);
-            questions.add(remaining.get(0));
+        // Nếu chưa đủ 10 câu (do DB thiếu hoặc truyền region sai/null), lấy trộn như fallback
+        if (questions.size() < 10) {
+            questions.clear();
+            // Ensure 3 from each region to get 9, then 1 more random for 10
+            questions.addAll(questionRepository.findRandomByRegion(EntryTestRegionCategory.NORTH_NL.name(), 3));
+            questions.addAll(questionRepository.findRandomByRegion(EntryTestRegionCategory.CENTRAL_DGIR.name(), 3));
+            questions.addAll(questionRepository.findRandomByRegion(EntryTestRegionCategory.SOUTH_TRCH.name(), 3));
+
+            // Get all questions to pick one more random one that is not already in the list
+            List<UUID> existingIds = questions.stream().map(EntryTestQuestion::getId).collect(Collectors.toList());
+            List<EntryTestQuestion> remaining = questionRepository.findAll().stream()
+                    .filter(q -> !existingIds.contains(q.getId()))
+                    .collect(Collectors.toList());
+
+            if (!remaining.isEmpty()) {
+                Collections.shuffle(remaining);
+                questions.add(remaining.get(0));
+            }
         }
 
         Collections.shuffle(questions);

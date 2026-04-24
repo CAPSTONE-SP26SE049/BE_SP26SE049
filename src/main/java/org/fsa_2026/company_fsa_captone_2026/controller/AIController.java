@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
 import org.fsa_2026.company_fsa_captone_2026.service.AIService;
 import org.fsa_2026.company_fsa_captone_2026.service.SpeakingAttemptService;
-import org.fsa_2026.company_fsa_captone_2026.service.TTSService;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,17 +20,19 @@ public class AIController {
 
     private final AIService aiService;
     private final SpeakingAttemptService speakingAttemptService;
-    private final TTSService ttsService;
+    private final org.fsa_2026.company_fsa_captone_2026.service.TTSService ttsService;
 
     @PostMapping("/tts")
     public Map<String, Object> tts(@RequestBody Map<String, String> request) {
         String text = request.get("text");
         String voice = request.get("voice");
         if (text == null || text.isBlank()) {
-            throw new ApiException("BAD_REQUEST", "Thiếu văn bản để tổng hợp giọng nói");
+            throw new ApiException("BAD_REQUEST", "Văn bản không được để trống");
         }
         return ttsService.synthesize(text, voice);
     }
+
+
 
     @PostMapping("/evaluate-pronunciation")
     public Map<String, Object> evaluatePronunciation(
