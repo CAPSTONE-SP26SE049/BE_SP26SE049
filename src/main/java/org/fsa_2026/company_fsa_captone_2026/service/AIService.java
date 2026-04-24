@@ -66,13 +66,15 @@ public class AIService {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
-            ResponseEntity<Map> response = restTemplate.postForEntity(localAsrEndpoint, new HttpEntity<>(body, headers), Map.class);
+            ResponseEntity<Map> response = restTemplate.postForEntity(localAsrEndpoint, new HttpEntity<>(body, headers),
+                    Map.class);
             long latencyMs = System.currentTimeMillis() - start;
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 String text = (String) response.getBody().get("text");
                 return new AzureTranscriptionResult(text != null ? text : "", 0, latencyMs, "local_asr", null);
             }
-            return new AzureTranscriptionResult("", 0, latencyMs, "local_asr", "Local ASR status: " + response.getStatusCode());
+            return new AzureTranscriptionResult("", 0, latencyMs, "local_asr",
+                    "Local ASR status: " + response.getStatusCode());
         } catch (Exception e) {
             log.warn("Local ASR failed, fallback to secondary if available: {}", e.getMessage());
             return new AzureTranscriptionResult("", 0, System.currentTimeMillis() - start, "local_asr", e.getMessage());
@@ -81,7 +83,8 @@ public class AIService {
 
     public Map<String, Object> chatWithGroq(String message) {
         if (groqApiKey == null || groqApiKey.isBlank()) {
-            throw new ApiException("CONFIG_ERROR", "Groq API Key chưa được cấu hình. Vui lòng kiểm tra biến môi trường GROQ_API_KEY.");
+            throw new ApiException("CONFIG_ERROR",
+                    "Groq API Key chưa được cấu hình. Vui lòng kiểm tra biến môi trường GROQ_API_KEY.");
         }
         return chatWithGroqOrFallback(message);
     }
@@ -139,7 +142,8 @@ public class AIService {
         for (String modelName : groqModelCandidates()) {
             try {
                 Map<String, Object> raw = callGroqModel(message, modelName);
-                if (raw != null) return raw;
+                if (raw != null)
+                    return raw;
             } catch (Exception e) {
                 lastError = e.getMessage();
             }
@@ -149,11 +153,13 @@ public class AIService {
 
     private List<String> groqModelCandidates() {
         List<String> candidates = new ArrayList<>();
-        if (groqModel != null && !groqModel.isBlank()) candidates.add(groqModel.trim());
+        if (groqModel != null && !groqModel.isBlank())
+            candidates.add(groqModel.trim());
         if (groqFallbackModels != null && !groqFallbackModels.isBlank()) {
             for (String candidate : groqFallbackModels.split(",")) {
                 String normalized = candidate.trim();
-                if (!normalized.isBlank() && !candidates.contains(normalized)) candidates.add(normalized);
+                if (!normalized.isBlank() && !candidates.contains(normalized))
+                    candidates.add(normalized);
             }
         }
         return candidates;
@@ -169,7 +175,8 @@ public class AIService {
                         "Rules:\n" +
                         "1. Return JSON only.\n" +
                         "2. feedback must be specific, natural, and actionable.\n" +
-                        "3. Do not say generic sentences like 'Phát âm chưa chính xác.' unless you also explain why.\n" +
+                        "3. Do not say generic sentences like 'Phát âm chưa chính xác.' unless you also explain why.\n"
+                        +
                         "4. If pronunciation is nearly correct, say what is close and what still needs fixing.\n" +
                         "5. If there is a regional pronunciation issue, mention the likely sound pair and mouth/tongue/articulation clue.",
                 SYSTEM_INSTRUCTION,
@@ -180,7 +187,8 @@ public class AIService {
 
     private Map<String, Object> callGroqModel(String userMessage, String modelName) {
         if (groqApiKey == null || groqApiKey.isBlank()) {
-            throw new ApiException("CONFIG_ERROR", "Groq API Key chưa được cấu hình. Vui lòng kiểm tra biến môi trường GROQ_API_KEY.");
+            throw new ApiException("CONFIG_ERROR",
+                    "Groq API Key chưa được cấu hình. Vui lòng kiểm tra biến môi trường GROQ_API_KEY.");
         }
 
         Map<String, Object> requestBody = new HashMap<>();
@@ -197,7 +205,8 @@ public class AIService {
         headers.setBearerAuth(groqApiKey);
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
 
-        ResponseEntity<Map> response = restTemplate.exchange(groqEndpoint, HttpMethod.POST, new HttpEntity<>(requestBody, headers), Map.class);
+        ResponseEntity<Map> response = restTemplate.exchange(groqEndpoint, HttpMethod.POST,
+                new HttpEntity<>(requestBody, headers), Map.class);
         return parseAndNormalizeOpenAiStyleResponse(response.getBody(), null, null, true);
     }
 
@@ -210,16 +219,19 @@ public class AIService {
                 lastError = e;
             }
         }
-        if (lastError instanceof RuntimeException runtimeException) throw runtimeException;
+        if (lastError instanceof RuntimeException runtimeException)
+            throw runtimeException;
         throw new ApiException("AI_ERROR", "Không thể gọi Groq API với các model đã cấu hình.");
     }
 
     private String normalizeForComparison(String text) {
-        if (text == null) return "";
+        if (text == null)
+            return "";
         return text.trim().toLowerCase(Locale.ROOT).replaceAll("\\s+", " ");
     }
 
-    private Map<String, Object> normalizeFeedbackResponse(Map<String, Object> raw, String transcribedText, String targetText, String reason) {
+    private Map<String, Object> normalizeFeedbackResponse(Map<String, Object> raw, String transcribedText,
+            String targetText, String reason) {
         if (raw == null) {
             throw new ApiException("AI_ERROR", "Groq trả về phản hồi rỗng.");
         }
@@ -228,11 +240,15 @@ public class AIService {
         boolean exactMatch = !normalizedTranscribed.isBlank() && normalizedTranscribed.equals(normalizedTarget);
 
         boolean isCorrect = exactMatch || asBoolean(raw.get("isCorrect"), false);
-        int accuracy = normalizeAccuracyValue(raw.get("accuracy"), raw.get("score"), exactMatch ? 100 : (isCorrect ? 80 : 0));
-        if (exactMatch) accuracy = 100;
+        int accuracy = normalizeAccuracyValue(raw.get("accuracy"), raw.get("score"),
+                exactMatch ? 100 : (isCorrect ? 80 : 0));
+        if (exactMatch)
+            accuracy = 100;
 
-        String errorType = firstNonBlank(raw.get("errorType"), raw.get("shapeKey"), exactMatch ? "exact_match" : (isCorrect ? "near_match" : "pronunciation_mismatch"));
-        String feedback = firstNonBlank(raw.get("feedback"), raw.get("suggestion"), raw.get("errorDetail"), raw.get("detectedError"), exactMatch ? "ASR khớp hoàn toàn với câu mẫu." : "");
+        String errorType = firstNonBlank(raw.get("errorType"), raw.get("shapeKey"),
+                exactMatch ? "exact_match" : (isCorrect ? "near_match" : "pronunciation_mismatch"));
+        String feedback = firstNonBlank(raw.get("feedback"), raw.get("suggestion"), raw.get("errorDetail"),
+                raw.get("detectedError"), exactMatch ? "ASR khớp hoàn toàn với câu mẫu." : "");
         if (feedback.isBlank()) {
             feedback = exactMatch ? "ASR khớp hoàn toàn với câu mẫu." : "Groq không trả về nội dung phản hồi phù hợp.";
         }
@@ -249,21 +265,28 @@ public class AIService {
         result.put("errorDetail", feedback);
         result.put("isRegional", asBoolean(raw.get("isRegional"), false));
         result.put("aiProvider", "groq");
-        if (reason != null) result.put("ai_error_debug", reason);
+        if (reason != null)
+            result.put("ai_error_debug", reason);
         return result;
     }
 
     private boolean asBoolean(Object value, boolean defaultValue) {
-        if (value instanceof Boolean b) return b;
-        if (value instanceof String s) return Boolean.parseBoolean(s);
+        if (value instanceof Boolean b)
+            return b;
+        if (value instanceof String s)
+            return Boolean.parseBoolean(s);
         return defaultValue;
     }
 
     private int normalizeAccuracyValue(Object accuracyValue, Object scoreValue, int defaultValue) {
         Object value = accuracyValue != null ? accuracyValue : scoreValue;
-        if (value instanceof Number number) return Math.max(0, Math.min(100, number.intValue()));
+        if (value instanceof Number number)
+            return Math.max(0, Math.min(100, number.intValue()));
         if (value instanceof String text) {
-            try { return Math.max(0, Math.min(100, Integer.parseInt(text.trim()))); } catch (NumberFormatException ignored) { }
+            try {
+                return Math.max(0, Math.min(100, Integer.parseInt(text.trim())));
+            } catch (NumberFormatException ignored) {
+            }
         }
         return defaultValue;
     }
@@ -272,21 +295,27 @@ public class AIService {
         for (Object value : values) {
             if (value != null) {
                 String text = value.toString().trim();
-                if (!text.isBlank()) return text;
+                if (!text.isBlank())
+                    return text;
             }
         }
         return "";
     }
 
-    private Map<String, Object> parseAndNormalizeOpenAiStyleResponse(Map responseBody, String targetText, String transcribedText, boolean groq) {
+    private Map<String, Object> parseAndNormalizeOpenAiStyleResponse(Map responseBody, String targetText,
+            String transcribedText, boolean groq) {
         try {
-            if (responseBody == null) return null;
+            if (responseBody == null)
+                return null;
             List<Map> choices = (List<Map>) responseBody.get("choices");
-            if (choices == null || choices.isEmpty()) return null;
+            if (choices == null || choices.isEmpty())
+                return null;
             Map message = (Map) choices.get(0).get("message");
-            if (message == null) return null;
+            if (message == null)
+                return null;
             Object contentObj = message.get("content");
-            if (contentObj == null) return null;
+            if (contentObj == null)
+                return null;
             String rawResponse = contentObj.toString();
             String cleanJson = rawResponse.replaceAll("(?is)```json", "").replaceAll("(?is)```", "").trim();
             if (targetText == null) {
@@ -305,5 +334,32 @@ public class AIService {
         }
     }
 
-    public record AzureTranscriptionResult(String transcript, double pronunciationAccuracy, long latencyMs, String provider, String error) {}
+    public Map<String, Object> explainQuizAnswer(String question, String selectedAnswer, String correctAnswer,
+            String skillType, String transcript, String correctSentence) {
+        String prompt = String.format(
+                "Bạn là giáo viên dạy Tiếng Việt vui nhộn và tận tâm. Hãy giải thích ngắn gọn, súc tích (1-2 câu) lý do vì sao đáp án này là %s. "
+                        +
+                        "Câu hỏi: \"%s\". " +
+                        "Người dùng chọn: \"%s\". " +
+                        "Đáp án đúng là: \"%s\". " +
+                        "Kỹ năng: %s. " +
+                        (transcript != null && !transcript.isBlank()
+                                ? "Nội dung bài nghe/nói (transcript): \"%s\". "
+                                : "")
+                        +
+                        (correctSentence != null && !correctSentence.isBlank()
+                                ? "Câu đúng hoàn chỉnh: \"%s\". Hãy bám sát vào câu đúng này và so sánh với transcript để chỉ ra từ bị đọc sai/ngọng nếu có. "
+                                : (transcript != null && !transcript.isBlank()
+                                        ? "Hãy bám sát vào transcript này để chỉ ra từ bị đọc sai/ngọng nếu có. "
+                                        : ""))
+                        +
+                        "Hãy giúp người dùng hiểu rõ kiến thức một cách thân thiện. Trả về JSON có field 'explanation'.",
+                (selectedAnswer.equalsIgnoreCase(correctAnswer) ? "CHÍNH XÁC" : "CHƯA ĐÚNG"),
+                question, selectedAnswer, correctAnswer, skillType, transcript, correctSentence);
+        return chatWithGroq(prompt);
+    }
+
+    public record AzureTranscriptionResult(String transcript, double pronunciationAccuracy, long latencyMs,
+            String provider, String error) {
+    }
 }
