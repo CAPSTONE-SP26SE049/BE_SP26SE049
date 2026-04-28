@@ -19,11 +19,16 @@ public class SpeakingAttemptLogResponse {
     private String targetText;
     private String asrTranscription;
     private String audioUrl;
-    private Integer geminiScore;
-    private String geminiFeedback;
+    @com.fasterxml.jackson.annotation.JsonProperty("groqScore")
+    private Integer groqScore;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("groqFeedback")
+    private String groqFeedback;
     private Boolean isCorrect;
     private String dialect;
-    private Long processingTimeMs;   // Gemini latency
+    @com.fasterxml.jackson.annotation.JsonProperty("processingTimeMs")
+    private Long processingTimeMs;   // Groq latency
+    @com.fasterxml.jackson.annotation.JsonProperty("asrProcessingTimeMs")
     private Long asrProcessingTimeMs; // Parakeet latency
     private Instant createdAt;
 }

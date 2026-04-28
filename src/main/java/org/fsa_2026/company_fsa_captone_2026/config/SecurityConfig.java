@@ -44,7 +44,8 @@ public class SecurityConfig {
     @Primary
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
+        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000",
+                "https://speakvn-frontend-221596280724.asia-southeast1.run.app"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Content-Disposition", "Content-Type", "Content-Length"));
@@ -145,6 +146,12 @@ public class SecurityConfig {
 
                             // Learner endpoints
                             .requestMatchers("/api/v1/learner/**").hasRole("USER")
+
+                            // Entry Test Admin endpoints – chỉ ADMIN
+                            .requestMatchers("/api/v1/test/admin/**").hasRole("ADMIN")
+
+                            // Entry Test endpoints – yêu cầu đăng nhập với role USER
+                            .requestMatchers("/api/v1/test/**").hasRole("USER")
 
                             // All other requests require authentication
                             .anyRequest().authenticated())

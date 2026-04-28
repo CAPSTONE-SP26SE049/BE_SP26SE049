@@ -37,7 +37,6 @@ public class AdminChallengeBankExcelService {
     private static final String COL_WRONG_WORD = "wrongWord";
     private static final String COL_CORRECT_WORD = "correctWord";
     // LISTENING columns
-    private static final String COL_AUDIO_URL = "audioUrl";
     private static final String COL_OPTIONS = "options";
     private static final String COL_CORRECT_ANSWER = "correctAnswer";
     private static final String COL_TRANSCRIPT = "transcript";
@@ -48,7 +47,8 @@ public class AdminChallengeBankExcelService {
     private final ChallengeBankService challengeBankService;
     private final ChallengeBankRepository challengeBankRepository;
 
-    public record ImportResult(int successCount, int skipCount, int errorCount, List<String> messages) {}
+    public record ImportResult(int successCount, int skipCount, int errorCount, List<String> messages) {
+    }
 
     public byte[] generateTemplate() {
         try (Workbook workbook = new XSSFWorkbook()) {
@@ -73,44 +73,42 @@ public class AdminChallengeBankExcelService {
             // - Dropdown sẽ HIỂN THỊ tiếng Việt để user chọn cho dễ.
             // - Khi import, hệ thống sẽ map tiếng Việt -> enum/code nội bộ.
             // - Khi export, hệ thống sẽ map enum/code nội bộ -> tiếng Việt để ghi ra Excel.
-            // Việc thêm validation không làm thay đổi header/styling hay sample rows bên dưới.
+            // Việc thêm validation không làm thay đổi header/styling hay sample rows bên
+            // dưới.
             addDropdownValidation(sheet, headers, COL_SKILL_TYPE,
-                    new String[]{"Đọc hiểu", "Nghe hiểu", "Viết", "Nói", "Kiểm tra đầu vào"});
+                    new String[] { "Đọc hiểu", "Nghe hiểu", "Viết", "Nói", "Kiểm tra đầu vào" });
             addDropdownValidation(sheet, headers, COL_REGION,
-                    new String[]{"Miền Bắc", "Miền Trung", "Miền Nam"});
+                    new String[] { "NORTH", "CENTRAL", "SOUTH" });
 
             // Sample rows (3 kỹ năng đại diện)
             Row r1 = sheet.createRow(1);
             setRow(r1, headers, Map.of(
                     COL_CONTENT_TEXT, "Chọn từ sai chính tả trong câu sau:",
                     COL_SKILL_TYPE, "Đọc hiểu",
-                    COL_REGION, "Miền Bắc",
-                    COL_HINT, "Chú ý phân biệt âm đầu L và N.",
+                    COL_REGION, "NORTH",
+                    COL_HINT, "Chú ý phân biệt âm đầu L and N.",
                     COL_SENTENCE_WITH_ERROR, "Con nợn đang ăn cỏ ngoài đồng.",
                     COL_WRONG_WORD, "nợn",
-                    COL_CORRECT_WORD, "lợn"
-            ));
+                    COL_CORRECT_WORD, "lợn"));
 
             Row r2 = sheet.createRow(2);
             setRow(r2, headers, Map.of(
                     COL_CONTENT_TEXT, "Nghe và chọn câu đúng với âm thanh.",
                     COL_SKILL_TYPE, "Nghe hiểu",
-                    COL_REGION, "Miền Trung",
-                    COL_AUDIO_URL, "https://example.com/audio/listening_001.mp3",
+                    COL_REGION, "CENTRAL",
                     COL_OPTIONS, "Lúa nếp là lúa nếp làng, Lúa nết là lúa nết làng, Núa nếp là núa nếp làng",
                     COL_CORRECT_ANSWER, "Lúa nếp là lúa nếp làng",
-                    COL_TRANSCRIPT, "Lúa nếp là lúa nếp làng"
-            ));
+                    COL_TRANSCRIPT, "Lúa lếp là lúa lếp làng",
+                    COL_CORRECT_SENTENCE, "Lúa nếp là lúa nếp làng"));
 
             Row r3 = sheet.createRow(3);
             setRow(r3, headers, Map.of(
                     COL_CONTENT_TEXT, "Sắp xếp lại câu đúng.",
                     COL_SKILL_TYPE, "Viết",
-                    COL_REGION, "Miền Nam",
+                    COL_REGION, "SOUTH",
                     COL_HINT, "Sắp xếp theo ngữ nghĩa.",
                     COL_SCRAMBLED_WORDS, "Lúa, nếp, là, lúa, nếp, làng",
-                    COL_CORRECT_SENTENCE, "Lúa nếp là lúa nếp làng"
-            ));
+                    COL_CORRECT_SENTENCE, "Lúa nếp là lúa nếp làng"));
 
             autosize(sheet, headers.size());
 
@@ -130,18 +128,20 @@ public class AdminChallengeBankExcelService {
     private void addDropdownValidation(Sheet sheet, List<String> headers, String headerKey, String[] allowedValues) {
         // Tìm index cột theo headerKey (vd: "skillType", "region")
         int colIdx = headers.indexOf(headerKey);
-        if (colIdx < 0) return; // Không có cột thì bỏ qua an toàn
+        if (colIdx < 0)
+            return; // Không có cột thì bỏ qua an toàn
 
         // Chỉ hỗ trợ XSSF (xlsx) theo đúng yêu cầu dùng XSSFDataValidationHelper
-        if (!(sheet instanceof XSSFSheet xssfSheet)) return;
+        if (!(sheet instanceof XSSFSheet xssfSheet))
+            return;
 
         // Dòng 2..1000 => 1..999 (0-based)
         CellRangeAddressList addressList = new CellRangeAddressList(1, 999, colIdx, colIdx);
 
         // Tạo dropdown list constraint theo danh sách allowedValues
         XSSFDataValidationHelper helper = new XSSFDataValidationHelper(xssfSheet);
-        XSSFDataValidationConstraint constraint = (XSSFDataValidationConstraint)
-                helper.createExplicitListConstraint(allowedValues);
+        XSSFDataValidationConstraint constraint = (XSSFDataValidationConstraint) helper
+                .createExplicitListConstraint(allowedValues);
 
         XSSFDataValidation validation = (XSSFDataValidation) helper.createValidation(constraint, addressList);
 
@@ -161,20 +161,24 @@ public class AdminChallengeBankExcelService {
 
         try (InputStream is = file.getInputStream(); Workbook workbook = new XSSFWorkbook(is)) {
             Sheet sheet = workbook.getSheetAt(0);
-            if (sheet == null) throw new RuntimeException("Không tìm thấy sheet dữ liệu");
+            if (sheet == null)
+                throw new RuntimeException("Không tìm thấy sheet dữ liệu");
 
             Row header = sheet.getRow(0);
-            if (header == null) throw new RuntimeException("File Excel không có header");
+            if (header == null)
+                throw new RuntimeException("File Excel không có header");
 
             Map<String, Integer> colMap = buildColMap(header);
 
             for (int r = 1; r <= sheet.getLastRowNum(); r++) {
                 Row row = sheet.getRow(r);
-                if (row == null) continue;
+                if (row == null)
+                    continue;
 
                 String contentText = get(row, colMap, COL_CONTENT_TEXT).trim();
                 String skillTypeRaw = get(row, colMap, COL_SKILL_TYPE).trim();
-                if (contentText.isBlank() && skillTypeRaw.isBlank()) continue;
+                if (contentText.isBlank() && skillTypeRaw.isBlank())
+                    continue;
 
                 if (contentText.isBlank() || skillTypeRaw.isBlank()) {
                     error++;
@@ -193,11 +197,10 @@ public class AdminChallengeBankExcelService {
                     continue;
                 }
 
-                // Map tiếng Việt -> string code nội bộ (BAC/TRUNG/NAM)
-                // TUYỆT ĐỐI không dùng RegionCode enum ở đây (theo yêu cầu).
+                // Map string code nội bộ (NORTH/CENTRAL/SOUTH)
                 String region;
                 try {
-                    region = mapRegionFromVietnamese(get(row, colMap, COL_REGION));
+                    region = mapRegionFromExcel(get(row, colMap, COL_REGION));
                 } catch (Exception e) {
                     error++;
                     messages.add("Dòng " + (r + 1) + ": Cột Vùng miền có giá trị không hợp lệ");
@@ -227,7 +230,8 @@ public class AdminChallengeBankExcelService {
                     success++;
                 } catch (Exception e) {
                     error++;
-                    messages.add("Dòng " + (r + 1) + ": Lỗi — " + (e.getMessage() != null ? e.getMessage() : "Không xác định"));
+                    messages.add("Dòng " + (r + 1) + ": Lỗi — "
+                            + (e.getMessage() != null ? e.getMessage() : "Không xác định"));
                 }
             }
         } catch (Exception e) {
@@ -262,9 +266,10 @@ public class AdminChallengeBankExcelService {
                 Map<String, Object> meta = cb.getMetadataJson() != null ? cb.getMetadataJson() : Map.of();
 
                 put(row, headers, COL_CONTENT_TEXT, cb.getContentText());
-                // Export: map enum/code nội bộ -> tiếng Việt để user nhìn dễ hiểu
-                put(row, headers, COL_SKILL_TYPE, cb.getSkillType() != null ? mapSkillTypeToVietnamese(cb.getSkillType()) : "");
-                put(row, headers, COL_REGION, cb.getRegion() != null ? mapRegionToVietnamese(cb.getRegion()) : "Miền Bắc");
+                // Export: map enum/code nội bộ -> English
+                put(row, headers, COL_SKILL_TYPE,
+                        cb.getSkillType() != null ? mapSkillTypeToVietnamese(cb.getSkillType()) : "");
+                put(row, headers, COL_REGION, cb.getRegion() != null ? mapRegionToExcel(cb.getRegion()) : "NORTH");
 
                 // hint
                 put(row, headers, COL_HINT, str(meta.get("hint")));
@@ -273,7 +278,6 @@ public class AdminChallengeBankExcelService {
                 put(row, headers, COL_SENTENCE_WITH_ERROR, str(meta.get("sentenceWithError")));
                 put(row, headers, COL_WRONG_WORD, str(meta.get("wrongWord")));
                 put(row, headers, COL_CORRECT_WORD, str(meta.get("correctWord")));
-                put(row, headers, COL_AUDIO_URL, str(meta.get("audioUrl")));
                 put(row, headers, COL_OPTIONS, joinComma(meta.get("options")));
                 put(row, headers, COL_CORRECT_ANSWER, str(meta.get("correctAnswer")));
                 put(row, headers, COL_TRANSCRIPT, str(meta.get("transcript")));
@@ -297,10 +301,9 @@ public class AdminChallengeBankExcelService {
                 // READING
                 COL_SENTENCE_WITH_ERROR, COL_WRONG_WORD, COL_CORRECT_WORD,
                 // LISTENING
-                COL_AUDIO_URL, COL_OPTIONS, COL_CORRECT_ANSWER, COL_TRANSCRIPT,
+                COL_OPTIONS, COL_CORRECT_ANSWER, COL_TRANSCRIPT,
                 // WRITING
-                COL_SCRAMBLED_WORDS, COL_CORRECT_SENTENCE
-        );
+                COL_SCRAMBLED_WORDS, COL_CORRECT_SENTENCE);
     }
 
     private Map<String, Object> buildMetadata(SkillType skillType, Row row, Map<String, Integer> colMap, String hint) {
@@ -320,25 +323,26 @@ public class AdminChallengeBankExcelService {
                 meta.put("correctWord", get(row, colMap, COL_CORRECT_WORD));
             }
             case LISTENING -> {
-                meta.put("audioUrl", get(row, colMap, COL_AUDIO_URL));
                 meta.put("options", splitComma(get(row, colMap, COL_OPTIONS)));
                 meta.put("correctAnswer", get(row, colMap, COL_CORRECT_ANSWER));
                 meta.put("transcript", get(row, colMap, COL_TRANSCRIPT));
+                meta.put("correctSentence", get(row, colMap, COL_CORRECT_SENTENCE));
             }
             case WRITING -> {
                 meta.put("scrambledWords", splitComma(get(row, colMap, COL_SCRAMBLED_WORDS)));
                 meta.put("correctSentence", get(row, colMap, COL_CORRECT_SENTENCE));
             }
             case SPEAKING, ENTRY_TEST -> {
-                meta.put("audioUrl", get(row, colMap, COL_AUDIO_URL));
                 meta.put("transcript", get(row, colMap, COL_TRANSCRIPT));
+                meta.put("correctSentence", get(row, colMap, COL_CORRECT_SENTENCE));
             }
         }
         return meta;
     }
 
     private String parseRegion(String s) {
-        if (s == null || s.isBlank()) return "BAC";
+        if (s == null || s.isBlank())
+            return "BAC";
         String upper = s.trim().toUpperCase();
         return switch (upper) {
             case "BAC", "BẮC", "NORTH" -> "BAC";
@@ -354,7 +358,8 @@ public class AdminChallengeBankExcelService {
     // Yêu cầu:
     // - Excel hiển thị tiếng Việt để người dùng chọn.
     // - Import phải map tiếng Việt -> giá trị hệ thống đang dùng.
-    // - Nếu ô trống hoặc không khớp mapping: ném lỗi để báo "Dòng X: cột ... không hợp lệ".
+    // - Nếu ô trống hoặc không khớp mapping: ném lỗi để báo "Dòng X: cột ... không
+    // hợp lệ".
 
     /**
      * Map cột Kỹ năng từ tiếng Việt -> Enum SkillType.
@@ -379,7 +384,8 @@ public class AdminChallengeBankExcelService {
      * Map Enum SkillType -> tiếng Việt để ghi ra Excel.
      */
     private String mapSkillTypeToVietnamese(SkillType st) {
-        if (st == null) return "";
+        if (st == null)
+            return "";
         return switch (st) {
             case READING -> "Đọc hiểu";
             case LISTENING -> "Nghe hiểu";
@@ -389,36 +395,37 @@ public class AdminChallengeBankExcelService {
         };
     }
 
-
     /**
-     * Map cột Vùng miền từ tiếng Việt -> String code hệ thống dùng trong ChallengeBankRequest.
-     * Lưu ý quan trọng: DTO dùng String region, nên TUYỆT ĐỐI không dùng enum RegionCode ở đây.
-     * Ví dụ: "Miền Bắc" -> "BAC"
+     * Map cột Vùng miền từ Excel -> String code hệ thống dùng trong
+     * ChallengeBankRequest.
+     * Ví dụ: "NORTH" -> "BAC" (Internal DB still uses BAC/TRUNG/NAM for now or we
+     * can migrate)
+     * Let's keep internal as it is but allow English in Excel.
      */
-    private String mapRegionFromVietnamese(String input) {
+    private String mapRegionFromExcel(String input) {
         String s = normalizeExcelText(input);
         if (s.isBlank()) {
-            throw new IllegalArgumentException("Vùng miền bị trống");
+            throw new IllegalArgumentException("Region is empty");
         }
         return switch (s) {
-            case "miền bắc" -> "BAC";
-            case "miền trung" -> "TRUNG";
-            case "miền nam" -> "NAM";
-            default -> throw new IllegalArgumentException("Vùng miền không hợp lệ: " + input);
+            case "north", "miền bắc", "bac" -> "BAC";
+            case "central", "miền trung", "trung" -> "TRUNG";
+            case "south", "miền nam", "nam" -> "NAM";
+            default -> throw new IllegalArgumentException("Invalid region: " + input);
         };
     }
 
     /**
-     * Map String code nội bộ (BAC/TRUNG/NAM) -> tiếng Việt để ghi ra Excel.
+     * Map String code nội bộ (BAC/TRUNG/NAM) -> English để ghi ra Excel.
      */
-    private String mapRegionToVietnamese(String regionCode) {
-        String s = normalizeExcelText(regionCode);
-        if (s.isBlank()) return "";
-        return switch (s.toUpperCase()) {
-            case "BAC" -> "Miền Bắc";
-            case "TRUNG" -> "Miền Trung";
-            case "NAM" -> "Miền Nam";
-            default -> "Miền Bắc"; // fallback an toàn (không làm crash export)
+    private String mapRegionToExcel(String regionCode) {
+        if (regionCode == null || regionCode.isBlank())
+            return "NORTH";
+        return switch (regionCode.toUpperCase()) {
+            case "BAC" -> "NORTH";
+            case "TRUNG" -> "CENTRAL";
+            case "NAM" -> "SOUTH";
+            default -> "NORTH";
         };
     }
 
@@ -435,20 +442,24 @@ public class AdminChallengeBankExcelService {
         Map<String, Integer> map = new HashMap<>();
         for (int i = 0; i < headerRow.getLastCellNum(); i++) {
             Cell cell = headerRow.getCell(i);
-            if (cell == null) continue;
+            if (cell == null)
+                continue;
             String name = cellString(cell).trim();
-            if (!name.isBlank()) map.put(name, i);
+            if (!name.isBlank())
+                map.put(name, i);
         }
         // Validate required fixed columns
         for (String required : List.of(COL_CONTENT_TEXT, COL_SKILL_TYPE, COL_REGION)) {
-            if (!map.containsKey(required)) throw new RuntimeException("Thiếu cột bắt buộc: " + required);
+            if (!map.containsKey(required))
+                throw new RuntimeException("Thiếu cột bắt buộc: " + required);
         }
         return map;
     }
 
     private String get(Row row, Map<String, Integer> colMap, String colName) {
         Integer idx = colMap.get(colName);
-        if (idx == null) return "";
+        if (idx == null)
+            return "";
         return cellString(row.getCell(idx));
     }
 
@@ -462,7 +473,8 @@ public class AdminChallengeBankExcelService {
 
     private void put(Row row, List<String> headers, String key, String value) {
         int idx = headers.indexOf(key);
-        if (idx < 0) return;
+        if (idx < 0)
+            return;
         row.createCell(idx).setCellValue(value != null ? value : "");
     }
 
@@ -481,12 +493,14 @@ public class AdminChallengeBankExcelService {
     private void autosize(Sheet sheet, int cols) {
         for (int i = 0; i < cols; i++) {
             sheet.autoSizeColumn(i);
-            if (sheet.getColumnWidth(i) < 18 * 256) sheet.setColumnWidth(i, 18 * 256);
+            if (sheet.getColumnWidth(i) < 18 * 256)
+                sheet.setColumnWidth(i, 18 * 256);
         }
     }
 
     private String cellString(Cell cell) {
-        if (cell == null) return "";
+        if (cell == null)
+            return "";
         return switch (cell.getCellType()) {
             case STRING -> cell.getStringCellValue();
             case NUMERIC -> {
@@ -496,16 +510,22 @@ public class AdminChallengeBankExcelService {
             }
             case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
             case FORMULA -> {
-                try { yield cell.getStringCellValue(); } catch (Exception e) { yield ""; }
+                try {
+                    yield cell.getStringCellValue();
+                } catch (Exception e) {
+                    yield "";
+                }
             }
             default -> "";
         };
     }
 
     private List<String> splitComma(String raw) {
-        if (raw == null) return List.of();
+        if (raw == null)
+            return List.of();
         String s = raw.trim();
-        if (s.isBlank()) return List.of();
+        if (s.isBlank())
+            return List.of();
         return Arrays.stream(s.split(","))
                 .map(String::trim)
                 .filter(x -> !x.isEmpty())
@@ -513,9 +533,11 @@ public class AdminChallengeBankExcelService {
     }
 
     private int parseInt(String raw, int fallback) {
-        if (raw == null) return fallback;
+        if (raw == null)
+            return fallback;
         String s = raw.trim();
-        if (s.isBlank()) return fallback;
+        if (s.isBlank())
+            return fallback;
         try {
             return (int) Double.parseDouble(s);
         } catch (NumberFormatException e) {
@@ -534,4 +556,3 @@ public class AdminChallengeBankExcelService {
         return value != null ? value.toString() : "";
     }
 }
-

@@ -49,6 +49,8 @@ public class QuizService {
     private final AccountRewardRepository accountRewardRepository;
     private final AccountLearningUnitRepository accountLearningUnitRepository;
     private final ObjectMapper objectMapper;
+    private final org.fsa_2026.company_fsa_captone_2026.repository.CustomLearningPathRepository customLearningPathRepository;
+    private final org.fsa_2026.company_fsa_captone_2026.repository.CustomPathProgressRepository customPathProgressRepository;
 
     // ==========================================
     // CRUD Operations
@@ -692,6 +694,38 @@ public class QuizService {
 
 
         accountLearningUnitRepository.save(progress);
+
+        // --- NEW: Update Custom Path Progress if quiz belongs to an active path ---
+        updateCustomPathProgressIfAny(account, quiz, score, passed);
+    }
+
+    private void updateCustomPathProgressIfAny(Account account, LearningUnit quiz, int score, boolean passed) {
+        customLearningPathRepository.findFirstByStudentIdAndIsActiveTrueOrderByCreatedAtDesc(account.getId())
+            .ifPresent(path -> {
+                // Check if this quiz's parent level is part of the custom path
+                boolean isPartOfPath = path.getLevels().stream()
+                    .anyMatch(pl -> pl.getLevel().getId().equals(quiz.getParent().getId()));
+
+                if (isPartOfPath) {
+                    var customProgress = customPathProgressRepository
+                        .findByCustomPathIdAndLearningUnitId(path.getId(), quiz.getId())
+                        .orElse(org.fsa_2026.company_fsa_captone_2026.entity.CustomPathProgress.builder()
+                            .customPath(path)
+                            .learningUnit(quiz)
+                            .score(0)
+                            .isCompleted(false)
+                            .build());
+
+                    if (score > customProgress.getScore()) {
+                        customProgress.setScore(score);
+                    }
+                    if (passed) {
+                        customProgress.setIsCompleted(true);
+                    }
+                    customPathProgressRepository.save(customProgress);
+                    log.info("Updated custom path progress for student {} on quiz {}", account.getEmail(), quiz.getName());
+                }
+            });
     }
 
 

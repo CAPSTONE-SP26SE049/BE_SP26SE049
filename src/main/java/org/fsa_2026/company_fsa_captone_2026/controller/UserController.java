@@ -89,7 +89,7 @@ public class UserController {
         @GetMapping("/levels/{levelId}/quizzes")
         @Operation(summary = "Get quizzes in level for user", description = "Lấy danh sách quiz bên trong chương theo levelId để user chọn màn chơi", security = @SecurityRequirement(name = "bearer-jwt"))
         public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuizzesByLevelForUser(
-                        @PathVariable UUID levelId,
+                        @PathVariable("levelId") UUID levelId,
                         Authentication authentication) {
 
                 log.info("User {} lấy danh sách quiz theo levelId: {}", authentication.getName(), levelId);
@@ -101,7 +101,7 @@ public class UserController {
         @GetMapping("/challenges/{challengeId}/quizzes")
         @Operation(summary = "Get quizzes by challenge for user", description = "Lấy danh sách quiz đã được gán câu hỏi theo challengeId trong nhóm User API", security = @SecurityRequirement(name = "bearer-jwt"))
         public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuizzesByChallengeForUser(
-                        @PathVariable UUID challengeId,
+                        @PathVariable("challengeId") UUID challengeId,
                         Authentication authentication) {
 
                 log.info("User {} lấy danh sách quiz theo challengeId: {}", authentication.getName(), challengeId);
@@ -113,7 +113,7 @@ public class UserController {
         @GetMapping("/quizzes/{quizId}/challenges")
         @Operation(summary = "Get assigned questions in quiz for user", description = "Lấy toàn bộ câu hỏi đã được gán vào quiz theo quizId trong nhóm User API", security = @SecurityRequirement(name = "bearer-jwt"))
         public ResponseEntity<ApiResponse<List<QuizChallengeItemResponse>>> getChallengesByQuizForUser(
-                        @PathVariable UUID quizId,
+                        @PathVariable("quizId") UUID quizId,
                         Authentication authentication) {
 
                 log.info("User {} lấy danh sách câu hỏi theo quizId: {}", authentication.getName(), quizId);
@@ -126,7 +126,7 @@ public class UserController {
         @GetMapping("/quizzes/{quizId}")
         @Operation(summary = "Get quiz details for user", description = "Lấy thông tin chi tiết quiz (tên, mô tả, thời gian, điểm sàn...) cho User", security = @SecurityRequirement(name = "bearer-jwt"))
         public ResponseEntity<ApiResponse<Map<String, Object>>> getQuizDetailsForUser(
-                        @PathVariable UUID quizId,
+                        @PathVariable("quizId") UUID quizId,
                         Authentication authentication) {
 
                 log.info("User {} lấy thông tin chi tiết quiz: {}", authentication.getName(), quizId);
@@ -146,7 +146,7 @@ public class UserController {
         @PostMapping("/quizzes/{quizId}/complete")
         @Operation(summary = "Complete Quiz", description = "Submit quiz results. Auto-grants the attached reward if score >= passing_score.", security = @SecurityRequirement(name = "bearer-jwt"))
         public ResponseEntity<ApiResponse<QuizCompleteResponse>> completeQuiz(
-                        @PathVariable UUID quizId,
+                        @PathVariable("quizId") UUID quizId,
                         @Valid @RequestBody QuizCompleteRequest request,
                         Authentication authentication) {
                 log.info("User {} completing quiz {}", authentication.getName(), quizId);
@@ -162,7 +162,7 @@ public class UserController {
         @GetMapping("/levels/{levelId}/progress")
         @Operation(summary = "Get Level Progress", description = "View quiz progress within a level: which quizzes completed, scores, stars, rewards earned.", security = @SecurityRequirement(name = "bearer-jwt"))
         public ResponseEntity<ApiResponse<LevelProgressResponse>> getLevelProgress(
-                        @PathVariable UUID levelId,
+                        @PathVariable("levelId") UUID levelId,
                         Authentication authentication) {
                 log.info("User {} getting progress for level {}", authentication.getName(), levelId);
                 LevelProgressResponse response = quizService.getLevelProgress(levelId, authentication.getName());

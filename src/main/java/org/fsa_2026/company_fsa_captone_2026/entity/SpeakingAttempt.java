@@ -63,8 +63,9 @@ public class SpeakingAttempt {
     private String audioUrl;
 
     /** Điểm AI (0-100) */
-    @Column(name = "gemini_score")
-    private Integer geminiScore;
+    @Column(name = "groq_score")
+    private Integer groqScore;
+
 
     /** Kết quả đúng/sai */
     @Column(name = "is_correct", nullable = false)
@@ -79,7 +80,7 @@ public class SpeakingAttempt {
     @Builder.Default
     private Boolean consentGiven = true;
 
-    /** Thời gian xử lý của Gemini AI (miliseconds) */
+    /** Thời gian xử lý của Groq AI (miliseconds) */
     @Column(name = "processing_time_ms")
     private Long processingTimeMs;
 
@@ -87,7 +88,8 @@ public class SpeakingAttempt {
     @Column(name = "asr_processing_time_ms")
     private Long asrProcessingTimeMs;
 
-    /** Phản hồi chi tiết của Gemini AI (văn bản) */
-    @Column(name = "gemini_feedback", columnDefinition = "TEXT")
-    private String geminiFeedback;
+    /** Phản hồi chi tiết của Groq AI (văn bản) */
+    @Column(name = "groq_feedback", columnDefinition = "TEXT")
+    private String groqFeedback;
+
 }

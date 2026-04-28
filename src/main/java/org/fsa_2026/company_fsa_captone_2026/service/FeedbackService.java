@@ -104,8 +104,8 @@ public class FeedbackService {
                                 .attemptId(sa != null ? sa.getId() : null)
                                 .targetText(sa != null ? sa.getTargetText() : null)
                                 .audioUrl(sa != null ? sa.getAudioUrl() : null)
-                                .geminiScore(sa != null ? sa.getGeminiScore() : null)
-                                .geminiFeedback(sa != null ? sa.getGeminiFeedback() : null)
+                                .groqScore(sa != null ? sa.getGroqScore() : null)
+                                .groqFeedback(sa != null ? sa.getGroqFeedback() : null)
                                 .asrTranscription(sa != null ? sa.getAsrTranscription() : null)
                                 .build();
         }
@@ -113,7 +113,7 @@ public class FeedbackService {
         public List<SpeakingAttemptResponse> getRecentSpeakingAttempts(UUID studentId) {
                 return attemptRepository.findByAccountId(studentId).stream()
                                 .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
-                                .limit(20)
+                                .limit(100)
                                 .map(this::mapToAttemptResponse)
                                 .collect(Collectors.toList());
         }
@@ -124,8 +124,8 @@ public class FeedbackService {
                                 .targetText(sa.getTargetText())
                                 .asrTranscription(sa.getAsrTranscription())
                                 .audioUrl(sa.getAudioUrl())
-                                .geminiScore(sa.getGeminiScore())
-                                .geminiFeedback(sa.getGeminiFeedback())
+                                .groqScore(sa.getGroqScore())
+                                .groqFeedback(sa.getGroqFeedback())
                                 .createdAt(sa.getCreatedAt())
                                 .build();
         }

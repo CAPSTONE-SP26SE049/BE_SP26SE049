@@ -16,12 +16,13 @@ public class TTSService {
     private static final String FPT_API_URL = "https://api.fpt.ai/hmi/tts/v5";
     private static final String FPT_API_KEY = "oZO8MheKtxmn0JAVKiaeURTubrDtOwdp";
 
-    @SuppressWarnings("rawtypes")
-    public Map synthesize(String text, String voice) {
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public Map<String, Object> synthesize(String text, String voice) {
         try {
             RestTemplate restTemplate = new RestTemplate();
             restTemplate.getMessageConverters()
-                    .add(0, new org.springframework.http.converter.StringHttpMessageConverter(java.nio.charset.StandardCharsets.UTF_8));
+                    .add(0, new org.springframework.http.converter.StringHttpMessageConverter(
+                            java.nio.charset.StandardCharsets.UTF_8));
             HttpHeaders headers = new HttpHeaders();
             headers.set("api-key", FPT_API_KEY);
             headers.set("api_key", FPT_API_KEY);
@@ -33,23 +34,23 @@ public class TTSService {
             // FPT AI expects raw text in body
             HttpEntity<String> entity = new HttpEntity<>(text, headers);
             log.info("Calling FPT AI TTS for text: {}", text.substring(0, Math.min(text.length(), 20)) + "...");
-            
+
             ResponseEntity<Map> response = restTemplate.exchange(FPT_API_URL, HttpMethod.POST, entity, Map.class);
             Map body = response.getBody();
-            
+
             // Wait for the async url to be ready to avoid CORS errors on frontend
             if (body != null && body.containsKey("async")) {
                 String asyncUrl = (String) body.get("async");
                 pollAudioUrl(asyncUrl);
             }
-            
+
             return body;
         } catch (Exception e) {
             log.error("FPT AI TTS Error: ", e);
             throw new ApiException("INTERNAL_SERVER_ERROR", "Lỗi khi gọi API FPT AI: " + e.getMessage());
         }
     }
-    
+
     // Helper to poll until FPT.AI finishes processing
     private void pollAudioUrl(String url) {
         RestTemplate restTemplate = new RestTemplate();

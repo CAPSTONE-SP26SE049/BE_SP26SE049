@@ -56,7 +56,7 @@ public class AdminController {
     private final ChallengeBankService challengeBankService;
     private final org.fsa_2026.company_fsa_captone_2026.service.QuizService quizService;
     private final SpeakingAttemptService speakingAttemptService;
-
+    private final org.fsa_2026.company_fsa_captone_2026.service.EntryTestService entryTestService;
 
     /**
      * Create Educator Account - POST /api/v1/admin/educators
@@ -98,7 +98,6 @@ public class AdminController {
                 .body(ApiResponse.success("Tạo tài khoản thành công. Mật khẩu đã được gửi qua email.", response));
     }
 
-
     // ==========================================
     // 1. User Management APIs
     // ==========================================
@@ -113,7 +112,7 @@ public class AdminController {
 
     @GetMapping("/users/{id}")
     @Operation(summary = "Get User Details", description = "Get details of a specific user by ID")
-    public ResponseEntity<ApiResponse<UserManagementResponse>> getUserById(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<UserManagementResponse>> getUserById(@PathVariable(name = "id") UUID id) {
         log.info("Admin retrieving user ID: {}", id);
         UserManagementResponse response = adminService.getUserById(id);
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin người dùng thành công", response));
@@ -122,7 +121,7 @@ public class AdminController {
     @PutMapping("/users/{id}/status")
     @Operation(summary = "Update User Status", description = "Lock or unlock a user account")
     public ResponseEntity<ApiResponse<UserManagementResponse>> updateUserStatus(
-            @PathVariable UUID id,
+            @PathVariable(name = "id") UUID id,
             @Valid @RequestBody UserStatusUpdateRequest request) {
         log.info("Admin updating status for user ID: {} to active: {}", id, request.getIsActive());
         UserManagementResponse response = adminService.updateUserStatus(id, request);
@@ -132,7 +131,7 @@ public class AdminController {
     @PatchMapping("/users/{id}")
     @Operation(summary = "Update User Info", description = "Partially update user information (e.g. name, phone)")
     public ResponseEntity<ApiResponse<UserManagementResponse>> updateUser(
-            @PathVariable UUID id,
+            @PathVariable(name = "id") UUID id,
             @RequestBody UserUpdateRequest request) {
         log.info("Admin updating information for user ID: {}", id);
         UserManagementResponse response = adminService.updateUser(id, request);
@@ -153,7 +152,7 @@ public class AdminController {
 
     @GetMapping("/content/challenges/{id}")
     @Operation(summary = "Get Challenge Detail", description = "Get details of a specific challenge by ID")
-    public ResponseEntity<ApiResponse<ChallengeResponse>> getChallengeById(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<ChallengeResponse>> getChallengeById(@PathVariable(name = "id") UUID id) {
         log.info("Admin retrieving challenge detail ID: {}", id);
         ChallengeResponse response = adminService.getChallengeById(id);
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin thử thách thành công", response));
@@ -172,7 +171,7 @@ public class AdminController {
     @PutMapping("/content/challenges/{id}")
     @Operation(summary = "Update Challenge", description = "Update an existing challenge by ID")
     public ResponseEntity<ApiResponse<ChallengeResponse>> updateChallenge(
-            @PathVariable UUID id,
+            @PathVariable(name = "id") UUID id,
             @Valid @RequestBody ChallengeCreateRequest request) {
         log.info("Admin updating challenge ID: {}", id);
         ChallengeResponse response = adminService.updateChallenge(id, request);
@@ -181,7 +180,7 @@ public class AdminController {
 
     @DeleteMapping("/content/challenges/{id}")
     @Operation(summary = "Delete Challenge (DEPRECATED)", description = "This operation has been moved to Educator role")
-    public ResponseEntity<ApiResponse<Void>> deleteChallenge(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<Void>> deleteChallenge(@PathVariable(name = "id") UUID id) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ApiResponse.<Void>builder()
                         .status("error")
@@ -192,8 +191,6 @@ public class AdminController {
     // ==========================================
     // 1c. Content Management: Dialects
     // ==========================================
-
-
 
     // ==========================================
     // 1c. Content Management: Levels
@@ -209,7 +206,7 @@ public class AdminController {
 
     @GetMapping("/content/levels/{id}")
     @Operation(summary = "Get Level Detail", description = "Get details of a specific level by ID")
-    public ResponseEntity<ApiResponse<LevelResponse>> getLevelById(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<LevelResponse>> getLevelById(@PathVariable(name = "id") UUID id) {
         log.info("Admin retrieving level detail ID: {}", id);
         LevelResponse response = adminService.getLevelById(id);
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin cấp độ thành công", response));
@@ -228,7 +225,7 @@ public class AdminController {
     @PutMapping("/content/levels/{id}")
     @Operation(summary = "Update Level", description = "Update an existing level by ID")
     public ResponseEntity<ApiResponse<LevelResponse>> updateLevel(
-            @PathVariable UUID id,
+            @PathVariable(name = "id") UUID id,
             @Valid @RequestBody LevelCreateRequest request) {
         log.info("Admin updating level ID: {}", id);
         LevelResponse response = adminService.updateLevel(id, request);
@@ -237,7 +234,7 @@ public class AdminController {
 
     @DeleteMapping("/content/levels/{id}")
     @Operation(summary = "Delete Level", description = "Delete a level by ID")
-    public ResponseEntity<ApiResponse<Void>> deleteLevel(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<Void>> deleteLevel(@PathVariable(name = "id") UUID id) {
         log.info("Admin deleting level ID: {}", id);
         adminService.deleteLevel(id);
         return ResponseEntity.ok(ApiResponse.success("Xóa cấp độ thành công", null));
@@ -268,7 +265,7 @@ public class AdminController {
     @PutMapping("/content/challenge-bank/{id}")
     @Operation(summary = "Update Challenge Bank Item", description = "Update an existing challenge bank item by ID")
     public ResponseEntity<ApiResponse<ChallengeBank>> updateChallengeBankItem(
-            @PathVariable UUID id,
+            @PathVariable(name = "id") UUID id,
             @Valid @RequestBody ChallengeBankRequest request) {
         log.info("Admin updating challenge bank item ID: {}", id);
         ChallengeBank response = challengeBankService.updateChallenge(id, request);
@@ -277,7 +274,7 @@ public class AdminController {
 
     @DeleteMapping("/content/challenge-bank/{id}")
     @Operation(summary = "Delete Challenge Bank Item", description = "Delete a challenge bank item by ID")
-    public ResponseEntity<ApiResponse<Void>> deleteChallengeBankItem(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<Void>> deleteChallengeBankItem(@PathVariable(name = "id") UUID id) {
         log.info("Admin deleting challenge bank item ID: {}", id);
         challengeBankService.deleteChallenge(id);
         return ResponseEntity.ok(ApiResponse.success("Xóa câu hỏi thành công", null));
@@ -286,7 +283,7 @@ public class AdminController {
     @GetMapping("/content/{id}/history")
     @Operation(summary = "Get Content Approval History", description = "View the audit log for a specific level or challenge")
     public ResponseEntity<ApiResponse<List<org.fsa_2026.company_fsa_captone_2026.dto.ContentApprovalHistoryResponse>>> getContentApprovalHistory(
-            @PathVariable UUID id) {
+            @PathVariable(name = "id") UUID id) {
         log.info("Admin retrieving approval history for content ID: {}", id);
         List<org.fsa_2026.company_fsa_captone_2026.dto.ContentApprovalHistoryResponse> responses = adminService
                 .getContentApprovalHistory(id);
@@ -307,9 +304,10 @@ public class AdminController {
 
     @GetMapping("/rewards/{id}")
     @Operation(summary = "Get Reward by ID", description = "Get details of a specific reward/badge by ID")
-    public ResponseEntity<ApiResponse<RewardResponse>> getRewardById(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<RewardResponse>> getRewardById(@PathVariable(name = "id") UUID id) {
         log.info("Admin retrieving reward detail ID: {}", id);
-        return ResponseEntity.ok(ApiResponse.success("Lấy thông tin thành tựu thành công", adminService.getRewardById(id)));
+        return ResponseEntity
+                .ok(ApiResponse.success("Lấy thông tin thành tựu thành công", adminService.getRewardById(id)));
     }
 
     @PostMapping("/rewards")
@@ -324,15 +322,16 @@ public class AdminController {
     @PutMapping("/rewards/{id}")
     @Operation(summary = "Update Reward", description = "Update an existing reward/badge by ID")
     public ResponseEntity<ApiResponse<RewardResponse>> updateReward(
-            @PathVariable UUID id,
+            @PathVariable(name = "id") UUID id,
             @Valid @RequestBody org.fsa_2026.company_fsa_captone_2026.dto.RewardCreateRequest request) {
         log.info("Admin updating reward ID: {}", id);
-        return ResponseEntity.ok(ApiResponse.success("Cập nhật thành tựu thành công", adminService.updateReward(id, request)));
+        return ResponseEntity
+                .ok(ApiResponse.success("Cập nhật thành tựu thành công", adminService.updateReward(id, request)));
     }
 
     @DeleteMapping("/rewards/{id}")
     @Operation(summary = "Delete Reward", description = "Delete a reward/badge by ID")
-    public ResponseEntity<ApiResponse<Void>> deleteReward(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<Void>> deleteReward(@PathVariable(name = "id") UUID id) {
         log.info("Admin deleting reward ID: {}", id);
         adminService.deleteReward(id);
         return ResponseEntity.ok(ApiResponse.success("Xóa thành tựu thành công", null));
@@ -340,16 +339,17 @@ public class AdminController {
 
     @PatchMapping("/rewards/{id}/toggle")
     @Operation(summary = "Toggle Reward Status", description = "Turn a reward active status on or off")
-    public ResponseEntity<ApiResponse<RewardResponse>> toggleReward(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<RewardResponse>> toggleReward(@PathVariable(name = "id") UUID id) {
         log.info("Admin toggling reward status ID: {}", id);
-        return ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái thành tựu thành công", adminService.toggleRewardActive(id)));
+        return ResponseEntity.ok(
+                ApiResponse.success("Cập nhật trạng thái thành tựu thành công", adminService.toggleRewardActive(id)));
     }
 
     @PostMapping("/rewards/{rewardId}/attach/{quizId}")
     @Operation(summary = "Attach Reward to Quiz", description = "Link a reward/badge to a specific quiz")
     public ResponseEntity<ApiResponse<Void>> attachRewardToQuiz(
-            @PathVariable UUID rewardId,
-            @PathVariable UUID quizId) {
+            @PathVariable(name = "rewardId") UUID rewardId,
+            @PathVariable(name = "quizId") UUID quizId) {
         log.info("Admin attaching reward ID: {} to quiz ID: {}", rewardId, quizId);
         adminService.attachRewardToQuiz(rewardId, quizId);
         return ResponseEntity.ok(ApiResponse.success("Gán thành tựu cho quiz thành công", null));
@@ -378,7 +378,7 @@ public class AdminController {
     @GetMapping("/ai-monitor/logs")
     @Operation(summary = "AI Monitor Logs", description = "Get recent speaking attempt logs with latency and feedback details")
     public ResponseEntity<ApiResponse<List<SpeakingAttemptLogResponse>>> getAiMonitorLogs(
-            @RequestParam(defaultValue = "50") int limit) {
+            @RequestParam(name = "limit", defaultValue = "50") int limit) {
         log.info("Admin requesting AI monitor logs, limit={}", limit);
         List<SpeakingAttemptLogResponse> logs = speakingAttemptService.getAiMonitorLogs(limit);
         return ResponseEntity.ok(ApiResponse.success("Thành công", logs));
@@ -414,7 +414,7 @@ public class AdminController {
                 .status("UP")
                 .databaseStatus("CONNECTED")
                 .parakeetStatus("ONLINE")
-                .geminiStatus("CONNECTED")
+                .groqStatus("CONNECTED")
                 .uptimeSeconds(86400)
                 .build();
         return ResponseEntity.ok(ApiResponse.success("Thành công", mockResponse));
@@ -447,15 +447,15 @@ public class AdminController {
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuizzes(
             @RequestParam(value = "levelId", required = false) UUID levelId) {
         log.info("Admin retrieving quizzes. Level filter: {}", levelId);
-        List<Map<String, Object>> responses = levelId != null 
-                ? quizService.getQuizzesByLevel(levelId) 
+        List<Map<String, Object>> responses = levelId != null
+                ? quizService.getQuizzesByLevel(levelId)
                 : quizService.getAllQuizzes();
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách quiz thành công", responses));
     }
 
     @GetMapping("/content/quizzes/{id}")
     @Operation(summary = "Get Quiz Detail", description = "Get details of a specific quiz by ID")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getQuizById(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getQuizById(@PathVariable(name = "id") UUID id) {
         log.info("Admin retrieving quiz detail ID: {}", id);
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin quiz thành công", quizService.getQuizDetails(id)));
     }
@@ -472,7 +472,7 @@ public class AdminController {
     @PutMapping("/content/quizzes/{id}")
     @Operation(summary = "Update Quiz", description = "Update an existing quiz by ID")
     public ResponseEntity<ApiResponse<org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit>> updateQuiz(
-            @PathVariable UUID id,
+            @PathVariable(name = "id") UUID id,
             @Valid @RequestBody org.fsa_2026.company_fsa_captone_2026.dto.QuizCreateRequest request) {
         log.info("Admin updating quiz ID: {}", id);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật quiz thành công", quizService.updateQuiz(id, request)));
@@ -480,7 +480,7 @@ public class AdminController {
 
     @DeleteMapping("/content/quizzes/{id}")
     @Operation(summary = "Delete Quiz", description = "Delete a quiz by ID")
-    public ResponseEntity<ApiResponse<Void>> deleteQuiz(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<Void>> deleteQuiz(@PathVariable(name = "id") UUID id) {
         log.info("Admin deleting quiz ID: {}", id);
         quizService.deleteQuiz(id);
         return ResponseEntity.ok(ApiResponse.success("Xóa quiz thành công", null));
@@ -494,20 +494,19 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success("Thay đổi thứ tự bài tập thành công", null));
     }
 
-
     @GetMapping("/content/quizzes/{id}/challenges")
     @Operation(summary = "Get Quiz Challenges", description = "Get challenges assigned to a quiz")
     public ResponseEntity<ApiResponse<List<org.fsa_2026.company_fsa_captone_2026.dto.QuizChallengeItemResponse>>> getQuizChallenges(
-            @PathVariable UUID id) {
+            @PathVariable(name = "id") UUID id) {
         log.info("Admin retrieving challenges for quiz ID: {}", id);
-        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách thử thách của quiz thành công", 
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách thử thách của quiz thành công",
                 challengeBankService.getChallengesByQuizId(id)));
     }
 
     @PostMapping("/content/quizzes/{id}/challenges")
     @Operation(summary = "Assign Challenges to Quiz", description = "Assign challenges to a quiz and return updated scoring")
     public ResponseEntity<ApiResponse<Map<String, Object>>> assignChallengesToQuiz(
-            @PathVariable UUID id,
+            @PathVariable(name = "id") UUID id,
             @RequestBody Map<String, List<UUID>> request) {
         List<UUID> challengeIds = request.get("challengeIds");
         log.info("Admin assigning challenges to quiz ID: {}", id);
@@ -518,8 +517,8 @@ public class AdminController {
     @DeleteMapping("/content/quizzes/{id}/challenges/{challengeId}")
     @Operation(summary = "Remove Challenge from Quiz", description = "Remove a challenge from a quiz and return updated scoring")
     public ResponseEntity<ApiResponse<Map<String, Object>>> removeChallengeFromQuiz(
-            @PathVariable UUID id,
-            @PathVariable UUID challengeId) {
+            @PathVariable(name = "id") UUID id,
+            @PathVariable(name = "challengeId") UUID challengeId) {
         log.info("Admin removing challenge ID: {} from quiz ID: {}", challengeId, id);
         return ResponseEntity.ok(ApiResponse.success("Xóa thử thách khỏi quiz thành công",
                 challengeBankService.removeChallengeFromQuiz(id, challengeId)));
@@ -532,9 +531,9 @@ public class AdminController {
     @GetMapping("/dataset/speaking")
     @Operation(summary = "Get Speaking Attempts", description = "Get all speaking attempts for dataset review. Filter by dialect (NORTH, CENTRAL, SOUTH)")
     public ResponseEntity<ApiResponse<Page<SpeakingAttempt>>> getSpeakingAttempts(
-            @RequestParam(value = "dialect", required = false) String dialect,
-            @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "20") int size) {
+            @RequestParam(name = "dialect", required = false) String dialect,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "20") int size) {
         log.info("Admin retrieving speaking attempts. Dialect: {}, Page: {}, Size: {}", dialect, page, size);
         Pageable pageable = PageRequest.of(page, size);
         Page<SpeakingAttempt> result = speakingAttemptService.getAttempts(dialect, pageable);
@@ -547,6 +546,46 @@ public class AdminController {
         log.info("Admin retrieving speaking dataset stats");
         Map<String, Long> stats = speakingAttemptService.getStats();
         return ResponseEntity.ok(ApiResponse.success("Thống kê dataset giọng nói thành công", stats));
+    }
+
+    // ==========================================
+    // 6. Entry Test Question CRUD
+    // ==========================================
+
+    @GetMapping("/content/entry-test-questions")
+    @Operation(summary = "Get All Entry Test Questions", description = "Retrieves all questions for the entry test")
+    public ResponseEntity<ApiResponse<List<org.fsa_2026.company_fsa_captone_2026.dto.EntryTestQuestionResponse>>> getAllEntryTestQuestions() {
+        log.info("Admin retrieving all entry test questions");
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách câu hỏi entry test thành công",
+                entryTestService.getAllQuestions()));
+    }
+
+    @PostMapping("/content/entry-test-questions")
+    @Operation(summary = "Create Entry Test Question", description = "Create a new entry test question")
+    public ResponseEntity<ApiResponse<org.fsa_2026.company_fsa_captone_2026.dto.EntryTestQuestionResponse>> createEntryTestQuestion(
+            @Valid @RequestBody org.fsa_2026.company_fsa_captone_2026.dto.EntryTestQuestionRequest request) {
+        log.info("Admin creating entry test question: {}", request.getTargetText());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Tạo câu hỏi entry test thành công",
+                        entryTestService.createQuestion(request)));
+    }
+
+    @PutMapping("/content/entry-test-questions/{id}")
+    @Operation(summary = "Update Entry Test Question", description = "Update an existing entry test question")
+    public ResponseEntity<ApiResponse<org.fsa_2026.company_fsa_captone_2026.dto.EntryTestQuestionResponse>> updateEntryTestQuestion(
+            @PathVariable(name = "id") UUID id,
+            @Valid @RequestBody org.fsa_2026.company_fsa_captone_2026.dto.EntryTestQuestionRequest request) {
+        log.info("Admin updating entry test question ID: {}", id);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật câu hỏi entry test thành công",
+                entryTestService.updateQuestion(id, request)));
+    }
+
+    @DeleteMapping("/content/entry-test-questions/{id}")
+    @Operation(summary = "Delete Entry Test Question", description = "Delete an entry test question")
+    public ResponseEntity<ApiResponse<Void>> deleteEntryTestQuestion(@PathVariable(name = "id") UUID id) {
+        log.info("Admin deleting entry test question ID: {}", id);
+        entryTestService.deleteQuestion(id);
+        return ResponseEntity.ok(ApiResponse.success("Xóa câu hỏi entry test thành công", null));
     }
 
 }

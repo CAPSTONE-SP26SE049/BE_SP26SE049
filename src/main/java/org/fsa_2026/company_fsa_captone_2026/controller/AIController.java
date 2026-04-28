@@ -20,6 +20,19 @@ public class AIController {
 
     private final AIService aiService;
     private final SpeakingAttemptService speakingAttemptService;
+    private final org.fsa_2026.company_fsa_captone_2026.service.TTSService ttsService;
+
+    @PostMapping("/tts")
+    public Map<String, Object> tts(@RequestBody Map<String, String> request) {
+        String text = request.get("text");
+        String voice = request.get("voice");
+        if (text == null || text.isBlank()) {
+            throw new ApiException("BAD_REQUEST", "Văn bản không được để trống");
+        }
+        return ttsService.synthesize(text, voice);
+    }
+
+
 
     @PostMapping("/evaluate-pronunciation")
     public Map<String, Object> evaluatePronunciation(
@@ -35,7 +48,8 @@ public class AIController {
 
     /**
      * AI Feedback endpoint for text comparison (ASR based).
-     * Now integrates with SpeakingAttemptService to save data for dataset collection.
+     * Now integrates with SpeakingAttemptService to save data for dataset
+     * collection.
      */
     @PostMapping("/feedback")
     public Map<String, Object> getFeedback(
@@ -88,11 +102,12 @@ public class AIController {
         result.put("endTime", endTime);
         result.put("processingTimeMs", processingTimeMs);
         result.put("feedback", aiFeedback);
-        result.put("geminiFeedback", aiFeedback);
+        result.put("groqFeedback", aiFeedback);
         result.put("aiScore", result.get("accuracy"));
         result.put("score", result.get("accuracy"));
         result.put("suggestion", aiFeedback);
         result.put("errorDetail", aiFeedback);
+        result.put("transcribedText", transcribedText);
 
         if (consentGiven && authentication != null) {
             int score = 0;
@@ -118,18 +133,17 @@ public class AIController {
                     dialect,
                     processingTimeMs,
                     asrProcessingTimeMs,
-                    aiFeedback
-            );
+                    aiFeedback);
         }
 
         return result;
     }
 
     /**
-     * Chat đơn giản với Gemini Flash.
+     * Chat đơn giản với Groq.
      * Request body:
      * {
-     *   "message": "Xin chào Gemini"
+     * "message": "Xin chào Groq"
      * }
      */
     @PostMapping("/chat")
@@ -138,7 +152,25 @@ public class AIController {
         if (message == null || message.isBlank()) {
             throw new ApiException("BAD_REQUEST", "Thiếu message");
         }
-        return aiService.chatWithGeminiFlash(message);
+        return aiService.chatWithGroq(message);
+    }
+
+    @PostMapping("/explain-quiz-answer")
+    public Map<String, Object> explainQuizAnswer(@RequestBody Map<String, Object> request) {
+        log.info("[explainQuizAnswer] New request received: {}", request);
+        String question = (String) request.get("question");
+        String selectedAnswer = (String) request.get("selectedAnswer");
+        String correctAnswer = (String) request.get("correctAnswer");
+        String skillType = (String) request.get("skillType");
+        String transcript = (String) request.get("transcript");
+        String correctSentence = (String) request.get("correctSentence");
+
+        if (question == null || selectedAnswer == null || correctAnswer == null) {
+            throw new ApiException("BAD_REQUEST", "Thiếu thông tin câu hỏi hoặc đáp án");
+        }
+
+        return aiService.explainQuizAnswer(question, selectedAnswer, correctAnswer, skillType, transcript,
+                correctSentence);
     }
 
     private Long extractLong(Object value) {

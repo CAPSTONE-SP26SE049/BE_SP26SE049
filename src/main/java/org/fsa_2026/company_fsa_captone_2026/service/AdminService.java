@@ -80,6 +80,7 @@ public class AdminService {
     private final DailyAnalyticsRepository dailyAnalyticsRepository;
     private final ObjectMapper objectMapper;
     private final RewardCatalogRepository rewardCatalogRepository;
+    private final org.fsa_2026.company_fsa_captone_2026.repository.AccountRewardRepository accountRewardRepository;
 
     /**
      * Create a new Educator account
@@ -523,7 +524,7 @@ public class AdminService {
 
         long totalUsers = accountRepository.count();
         long totalAttempts = speakingAttemptRepository.countByConsentGivenTrue();
-        double averageScore = speakingAttemptRepository.averageGeminiScoreWithConsentGivenTrue();
+        double averageScore = speakingAttemptRepository.averageGroqScoreWithConsentGivenTrue();
         java.time.Instant sevenDaysAgo = java.time.Instant.now().minus(7, java.time.temporal.ChronoUnit.DAYS);
         long activeUsers7Days = studySessionRepository.countDistinctAccountByStartedAtAfter(sevenDaysAgo);
 
@@ -555,7 +556,7 @@ public class AdminService {
 
     /**
      * Get Error Heatmaps from DB by dialect
-     * Rate = (count gemini_score < 80) / (total count)
+     * Rate = (count groq_score < 80) / (total count)
      */
     @Transactional(readOnly = true)
     public Map<String, Object> getErrorHeatmaps() {
@@ -564,7 +565,7 @@ public class AdminService {
 
         for (String d : dialects) {
             long total = speakingAttemptRepository.countByDialectAndConsentGivenTrue(d);
-            long errors = speakingAttemptRepository.countByDialectAndConsentGivenTrueAndGeminiScoreLessThan(d, 80);
+            long errors = speakingAttemptRepository.countByDialectAndConsentGivenTrueAndGroqScoreLessThan(d, 80);
 
             double rate = total > 0 ? (double) errors / total : 0.0;
             stats.put(d.toLowerCase(), rate);
@@ -641,6 +642,11 @@ public class AdminService {
         Optional<LearningUnit> linkedQuiz = learningUnitRepository.findByRewardCatalogId(id);
         if (linkedQuiz.isPresent()) {
             throw new ApiException("CONFLICT", "Không thể xóa phần thưởng này vì đang được gán cho bài kiểm tra: " + linkedQuiz.get().getName());
+        }
+
+        // Check if any users have already earned this reward
+        if (accountRewardRepository.existsByRewardCatalogId(id)) {
+            throw new ApiException("CONFLICT", "Không thể xóa phần thưởng này vì đã có học viên nhận được!");
         }
 
         rewardCatalogRepository.deleteById(id);

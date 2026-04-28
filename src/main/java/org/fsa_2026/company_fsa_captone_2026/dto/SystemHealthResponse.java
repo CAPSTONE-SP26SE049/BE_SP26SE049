@@ -18,6 +18,6 @@ public class SystemHealthResponse implements Serializable {
     private String status;
     private String databaseStatus;
     private String parakeetStatus; // Local ASR
-    private String geminiStatus;   // Cloud AI
+    private String groqStatus;   // Cloud AI
     private long uptimeSeconds;
 }

@@ -38,12 +38,12 @@ public class SpeakingAttemptService {
             String targetText,
             String asrTranscription,
             String audioUrl,
-            int geminiScore,
+            int groqScore,
             boolean isCorrect,
             String dialect,
             Long processingTimeMs,
             Long asrProcessingTimeMs,
-            String geminiFeedback) {
+            String groqFeedback) {
 
         try {
             // 1. Tìm Account
@@ -72,17 +72,17 @@ public class SpeakingAttemptService {
                     .targetText(targetText)
                     .asrTranscription(asrTranscription)
                     .audioUrl(audioUrl)
-                    .geminiScore(geminiScore)
+                    .groqScore(groqScore)
                     .isCorrect(isCorrect)
                     .dialect(dialect)
                     .consentGiven(true)
                     .processingTimeMs(processingTimeMs)
                     .asrProcessingTimeMs(asrProcessingTimeMs)
-                    .geminiFeedback(geminiFeedback)
+                    .groqFeedback(groqFeedback)
                     .build();
 
             speakingAttemptRepository.save(attempt);
-            log.info("[SpeakingAttempt] Saved attempt for account: {}, score: {}", accountEmail, geminiScore);
+            log.info("[SpeakingAttempt] Saved attempt for account: {}, score: {}", accountEmail, groqScore);
 
         } catch (Exception e) {
             log.error("[SpeakingAttempt] Failed to save attempt: {}", e.getMessage(), e);
@@ -121,8 +121,8 @@ public class SpeakingAttemptService {
                 .targetText(sa.getTargetText())
                 .asrTranscription(sa.getAsrTranscription())
                 .audioUrl(sa.getAudioUrl())
-                .geminiScore(sa.getGeminiScore())
-                .geminiFeedback(sa.getGeminiFeedback())
+                .groqScore(sa.getGroqScore())
+                .groqFeedback(sa.getGroqFeedback())
                 .isCorrect(sa.getIsCorrect())
                 .dialect(sa.getDialect())
                 .processingTimeMs(sa.getProcessingTimeMs())
