@@ -425,6 +425,8 @@ public class AdminService {
                 .parent(parent)
                 .name(request.getName())
                 .type(TYPE_LEVEL)
+                .difficultyLevel(request.getDifficultyLevel())
+                .errorTag(request.getErrorTag())
                 .build();
 
         try {
@@ -454,6 +456,8 @@ public class AdminService {
 
         level.setName(request.getName());
         level.setType(request.getType());
+        level.setDifficultyLevel(request.getDifficultyLevel());
+        level.setErrorTag(request.getErrorTag());
 
         try {
             Map<String, Object> metadata = request.getMetadataJson() != null

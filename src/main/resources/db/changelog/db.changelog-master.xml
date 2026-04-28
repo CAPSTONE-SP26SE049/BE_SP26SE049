@@ -21,4 +21,11 @@
     <include file="db/changelog/52-rename-gemini-columns-to-groq.xml"/>
     <include file="db/changelog/53-migrate-entry-test-questions.xml"/>
     <include file="db/changelog/54-drop-quiz-data.xml"/>
+    <include file="db/changelog/55-add-personal-roadmap-tables.xml"/>
+    <include file="db/changelog/56-add-missing-base-entity-columns.xml"/>
+    <include file="db/changelog/57-refactor-roadmap.xml"/>
+    <include file="db/changelog/58-seed-error-tag-regions.xml"/>
+    <include file="db/changelog/59-delete-error-tags-data.xml"/>
+    <include file="db/changelog/60-add-learning-unit-missing-columns.xml"/>
+    <include file="db/changelog/29-update-error-tag-regions.xml"/>
 </databaseChangeLog>

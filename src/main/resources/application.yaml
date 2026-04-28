@@ -133,4 +133,11 @@ groq:
 
 asr:
   local:
-    endpoint: ${ASR_URL:https://bao2311-capstone-final.hf.space/asr}
+    endpoint: ${ASR_URL:https://nguyenductuan-speak-journey-vn.hf.space/api/v1/transcribe}
+    model: ${ASR_MODEL:NguyenDucTuan/Speak_Journey_VN}
+    language: "vi"
+    sampling-rate: 16000
+
+firebase:
+  service-account-path: ${FIREBASE_CONFIG_PATH:classpath:firebase-service-account.json}
+  bucket-name: ${FIREBASE_BUCKET:speak-journey-vn-2026.firebasestorage.app}

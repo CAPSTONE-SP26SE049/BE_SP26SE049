@@ -21,6 +21,7 @@ public class AIController {
     private final AIService aiService;
     private final SpeakingAttemptService speakingAttemptService;
     private final org.fsa_2026.company_fsa_captone_2026.service.TTSService ttsService;
+    private final org.fsa_2026.company_fsa_captone_2026.service.FirebaseStorageService firebaseStorageService;
 
     @PostMapping("/tts")
     public Map<String, Object> tts(@RequestBody Map<String, String> request) {
@@ -43,7 +44,18 @@ public class AIController {
             throw new ApiException("BAD_REQUEST", "File âm thanh không được để trống");
         }
 
-        return aiService.evaluatePronunciation(audio.getBytes(), targetText);
+        Map<String, Object> result = new java.util.HashMap<>(aiService.evaluatePronunciation(audio.getBytes(), targetText));
+
+        // Upload to Firebase
+        try {
+            String audioUrl = firebaseStorageService.uploadFile(audio, "pronunciation-eval");
+            result.put("audioUrl", audioUrl);
+            log.info("Uploaded pronunciation evaluation audio to: {}", audioUrl);
+        } catch (Exception e) {
+            log.error("Failed to upload audio to Firebase", e);
+        }
+
+        return result;
     }
 
     /**

@@ -7,6 +7,7 @@ import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,7 +31,11 @@ public class LevelResponse implements Serializable {
     private String name;
     private String description;
     private Integer minStarsRequired;
-    private ErrorTagResponse errorTag;
+    @JsonProperty("error_tag")
+    private String errorTag;
+    
+    @JsonProperty("difficulty_level")
+    private String difficultyLevel;
     private Integer aiThreshold;
     private String audioUrl;
     private String status;
@@ -109,6 +114,8 @@ public class LevelResponse implements Serializable {
                 .name(level.getName())
                 .description(description)
                 .minStarsRequired(minStarsRequired)
+                .errorTag(level.getErrorTag())
+                .difficultyLevel(level.getDifficultyLevel())
                 .aiThreshold(aiThreshold)
                 .audioUrl(audioUrl)
                 .status(status)

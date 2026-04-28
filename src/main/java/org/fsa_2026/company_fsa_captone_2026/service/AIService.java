@@ -32,6 +32,15 @@ public class AIService {
     @Value("${asr.local.endpoint:http://localhost:8000/asr}")
     private String localAsrEndpoint;
 
+    @Value("${asr.local.model:}")
+    private String localAsrModel;
+
+    @Value("${asr.local.language:vi}")
+    private String localAsrLanguage;
+
+    @Value("${asr.local.sampling-rate:16000}")
+    private int localAsrSamplingRate;
+
     public static final String SYSTEM_INSTRUCTION = "Bạn là chuyên gia phân tích phát âm tiếng Việt. So sánh rawText với targetText và trả về nhận xét sư phạm, cụ thể, hữu ích. Ưu tiên phát hiện các lỗi vùng miền và lỗi phát âm phổ biến như N/L, S/X, TR/CH, D/R/GI, âm cuối, dấu thanh, nguyên âm và phụ âm đầu. Không được trả lời chung chung, không được lặp lại nguyên văn targetText, và không được dùng câu ngắn kiểu 'Phát âm chưa chính xác' nếu chưa giải thích vì sao.";
     public static final String JSON_SCHEMA_INSTRUCTION = "Trả về JSON thuần túy với các fields: accuracy (0-100), detectedError (mô tả lỗi cụ thể), feedback (ít nhất 2 câu, nêu lỗi và cách sửa), suggestion (gợi ý ngắn gọn), errorDetail (diễn giải chi tiết hơn feedback), isRegional (boolean), isCorrect (boolean), shapeKey (exact_match, near_match, pronunciation_mismatch, regional_error, missing_input).";
 
@@ -49,6 +58,9 @@ public class AIService {
         feedback.put("azureAccuracy", transcriptionResult.pronunciationAccuracy());
         feedback.put("asrProvider", transcriptionResult.provider() != null ? transcriptionResult.provider() : "none");
         feedback.put("aiProvider", feedback.getOrDefault("aiProvider", "groq"));
+        if (transcriptionResult.wordDetails() != null) {
+            feedback.put("word_details", transcriptionResult.wordDetails());
+        }
         return feedback;
     }
 
@@ -62,6 +74,11 @@ public class AIService {
                     return "recording.webm";
                 }
             });
+            if (localAsrModel != null && !localAsrModel.isBlank()) {
+                body.add("model", localAsrModel);
+            }
+            body.add("language", localAsrLanguage);
+            body.add("sampling_rate", String.valueOf(localAsrSamplingRate));
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
@@ -71,13 +88,19 @@ public class AIService {
             long latencyMs = System.currentTimeMillis() - start;
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 String text = (String) response.getBody().get("text");
-                return new AzureTranscriptionResult(text != null ? text : "", 0, latencyMs, "local_asr", null);
+                List<Map<String, Object>> wordDetails = null;
+                if (response.getBody().containsKey("words")) {
+                    wordDetails = (List<Map<String, Object>>) response.getBody().get("words");
+                } else if (response.getBody().containsKey("word_details")) {
+                    wordDetails = (List<Map<String, Object>>) response.getBody().get("word_details");
+                }
+                return new AzureTranscriptionResult(text != null ? text : "", 0, latencyMs, "local_asr", null, wordDetails);
             }
             return new AzureTranscriptionResult("", 0, latencyMs, "local_asr",
-                    "Local ASR status: " + response.getStatusCode());
+                    "Local ASR status: " + response.getStatusCode(), null);
         } catch (Exception e) {
             log.warn("Local ASR failed, fallback to secondary if available: {}", e.getMessage());
-            return new AzureTranscriptionResult("", 0, System.currentTimeMillis() - start, "local_asr", e.getMessage());
+            return new AzureTranscriptionResult("", 0, System.currentTimeMillis() - start, "local_asr", e.getMessage(), null);
         }
     }
 
@@ -360,6 +383,6 @@ public class AIService {
     }
 
     public record AzureTranscriptionResult(String transcript, double pronunciationAccuracy, long latencyMs,
-            String provider, String error) {
+            String provider, String error, List<Map<String, Object>> wordDetails) {
     }
 }

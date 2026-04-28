@@ -16,7 +16,10 @@ import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.EntryTestQuestionRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.EntryTestResultRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.LearningUnitRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.CustomLearningPathRepository;
 import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
+import org.fsa_2026.company_fsa_captone_2026.entity.CustomLearningPath;
+import org.fsa_2026.company_fsa_captone_2026.entity.CustomPathLevel;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
@@ -41,14 +44,13 @@ public class EntryTestService {
     private final EntryTestQuestionRepository questionRepository;
     private final EntryTestResultRepository resultRepository;
     private final AccountRepository accountRepository;
+    private final FirebaseStorageService firebaseStorageService;
+
     private final LearningUnitRepository learningUnitRepository;
     private final AccountLearningUnitRepository accountLearningUnitRepository;
     private final CustomLearningPathService customLearningPathService;
     private final AIService aiService;
-    private final RestTemplate restTemplate = new RestTemplate();
-
-    @Value("${asr.local.endpoint:http://localhost:8000/asr}")
-    private String localAsrEndpoint;
+    private final CustomLearningPathRepository customLearningPathRepository;
 
     // CRUD Methods
     public List<EntryTestQuestionResponse> getAllQuestions() {
@@ -124,7 +126,8 @@ public class EntryTestService {
             }
         }
 
-        // Nếu chưa đủ 10 câu (do DB thiếu hoặc truyền region sai/null), lấy trộn như fallback
+        // Nếu chưa đủ 10 câu (do DB thiếu hoặc truyền region sai/null), lấy trộn như
+        // fallback
         if (questions.size() < 10) {
             questions.clear();
             // Ensure 3 from each region to get 9, then 1 more random for 10
@@ -152,17 +155,28 @@ public class EntryTestService {
     }
 
     @Transactional
-    public Map<String, Object> analyzeEntryTestStep(UUID questionId, byte[] audioData) {
+    public Map<String, Object> analyzeEntryTestStep(UUID questionId, org.springframework.web.multipart.MultipartFile audioFile) throws java.io.IOException {
         EntryTestQuestion question = questionRepository.findById(questionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Question not found"));
 
+        byte[] audioData = audioFile.getBytes();
         // === Sử dụng đúng pipeline của Quiz Speaking: Azure Speech + Groq AI ===
         Map<String, Object> quizResult = aiService.evaluatePronunciation(audioData, question.getTargetText());
+
+        // Upload to Firebase
+        try {
+            String audioUrl = firebaseStorageService.uploadFile(audioFile, "entry-test");
+            quizResult.put("audioUrl", audioUrl);
+            log.info("Uploaded entry test audio to: {}", audioUrl);
+        } catch (Exception e) {
+            log.error("Failed to upload entry test audio to Firebase", e);
+        }
 
         // === Wrap kết quả để thêm thông tin vùng miền phục vụ chẩn đoán Entry Test ===
         Map<String, Object> diagnosis = new HashMap<>(quizResult);
         diagnosis.put("regionCategory", question.getRegionCategory());
         diagnosis.put("targetText", question.getTargetText());
+        diagnosis.put("questionId", questionId.toString());
 
         // === Đồng bộ field rawText với Quiz Speaking (azureTranscript) ===
         String rawText = (String) quizResult.getOrDefault("azureTranscript", "");
@@ -305,13 +319,16 @@ public class EntryTestService {
 
         result = resultRepository.save(result);
 
+        // Giai đoạn 2: Lọc lỗi và format lại trong JSON (đã có trong serializeDetails)
+        // We no longer need to save to EntryTestResultDetail table, we just serialize them.
+        
         // Mark account as having completed the entry test
         account.setHasDoneEntryTest(true);
         accountRepository.save(account);
 
         // Giai đoạn 3: Mở khóa Level & Lộ trình cá nhân hóa
         unlockLevelsBasedOnScore(account, detectedRegion, overallScore);
-        assignLearningPath(account, detectedRegion);
+        assignPersonalRoadmap(account, detectedRegion, result, stepResults);
 
         return result;
     }
@@ -369,21 +386,171 @@ public class EntryTestService {
         }
     }
 
-    private void assignLearningPath(Account account, RegionCode region) {
-        // Automatically assign chapters of the detected region to LearningPath
-        LearningUnit dialect = findDialectByRegionCode(region);
+    private void assignPersonalRoadmap(Account account, RegionCode region, EntryTestResult result, List<Map<String, Object>> stepResults) {
+        Map<String, Integer> wrongCounts = new HashMap<>();
+        Map<String, Integer> nearCounts = new HashMap<>();
+        
+        for (Map<String, Object> res : stepResults) {
+            String questionIdStr = (String) res.get("questionId");
+            if (questionIdStr == null) continue;
+            UUID qId;
+            try {
+                qId = UUID.fromString(questionIdStr);
+            } catch (Exception e) { continue; }
+            EntryTestQuestion question = questionRepository.findById(qId).orElse(null);
+            if (question == null) continue;
+            
+            Object wordDetailsObj = res.get("word_details");
+            if (wordDetailsObj instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> wordDetails = (List<Map<String, Object>>) wordDetailsObj;
+                for (Map<String, Object> wd : wordDetails) {
+                    String word = (String) wd.get("word");
+                    String status = (String) wd.get("status");
+                    if (word == null || status == null) continue;
+                    status = status.toLowerCase();
+                    if (!status.equals("wrong") && !status.equals("near")) continue;
 
-        if (dialect != null) {
-            // Simply creating or updating a CustomLearningPath for this student
-            customLearningPathService.createAutoPath(account, dialect);
+                    String errorCat = null;
+                    EntryTestRegionCategory category = question.getRegionCategory();
+                    String lw = word.toLowerCase();
+                    if (category == EntryTestRegionCategory.NORTH_NL) {
+                        if (lw.startsWith("l") || lw.startsWith("n")) errorCat = "L_N";
+                    } else if (category == EntryTestRegionCategory.SOUTH_TRCH) {
+                        if (lw.startsWith("tr") || lw.startsWith("ch")) errorCat = "TR_CH";
+                    } else if (category == EntryTestRegionCategory.CENTRAL_DGIR) {
+                        if (lw.startsWith("d") || lw.startsWith("gi") || lw.startsWith("r")) errorCat = "D_GI_R";
+                    }
+                    
+                    if (errorCat != null) {
+                        if ("wrong".equals(status)) {
+                            wrongCounts.put(errorCat, wrongCounts.getOrDefault(errorCat, 0) + 1);
+                        } else {
+                            nearCounts.put(errorCat, nearCounts.getOrDefault(errorCat, 0) + 1);
+                        }
+                    }
+                }
+            }
+        }
+
+        Map<String, Double> categoryAccuracy = new HashMap<>();
+        Set<String> allCategories = new HashSet<>(wrongCounts.keySet());
+        allCategories.addAll(nearCounts.keySet());
+        
+        for (String cat : allCategories) {
+            int wrong = wrongCounts.getOrDefault(cat, 0);
+            int near = nearCounts.getOrDefault(cat, 0);
+            
+            long totalWords = 10; // Fallback approximation
+            double errorRate = (wrong * 1.0 + near * 0.5) / totalWords;
+            double accuracy = (1.0 - errorRate) * 100;
+            categoryAccuracy.put(cat, Math.max(0, accuracy));
+        }
+
+        List<String> sortedCategories = categoryAccuracy.keySet().stream()
+                .sorted((c1, c2) -> Integer.compare(wrongCounts.getOrDefault(c2, 0), wrongCounts.getOrDefault(c1, 0)))
+                .collect(Collectors.toList());
+
+        CustomLearningPath customPath = CustomLearningPath.builder()
+                .student(account)
+                .title("Lộ trình Học cá nhân hóa")
+                .description("Lộ trình được tạo tự động bởi AI dựa trên kết quả kiểm tra đầu vào.")
+                .isAiGenerated(true)
+                .aiFeedback("Đang phân tích...")
+                .targetLevel(region.name())
+                .levels(new ArrayList<>())
+                .build();
+        
+        customPath = customLearningPathRepository.save(customPath);
+
+        int orderIndex = 1;
+        for (String cat : sortedCategories) {
+            double acc = categoryAccuracy.get(cat);
+            List<String> difficultiesToAssign = new ArrayList<>();
+            if (acc <= 50) {
+                difficultiesToAssign.addAll(List.of("BEGINNER", "INTERMEDIATE", "ADVANCED"));
+            } else if (acc <= 70) {
+                difficultiesToAssign.addAll(List.of("INTERMEDIATE", "ADVANCED"));
+            } else if (acc <= 90) {
+                difficultiesToAssign.add("ADVANCED");
+            }
+
+            if (!difficultiesToAssign.isEmpty()) {
+                for (String diff : difficultiesToAssign) {
+                    List<LearningUnit> units = learningUnitRepository.findByType("LEVEL").stream()
+                            .filter(u -> cat.equalsIgnoreCase(u.getErrorTag())
+                                    && diff.equalsIgnoreCase(u.getDifficultyLevel()))
+                            .collect(Collectors.toList());
+
+                    for (LearningUnit unit : units) {
+                        customPath.addLevel(unit, orderIndex++);
+                    }
+                }
+            }
+        }
+        customPath = customLearningPathRepository.save(customPath);
+
+        // Giai đoạn 4: Tích hợp AI sinh nhận xét
+        StringBuilder promptBuilder = new StringBuilder("Học viên mắc các lỗi sau trong phát âm: ");
+        if (categoryAccuracy.isEmpty()) {
+            promptBuilder.append("Không có lỗi ngọng vùng miền nghiêm trọng. ");
+        } else {
+            for (String cat : sortedCategories) {
+                promptBuilder.append("Lỗi ").append(cat).append(" với độ chính xác ")
+                        .append(String.format("%.1f", categoryAccuracy.get(cat))).append("% (có ")
+                        .append(wrongCounts.getOrDefault(cat, 0)).append(" từ sai hoàn toàn); ");
+            }
+        }
+        promptBuilder.append(
+                "Hãy viết 1 đoạn 3-4 câu nhận xét ngắn gọn, cổ vũ học viên và khuyên học viên nên ưu tiên học lỗi nào trước (dựa trên % độ chính xác thấp nhất).");
+
+        try {
+            Map<String, Object> aiResponse = aiService.chatWithGroq(promptBuilder.toString());
+            String aiFeedback = "Bạn cần cố gắng luyện tập thêm!";
+            if (aiResponse.containsKey("reply")) {
+                aiFeedback = (String) aiResponse.get("reply");
+            } else if (aiResponse.containsKey("feedback")) {
+                aiFeedback = (String) aiResponse.get("feedback");
+            } else if (aiResponse.containsKey("explanation")) {
+                aiFeedback = (String) aiResponse.get("explanation");
+            }
+            customPath.setAiFeedback(aiFeedback);
+            customLearningPathRepository.save(customPath);
+        } catch (Exception e) {
+            log.error("Error generating AI analysis for custom path", e);
+            customPath.setAiFeedback("Hệ thống AI đang bận. Dựa trên kết quả bài test, bạn đã được phân bổ lộ trình học phù hợp với lỗi phát âm của mình.");
+            customLearningPathRepository.save(customPath);
         }
     }
 
-    /** Robust lookup for the dialect LearningUnit by trying multiple name variations */
+    private long countTargetWords(String text, String errorCategory) {
+        if (text == null)
+            return 0;
+        String[] words = text.toLowerCase().replaceAll("[^\\p{L}\\s]", "").split("\\s+");
+        long count = 0;
+        for (String w : words) {
+            if (w.isEmpty())
+                continue;
+            if ("L_N".equals(errorCategory) && (w.startsWith("l") || w.startsWith("n")))
+                count++;
+            else if ("TR_CH".equals(errorCategory) && (w.startsWith("tr") || w.startsWith("ch")))
+                count++;
+            else if ("D_GI_R".equals(errorCategory) && (w.startsWith("d") || w.startsWith("gi") || w.startsWith("r")))
+                count++;
+            else if ("S_X".equals(errorCategory) && (w.startsWith("s") || w.startsWith("x")))
+                count++;
+        }
+        return count;
+    }
+
+    /**
+     * Robust lookup for the dialect LearningUnit by trying multiple name variations
+     */
     private LearningUnit findDialectByRegionCode(RegionCode region) {
         String internalName = region.name(); // "NORTH", "CENTRAL", "SOUTH"
         Optional<LearningUnit> byInternal = learningUnitRepository.findByTypeAndNameIgnoreCase("DIALECT", internalName);
-        if (byInternal.isPresent()) return byInternal.get();
+        if (byInternal.isPresent())
+            return byInternal.get();
 
         // Try Vietnamese names
         String vnName = switch (region) {
@@ -392,9 +559,10 @@ public class EntryTestService {
             case SOUTH -> "Miền Nam";
         };
         Optional<LearningUnit> byVnName = learningUnitRepository.findByTypeAndNameIgnoreCase("DIALECT", vnName);
-        if (byVnName.isPresent()) return byVnName.get();
+        if (byVnName.isPresent())
+            return byVnName.get();
 
-        // Last resort: search all dialects and check if they contain the keyword
+        // Last resort search all dialects and check if they contain the keyword
         return learningUnitRepository.findByType("DIALECT").stream()
                 .filter(lu -> {
                     String name = lu.getName().toUpperCase();
@@ -413,31 +581,6 @@ public class EntryTestService {
         }
     }
 
-    private String transcribeWithLocalAsr(byte[] audioData) {
-        try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-
-            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-            ByteArrayResource resource = new ByteArrayResource(audioData) {
-                @Override
-                public String getFilename() {
-                    return "audio.wav";
-                }
-            };
-            body.add("file", resource);
-
-            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(localAsrEndpoint, HttpMethod.POST,
-                    requestEntity, new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {
-                    });
-
-            return response.getBody() != null ? (String) response.getBody().get("text") : "";
-        } catch (Exception e) {
-            log.error("Local ASR failed", e);
-            return "Lỗi nhận diện";
-        }
-    }
 
     private EntryTestQuestionResponse mapToResponse(EntryTestQuestion question) {
         return EntryTestQuestionResponse.builder()

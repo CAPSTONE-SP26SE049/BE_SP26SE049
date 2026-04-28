@@ -53,7 +53,7 @@ public class EntryTestController {
             @RequestParam("questionId") UUID questionId,
             @RequestParam("audio") MultipartFile audio) {
         try {
-            Map<String, Object> result = entryTestService.analyzeEntryTestStep(questionId, audio.getBytes());
+            Map<String, Object> result = entryTestService.analyzeEntryTestStep(questionId, audio);
             return ResponseEntity.ok(ApiResponse.success("Chẩn đoán bước này thành công", result));
         } catch (Exception e) {
             log.error("Analysis step failed", e);
