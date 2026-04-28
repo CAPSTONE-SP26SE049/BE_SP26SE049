@@ -130,7 +130,7 @@ gemini:
   endpoint: https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent
 
 groq:
-  api-key: "${GROQ_API_KEY:}"
+  api-key: ${GROQ_API_KEY:}
   model: "llama-3.3-70b-versatile"
   fallback-models: "llama-3.3-70b-versatile,llama-3.1-70b-versatile,llama-3.1-8b-instant"
   endpoint: https://api.groq.com/openai/v1/chat/completions
