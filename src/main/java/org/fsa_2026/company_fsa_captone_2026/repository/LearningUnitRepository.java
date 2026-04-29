@@ -29,5 +29,7 @@ public interface LearningUnitRepository extends JpaRepository<LearningUnit, UUID
     /** Find the quiz linked to a specific reward, excluding a given quiz (for update validation) */
     Optional<LearningUnit> findByRewardCatalogIdAndIdNot(java.util.UUID rewardCatalogId, java.util.UUID excludeId);
 
+    List<LearningUnit> findByTypeAndErrorTagIgnoreCaseAndDifficultyLevelIgnoreCase(String type, String errorTag, String difficultyLevel);
+
     long countByType(String type);
 }

@@ -438,19 +438,35 @@ public class EntryTestService {
         Map<String, Double> categoryAccuracy = new HashMap<>();
         Set<String> allCategories = new HashSet<>(wrongCounts.keySet());
         allCategories.addAll(nearCounts.keySet());
-        
+
         for (String cat : allCategories) {
             int wrong = wrongCounts.getOrDefault(cat, 0);
             int near = nearCounts.getOrDefault(cat, 0);
-            
-            long totalWords = 10; // Fallback approximation
-            double errorRate = (wrong * 1.0 + near * 0.5) / totalWords;
+
+            // Calculate actual total target words across all questions for this category
+            long totalTargetWords = 0;
+            for (Map<String, Object> res : stepResults) {
+                String qIdStr = (String) res.get("questionId");
+                if (qIdStr == null) continue;
+                UUID qId = UUID.fromString(qIdStr);
+                EntryTestQuestion question = questionRepository.findById(qId).orElse(null);
+                if (question != null) {
+                    totalTargetWords += countTargetWords(question.getTargetText(), cat);
+                }
+            }
+
+            if (totalTargetWords == 0) totalTargetWords = 1; // Avoid division by zero
+
+            double errorRate = (wrong * 1.0 + near * 0.5) / totalTargetWords;
             double accuracy = (1.0 - errorRate) * 100;
             categoryAccuracy.put(cat, Math.max(0, accuracy));
         }
 
         List<String> sortedCategories = categoryAccuracy.keySet().stream()
-                .sorted((c1, c2) -> Integer.compare(wrongCounts.getOrDefault(c2, 0), wrongCounts.getOrDefault(c1, 0)))
+                .sorted((c1, c2) -> {
+                    // Sort by lower accuracy first (highest priority)
+                    return Double.compare(categoryAccuracy.get(c1), categoryAccuracy.get(c2));
+                })
                 .collect(Collectors.toList());
 
         CustomLearningPath customPath = CustomLearningPath.builder()
@@ -472,10 +488,7 @@ public class EntryTestService {
 
             if (!difficultiesToAssign.isEmpty()) {
                 for (String diff : difficultiesToAssign) {
-                    List<LearningUnit> units = learningUnitRepository.findByType("LEVEL").stream()
-                            .filter(u -> cat.equalsIgnoreCase(u.getErrorTag())
-                                    && diff.equalsIgnoreCase(u.getDifficultyLevel()))
-                            .collect(Collectors.toList());
+                    List<LearningUnit> units = learningUnitRepository.findByTypeAndErrorTagIgnoreCaseAndDifficultyLevelIgnoreCase("LEVEL", cat, diff);
 
                     for (LearningUnit unit : units) {
                         customPath.addLevel(unit, orderIndex++);
