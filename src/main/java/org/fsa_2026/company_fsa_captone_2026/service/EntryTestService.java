@@ -51,6 +51,8 @@ public class EntryTestService {
     private final CustomLearningPathService customLearningPathService;
     private final AIService aiService;
     private final CustomLearningPathRepository customLearningPathRepository;
+    private final RoadmapRuleService roadmapRuleService;
+
 
     // CRUD Methods
     public List<EntryTestQuestionResponse> getAllQuestions() {
@@ -466,14 +468,7 @@ public class EntryTestService {
         int orderIndex = 1;
         for (String cat : sortedCategories) {
             double acc = categoryAccuracy.get(cat);
-            List<String> difficultiesToAssign = new ArrayList<>();
-            if (acc <= 50) {
-                difficultiesToAssign.addAll(List.of("BEGINNER", "INTERMEDIATE", "ADVANCED"));
-            } else if (acc <= 70) {
-                difficultiesToAssign.addAll(List.of("INTERMEDIATE", "ADVANCED"));
-            } else if (acc <= 90) {
-                difficultiesToAssign.add("ADVANCED");
-            }
+            List<String> difficultiesToAssign = roadmapRuleService.getDifficultiesForScore(acc);
 
             if (!difficultiesToAssign.isEmpty()) {
                 for (String diff : difficultiesToAssign) {

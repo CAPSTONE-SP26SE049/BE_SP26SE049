@@ -28,4 +28,5 @@
     <include file="db/changelog/59-delete-error-tags-data.xml"/>
     <include file="db/changelog/60-add-learning-unit-missing-columns.xml"/>
     <include file="db/changelog/29-update-error-tag-regions.xml"/>
+    <include file="db/changelog/61-add-roadmap-rules-table.xml"/>
 </databaseChangeLog>
