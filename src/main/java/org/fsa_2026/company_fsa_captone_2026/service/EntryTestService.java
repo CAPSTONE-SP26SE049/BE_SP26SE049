@@ -388,85 +388,39 @@ public class EntryTestService {
         }
     }
 
-    private void assignPersonalRoadmap(Account account, RegionCode region, EntryTestResult result, List<Map<String, Object>> stepResults) {
-        Map<String, Integer> wrongCounts = new HashMap<>();
-        Map<String, Integer> nearCounts = new HashMap<>();
+    public void assignPersonalRoadmap(Account account, RegionCode region, EntryTestResult result, List<Map<String, Object>> stepResults) {
+        Map<String, List<Integer>> categoryScores = new HashMap<>();
+        Map<String, Integer> totalWrong = new HashMap<>();
         
-        for (Map<String, Object> res : stepResults) {
-            String questionIdStr = (String) res.get("questionId");
-            if (questionIdStr == null) continue;
-            UUID qId;
-            try {
-                qId = UUID.fromString(questionIdStr);
-            } catch (Exception e) { continue; }
-            EntryTestQuestion question = questionRepository.findById(qId).orElse(null);
-            if (question == null) continue;
+        for (Map<String, Object> detail : stepResults) {
+            String regionCatStr = (String) detail.get("regionCategory");
+            Object accObj = detail.get("accuracy");
             
-            Object wordDetailsObj = res.get("word_details");
-            if (wordDetailsObj instanceof List) {
-                @SuppressWarnings("unchecked")
-                List<Map<String, Object>> wordDetails = (List<Map<String, Object>>) wordDetailsObj;
-                for (Map<String, Object> wd : wordDetails) {
-                    String word = (String) wd.get("word");
-                    String status = (String) wd.get("status");
-                    if (word == null || status == null) continue;
-                    status = status.toLowerCase();
-                    if (!status.equals("wrong") && !status.equals("near")) continue;
-
-                    String errorCat = null;
-                    EntryTestRegionCategory category = question.getRegionCategory();
-                    String lw = word.toLowerCase();
-                    if (category == EntryTestRegionCategory.NORTH_NL) {
-                        if (lw.startsWith("l") || lw.startsWith("n")) errorCat = "L_N";
-                    } else if (category == EntryTestRegionCategory.SOUTH_TRCH) {
-                        if (lw.startsWith("tr") || lw.startsWith("ch")) errorCat = "TR_CH";
-                    } else if (category == EntryTestRegionCategory.CENTRAL_DGIR) {
-                        if (lw.startsWith("d") || lw.startsWith("gi") || lw.startsWith("r")) errorCat = "D_GI_R";
-                    }
-                    
-                    if (errorCat != null) {
-                        if ("wrong".equals(status)) {
-                            wrongCounts.put(errorCat, wrongCounts.getOrDefault(errorCat, 0) + 1);
-                        } else {
-                            nearCounts.put(errorCat, nearCounts.getOrDefault(errorCat, 0) + 1);
-                        }
-                    }
-                }
+            if (regionCatStr == null || accObj == null) continue;
+            
+            int accuracyValue = 0;
+            if (accObj instanceof Number) {
+                accuracyValue = ((Number) accObj).intValue();
             }
+            
+            String errorCat = null;
+            if (regionCatStr.endsWith("_NL")) errorCat = "L_N";
+            else if (regionCatStr.endsWith("_TRCH")) errorCat = "TR_CH";
+            else if (regionCatStr.endsWith("_DGIR")) errorCat = "D_GI_R";
+            else errorCat = regionCatStr;
+
+            categoryScores.computeIfAbsent(errorCat, k -> new ArrayList<>()).add(accuracyValue);
+            if (accuracyValue < 30) totalWrong.put(errorCat, totalWrong.getOrDefault(errorCat, 0) + 1);
         }
 
         Map<String, Double> categoryAccuracy = new HashMap<>();
-        Set<String> allCategories = new HashSet<>(wrongCounts.keySet());
-        allCategories.addAll(nearCounts.keySet());
-
-        for (String cat : allCategories) {
-            int wrong = wrongCounts.getOrDefault(cat, 0);
-            int near = nearCounts.getOrDefault(cat, 0);
-
-            // Calculate actual total target words across all questions for this category
-            long totalTargetWords = 0;
-            for (Map<String, Object> res : stepResults) {
-                String qIdStr = (String) res.get("questionId");
-                if (qIdStr == null) continue;
-                UUID qId = UUID.fromString(qIdStr);
-                EntryTestQuestion question = questionRepository.findById(qId).orElse(null);
-                if (question != null) {
-                    totalTargetWords += countTargetWords(question.getTargetText(), cat);
-                }
-            }
-
-            if (totalTargetWords == 0) totalTargetWords = 1; // Avoid division by zero
-
-            double errorRate = (wrong * 1.0 + near * 0.5) / totalTargetWords;
-            double accuracy = (1.0 - errorRate) * 100;
-            categoryAccuracy.put(cat, Math.max(0, accuracy));
+        for (Map.Entry<String, List<Integer>> entry : categoryScores.entrySet()) {
+            double avg = entry.getValue().stream().mapToInt(i -> i).average().orElse(0.0);
+            categoryAccuracy.put(entry.getKey(), avg);
         }
 
         List<String> sortedCategories = categoryAccuracy.keySet().stream()
-                .sorted((c1, c2) -> {
-                    // Sort by lower accuracy first (highest priority)
-                    return Double.compare(categoryAccuracy.get(c1), categoryAccuracy.get(c2));
-                })
+                .sorted((c1, c2) -> Double.compare(categoryAccuracy.get(c1), categoryAccuracy.get(c2)))
                 .collect(Collectors.toList());
 
         CustomLearningPath customPath = CustomLearningPath.builder()
@@ -485,11 +439,18 @@ public class EntryTestService {
         for (String cat : sortedCategories) {
             double acc = categoryAccuracy.get(cat);
             List<String> difficultiesToAssign = roadmapRuleService.getDifficultiesForScore(acc);
-
+            
             if (!difficultiesToAssign.isEmpty()) {
-                for (String diff : difficultiesToAssign) {
-                    List<LearningUnit> units = learningUnitRepository.findByTypeAndErrorTagIgnoreCaseAndDifficultyLevelIgnoreCase("LEVEL", cat, diff);
+                String tagId = findErrorTagIdByName(cat);
 
+                for (String diff : difficultiesToAssign) {
+                    List<LearningUnit> units;
+                    if (tagId != null) {
+                        units = learningUnitRepository.findByTypeAndErrorTagIgnoreCaseAndDifficultyLevelIgnoreCase("LEVEL", tagId, diff);
+                    } else {
+                        units = learningUnitRepository.findByTypeAndErrorTagIgnoreCaseAndDifficultyLevelIgnoreCase("LEVEL", cat, diff);
+                    }
+                    
                     for (LearningUnit unit : units) {
                         customPath.addLevel(unit, orderIndex++);
                     }
@@ -498,7 +459,7 @@ public class EntryTestService {
         }
         customPath = customLearningPathRepository.save(customPath);
 
-        // Giai đoạn 4: Tích hợp AI sinh nhận xét
+        // AI Feedback integration
         StringBuilder promptBuilder = new StringBuilder("Học viên mắc các lỗi sau trong phát âm: ");
         if (categoryAccuracy.isEmpty()) {
             promptBuilder.append("Không có lỗi ngọng vùng miền nghiêm trọng. ");
@@ -506,22 +467,18 @@ public class EntryTestService {
             for (String cat : sortedCategories) {
                 promptBuilder.append("Lỗi ").append(cat).append(" với độ chính xác ")
                         .append(String.format("%.1f", categoryAccuracy.get(cat))).append("% (có ")
-                        .append(wrongCounts.getOrDefault(cat, 0)).append(" từ sai hoàn toàn); ");
+                        .append(totalWrong.getOrDefault(cat, 0)).append(" câu sai hoàn toàn); ");
             }
         }
-        promptBuilder.append(
-                "Hãy viết 1 đoạn 3-4 câu nhận xét ngắn gọn, cổ vũ học viên và khuyên học viên nên ưu tiên học lỗi nào trước (dựa trên % độ chính xác thấp nhất).");
+        promptBuilder.append("Hãy viết 1 đoạn 3-4 câu nhận xét ngắn gọn, cổ vũ học viên và khuyên học viên nên ưu tiên học lỗi nào trước (dựa trên % độ chính xác thấp nhất). Trả về kết quả dưới dạng JSON có trường 'reply'.");
 
         try {
             Map<String, Object> aiResponse = aiService.chatWithGroq(promptBuilder.toString());
             String aiFeedback = "Bạn cần cố gắng luyện tập thêm!";
-            if (aiResponse.containsKey("reply")) {
-                aiFeedback = (String) aiResponse.get("reply");
-            } else if (aiResponse.containsKey("feedback")) {
-                aiFeedback = (String) aiResponse.get("feedback");
-            } else if (aiResponse.containsKey("explanation")) {
-                aiFeedback = (String) aiResponse.get("explanation");
-            }
+            if (aiResponse.containsKey("reply")) aiFeedback = (String) aiResponse.get("reply");
+            else if (aiResponse.containsKey("feedback")) aiFeedback = (String) aiResponse.get("feedback");
+            else if (aiResponse.containsKey("explanation")) aiFeedback = (String) aiResponse.get("explanation");
+            
             customPath.setAiFeedback(aiFeedback);
             customLearningPathRepository.save(customPath);
         } catch (Exception e) {
@@ -529,6 +486,19 @@ public class EntryTestService {
             customPath.setAiFeedback("Hệ thống AI đang bận. Dựa trên kết quả bài test, bạn đã được phân bổ lộ trình học phù hợp với lỗi phát âm của mình.");
             customLearningPathRepository.save(customPath);
         }
+    }
+
+    private String findErrorTagIdByName(String cat) {
+        String searchKey = cat.replaceAll("[_\\s-]", "").toUpperCase();
+
+        return learningUnitRepository.findByType("ERROR_TAG").stream()
+                .filter(lu -> {
+                    String unitName = lu.getName().replaceAll("[_\\s-]", "").toUpperCase();
+                    return unitName.equals(searchKey);
+                })
+                .map(lu -> lu.getId().toString())
+                .findFirst()
+                .orElse(null);
     }
 
     private long countTargetWords(String text, String errorCategory) {
