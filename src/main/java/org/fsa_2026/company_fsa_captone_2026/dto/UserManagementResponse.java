@@ -33,12 +33,13 @@ public class UserManagementResponse {
     private Integer progressPercent;
     private Integer pronunciationScore;
     private Boolean hasCustomPath;
+    private String customPathType;
 
     public static UserManagementResponse fromEntity(Account account) {
-        return fromEntity(account, false);
+        return fromEntity(account, false, "NONE");
     }
 
-    public static UserManagementResponse fromEntity(Account account, boolean hasCustomPath) {
+    public static UserManagementResponse fromEntity(Account account, boolean hasCustomPath, String customPathType) {
         return UserManagementResponse.builder()
                 .id(account.getId())
                 .email(account.getEmail())
@@ -50,6 +51,7 @@ public class UserManagementResponse {
                 .totalStars(account.getTotalStars() != null ? account.getTotalStars() : 0)
                 .currentStreakDays(account.getCurrentStreakDays() != null ? account.getCurrentStreakDays() : 0)
                 .hasCustomPath(hasCustomPath)
+                .customPathType(customPathType != null ? customPathType : "NONE")
                 .avatarUrl(account.getAvatarUrl())
                 .level(account.getRegion() != null ? account.getRegion() : "N/A")
                 .progressPercent(

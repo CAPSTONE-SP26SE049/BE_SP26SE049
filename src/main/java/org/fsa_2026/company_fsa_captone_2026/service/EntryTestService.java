@@ -383,7 +383,7 @@ public class EntryTestService {
                 } else {
                     alu.setIsUnlocked(false);
                 }
-                accountLearningUnitRepository.save(alu);
+            accountLearningUnitRepository.save(alu);
             }
         }
     }
@@ -393,21 +393,29 @@ public class EntryTestService {
         Map<String, Integer> totalWrong = new HashMap<>();
         
         for (Map<String, Object> detail : stepResults) {
-            String regionCatStr = (String) detail.get("regionCategory");
+            Object regionCatObj = detail.get("regionCategory");
             Object accObj = detail.get("accuracy");
             
-            if (regionCatStr == null || accObj == null) continue;
+            if (regionCatObj == null || accObj == null) {
+                log.warn("Missing data in step result: regionCategory={}, accuracy={}", regionCatObj, accObj);
+                continue;
+            }
             
+            String regionCatStr = regionCatObj.toString();
             int accuracyValue = 0;
             if (accObj instanceof Number) {
                 accuracyValue = ((Number) accObj).intValue();
+            } else {
+                try {
+                    accuracyValue = Integer.parseInt(accObj.toString());
+                } catch (Exception e) {
+                    accuracyValue = 0;
+                }
             }
             
-            String errorCat = null;
-            if (regionCatStr.endsWith("_NL")) errorCat = "L_N";
-            else if (regionCatStr.endsWith("_TRCH")) errorCat = "TR_CH";
-            else if (regionCatStr.endsWith("_DGIR")) errorCat = "D_GI_R";
-            else errorCat = regionCatStr;
+            // Dynamic mapping: Use the raw regionCategory string from the question
+            // The findErrorTagIdByName method will handle matching this to the DB
+            String errorCat = regionCatStr;
 
             categoryScores.computeIfAbsent(errorCat, k -> new ArrayList<>()).add(accuracyValue);
             if (accuracyValue < 30) totalWrong.put(errorCat, totalWrong.getOrDefault(errorCat, 0) + 1);
@@ -443,18 +451,29 @@ public class EntryTestService {
             if (!difficultiesToAssign.isEmpty()) {
                 String tagId = findErrorTagIdByName(cat);
 
-                for (String diff : difficultiesToAssign) {
-                    List<LearningUnit> units;
-                    if (tagId != null) {
-                        units = learningUnitRepository.findByTypeAndErrorTagIgnoreCaseAndDifficultyLevelIgnoreCase("LEVEL", tagId, diff);
-                    } else {
-                        units = learningUnitRepository.findByTypeAndErrorTagIgnoreCaseAndDifficultyLevelIgnoreCase("LEVEL", cat, diff);
+                    for (String diff : difficultiesToAssign) {
+                        List<LearningUnit> units;
+                        if (tagId != null) {
+                            units = learningUnitRepository.findByTypeAndErrorTagIgnoreCaseAndDifficultyLevelIgnoreCase("LEVEL", tagId, diff);
+                            if (units.isEmpty()) {
+                                units = learningUnitRepository.findByTypeAndErrorTagIgnoreCaseAndDifficultyLevelIgnoreCase("LEVEL", cat, diff);
+                            }
+                        } else {
+                            units = learningUnitRepository.findByTypeAndErrorTagIgnoreCaseAndDifficultyLevelIgnoreCase("LEVEL", cat, diff);
+                        }
+                        
+                        // Fallback: If still no units for specific difficulty, get ANY units for this tag
+                        if (units.isEmpty() && tagId != null) {
+                            log.info("No units for difficulty {}, falling back to all units for tag {}", diff, tagId);
+                            units = learningUnitRepository.findByTypeAndErrorTagIgnoreCase("LEVEL", tagId);
+                        }
+                        
+                        log.info("Found {} units for category {} (tagId: {}) with difficulty {}", units.size(), cat, tagId, diff);
+                        
+                        for (LearningUnit unit : units) {
+                            customPath.addLevel(unit, orderIndex++);
+                        }
                     }
-                    
-                    for (LearningUnit unit : units) {
-                        customPath.addLevel(unit, orderIndex++);
-                    }
-                }
             }
         }
         customPath = customLearningPathRepository.save(customPath);
@@ -494,7 +513,18 @@ public class EntryTestService {
         return learningUnitRepository.findByType("ERROR_TAG").stream()
                 .filter(lu -> {
                     String unitName = lu.getName().replaceAll("[_\\s-]", "").toUpperCase();
-                    return unitName.equals(searchKey);
+                    String categoryName = cat.replaceAll("[_\\s-]", "").toUpperCase();
+                    
+                    // Match if:
+                    // 1. Exact match (e.g., "L_N" == "L_N")
+                    // 2. Contains (e.g., "NORTH_NL" contains "NL")
+                    // 3. Reversed contains (e.g., "NL" is part of "NORTH_NL")
+                    return unitName.equals(categoryName) || 
+                           unitName.contains(categoryName) || 
+                           categoryName.contains(unitName) ||
+                           // Special case for common regional suffixes
+                           (categoryName.endsWith("NL") && unitName.contains("LN")) ||
+                           (categoryName.endsWith("DGIR") && (unitName.contains("DGI") || unitName.contains("R")));
                 })
                 .map(lu -> lu.getId().toString())
                 .findFirst()

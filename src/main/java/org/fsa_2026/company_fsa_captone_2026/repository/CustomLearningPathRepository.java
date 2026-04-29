@@ -18,4 +18,6 @@ public interface CustomLearningPathRepository extends JpaRepository<CustomLearni
 
     @org.springframework.data.jpa.repository.Query("SELECT DISTINCT p.student.id FROM CustomLearningPath p WHERE p.isActive = true")
     List<UUID> findAllStudentIdsWithActivePath();
+
+    List<CustomLearningPath> findByIsActiveTrue();
 }

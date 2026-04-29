@@ -49,7 +49,7 @@ public class AIService {
 
     public Map<String, Object> evaluatePronunciation(byte[] audioData, String targetText) {
         long asrStart = System.currentTimeMillis();
-        AzureTranscriptionResult transcriptionResult = transcribeWithLocalAsr(audioData);
+        AzureTranscriptionResult transcriptionResult = transcribeWithLocalAsr(audioData, targetText);
         long asrLatencyMs = System.currentTimeMillis() - asrStart;
 
         Map<String, Object> feedback = provideFeedback(transcriptionResult.transcript(), targetText);
@@ -64,21 +64,20 @@ public class AIService {
         return feedback;
     }
 
-    private AzureTranscriptionResult transcribeWithLocalAsr(byte[] audioData) {
+    private AzureTranscriptionResult transcribeWithLocalAsr(byte[] audioData, String targetText) {
         long start = System.currentTimeMillis();
         try {
             org.springframework.util.MultiValueMap<String, Object> body = new org.springframework.util.LinkedMultiValueMap<>();
-            body.add("audio", new org.springframework.core.io.ByteArrayResource(audioData) {
+            HttpHeaders audioHeaders = new HttpHeaders();
+            audioHeaders.setContentType(MediaType.parseMediaType("audio/wav"));
+            org.springframework.core.io.ByteArrayResource audioResource = new org.springframework.core.io.ByteArrayResource(audioData) {
                 @Override
                 public String getFilename() {
-                    return "recording.webm";
+                    return "recording.wav";
                 }
-            });
-            if (localAsrModel != null && !localAsrModel.isBlank()) {
-                body.add("model", localAsrModel);
-            }
-            body.add("language", localAsrLanguage);
-            body.add("sampling_rate", String.valueOf(localAsrSamplingRate));
+            };
+            body.add("audio", new HttpEntity<>(audioResource, audioHeaders));
+            body.add("target", targetText);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
@@ -87,14 +86,19 @@ public class AIService {
                     Map.class);
             long latencyMs = System.currentTimeMillis() - start;
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                String text = (String) response.getBody().get("text");
-                List<Map<String, Object>> wordDetails = null;
-                if (response.getBody().containsKey("words")) {
-                    wordDetails = (List<Map<String, Object>>) response.getBody().get("words");
-                } else if (response.getBody().containsKey("word_details")) {
-                    wordDetails = (List<Map<String, Object>>) response.getBody().get("word_details");
+                Map<String, Object> responseBody = response.getBody();
+                
+                // Handle the structure from the Python test script: success, data: {transcribed, score, ...}
+                if (Boolean.TRUE.equals(responseBody.get("success")) && responseBody.containsKey("data")) {
+                    Map<String, Object> data = (Map<String, Object>) responseBody.get("data");
+                    String text = (String) data.get("transcribed");
+                    double score = ((Number) data.getOrDefault("score", 0)).doubleValue();
+                    return new AzureTranscriptionResult(text != null ? text : "", score, latencyMs, "local_asr", null, null);
                 }
-                return new AzureTranscriptionResult(text != null ? text : "", 0, latencyMs, "local_asr", null, wordDetails);
+                
+                // Fallback for other structures
+                String text = (String) responseBody.get("text");
+                return new AzureTranscriptionResult(text != null ? text : "", 0, latencyMs, "local_asr", null, null);
             }
             return new AzureTranscriptionResult("", 0, latencyMs, "local_asr",
                     "Local ASR status: " + response.getStatusCode(), null);

@@ -30,6 +30,8 @@ public interface LearningUnitRepository extends JpaRepository<LearningUnit, UUID
     Optional<LearningUnit> findByRewardCatalogIdAndIdNot(java.util.UUID rewardCatalogId, java.util.UUID excludeId);
 
     List<LearningUnit> findByTypeAndErrorTagIgnoreCaseAndDifficultyLevelIgnoreCase(String type, String errorTag, String difficultyLevel);
+    
+    List<LearningUnit> findByTypeAndErrorTagIgnoreCase(String type, String errorTag);
 
     long countByType(String type);
 }
