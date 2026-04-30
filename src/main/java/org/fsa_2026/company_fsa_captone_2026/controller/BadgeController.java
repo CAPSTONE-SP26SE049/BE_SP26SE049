@@ -3,21 +3,15 @@ package org.fsa_2026.company_fsa_captone_2026.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.fsa_2026.company_fsa_captone_2026.common.Constants;
 import org.fsa_2026.company_fsa_captone_2026.dto.*;
-import org.fsa_2026.company_fsa_captone_2026.service.AdminService;
 import org.fsa_2026.company_fsa_captone_2026.service.BadgeService;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Badge Controller — /api/v1/badges
@@ -44,7 +38,6 @@ import java.util.UUID;
 public class BadgeController {
 
     private final BadgeService badgeService;
-    private final AdminService adminService;
 
     // ─────────────────────────────────────────────────────────────────────────
     // PUBLIC endpoints

@@ -10,4 +10,5 @@ import java.util.UUID;
 @Repository
 public interface EntryTestResultRepository extends JpaRepository<EntryTestResult, UUID> {
     Optional<EntryTestResult> findFirstByAccountIdOrderByCreatedAtDesc(UUID accountId);
+    java.util.List<EntryTestResult> findByAccountId(UUID accountId);
 }

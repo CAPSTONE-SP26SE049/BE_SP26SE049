@@ -1,11 +1,14 @@
 package org.fsa_2026.company_fsa_captone_2026.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.fsa_2026.company_fsa_captone_2026.repository.LearningUnitRepository;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -45,23 +48,95 @@ public class AIService {
     public static final String JSON_SCHEMA_INSTRUCTION = "Trả về JSON thuần túy với các fields: accuracy (0-100), detectedError (mô tả lỗi cụ thể), feedback (ít nhất 2 câu, nêu lỗi và cách sửa), suggestion (gợi ý ngắn gọn), errorDetail (diễn giải chi tiết hơn feedback), isRegional (boolean), isCorrect (boolean), shapeKey (exact_match, near_match, pronunciation_mismatch, regional_error, missing_input).";
 
     private final ObjectMapper objectMapper;
+    private final LearningUnitRepository learningUnitRepository;
     private final RestTemplate restTemplate = new RestTemplate();
 
     public Map<String, Object> evaluatePronunciation(byte[] audioData, String targetText) {
+        return evaluatePronunciation(audioData, targetText, null);
+    }
+
+    public Map<String, Object> evaluatePronunciation(byte[] audioData, String targetText, String focusErrorTag) {
         long asrStart = System.currentTimeMillis();
         AzureTranscriptionResult transcriptionResult = transcribeWithLocalAsr(audioData, targetText);
         long asrLatencyMs = System.currentTimeMillis() - asrStart;
 
-        Map<String, Object> feedback = provideFeedback(transcriptionResult.transcript(), targetText);
+        Map<String, Object> feedback = provideFeedback(transcriptionResult.transcript(), targetText, focusErrorTag);
         feedback.put("azureTranscript", transcriptionResult.transcript());
         feedback.put("azureLatencyMs", asrLatencyMs);
         feedback.put("azureAccuracy", transcriptionResult.pronunciationAccuracy());
         feedback.put("asrProvider", transcriptionResult.provider() != null ? transcriptionResult.provider() : "none");
         feedback.put("aiProvider", feedback.getOrDefault("aiProvider", "groq"));
-        if (transcriptionResult.wordDetails() != null) {
-            feedback.put("word_details", transcriptionResult.wordDetails());
+
+        // Populate word_details by aligning targetText and transcribedText if not
+        // provided by ASR
+        List<Map<String, Object>> wordDetails = transcriptionResult.wordDetails();
+        String transcript = transcriptionResult.transcript() != null ? transcriptionResult.transcript() : "";
+
+        if (wordDetails == null || wordDetails.isEmpty()) {
+            wordDetails = generateWordDetails(targetText, transcript);
         }
+        feedback.put("word_details", wordDetails);
         return feedback;
+    }
+
+    /**
+     * Simple word alignment between target and transcribed text for Vietnamese.
+     */
+    private List<Map<String, Object>> generateWordDetails(String target, String transcribed) {
+        if (target == null)
+            return Collections.emptyList();
+
+        String[] targetWords = target.trim().split("\\s+");
+        String[] transcribedWords = (transcribed != null ? transcribed.trim() : "").split("\\s+");
+
+        List<Map<String, Object>> details = new ArrayList<>();
+
+        // Simple alignment: compare words in order
+        // For a more robust solution, use Levenshtein distance or Needleman-Wunsch
+        int tIdx = 0;
+        int rIdx = 0;
+
+        while (tIdx < targetWords.length) {
+            String tWord = targetWords[tIdx].toLowerCase().replaceAll("[^\\p{L}]", "");
+            Map<String, Object> wordMap = new HashMap<>();
+            wordMap.put("word", targetWords[tIdx]);
+
+            boolean found = false;
+            // Look ahead a bit to find a match if there's a skip
+            for (int i = 0; i < Math.min(3, transcribedWords.length - rIdx); i++) {
+                String rWord = transcribedWords[rIdx + i].toLowerCase().replaceAll("[^\\p{L}]", "");
+                if (tWord.equals(rWord)) {
+                    wordMap.put("status", "correct");
+                    wordMap.put("score", 100);
+                    rIdx += (i + 1);
+                    found = true;
+                    break;
+                } else if (isNearMatch(tWord, rWord)) {
+                    wordMap.put("status", "near");
+                    wordMap.put("score", 70);
+                    rIdx += (i + 1);
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                wordMap.put("status", "wrong");
+                wordMap.put("score", 0);
+            }
+
+            details.add(wordMap);
+            tIdx++;
+        }
+
+        return details;
+    }
+
+    private boolean isNearMatch(String w1, String w2) {
+        if (w1.length() < 2 || w2.length() < 2)
+            return false;
+        // Simple heuristic: if first letter is same and length difference is small
+        return w1.charAt(0) == w2.charAt(0) && Math.abs(w1.length() - w2.length()) <= 1;
     }
 
     private AzureTranscriptionResult transcribeWithLocalAsr(byte[] audioData, String targetText) {
@@ -70,7 +145,8 @@ public class AIService {
             org.springframework.util.MultiValueMap<String, Object> body = new org.springframework.util.LinkedMultiValueMap<>();
             HttpHeaders audioHeaders = new HttpHeaders();
             audioHeaders.setContentType(MediaType.parseMediaType("audio/wav"));
-            org.springframework.core.io.ByteArrayResource audioResource = new org.springframework.core.io.ByteArrayResource(audioData) {
+            org.springframework.core.io.ByteArrayResource audioResource = new org.springframework.core.io.ByteArrayResource(
+                    audioData) {
                 @Override
                 public String getFilename() {
                     return "recording.wav";
@@ -82,20 +158,27 @@ public class AIService {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
-            ResponseEntity<Map> response = restTemplate.postForEntity(localAsrEndpoint, new HttpEntity<>(body, headers),
-                    Map.class);
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    localAsrEndpoint,
+                    HttpMethod.POST,
+                    new HttpEntity<>(body, headers),
+                    new ParameterizedTypeReference<Map<String, Object>>() {
+                    });
             long latencyMs = System.currentTimeMillis() - start;
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> responseBody = response.getBody();
-                
-                // Handle the structure from the Python test script: success, data: {transcribed, score, ...}
+
+                // Handle the structure from the Python test script: success, data:
+                // {transcribed, score, ...}
                 if (Boolean.TRUE.equals(responseBody.get("success")) && responseBody.containsKey("data")) {
+                    @SuppressWarnings("unchecked")
                     Map<String, Object> data = (Map<String, Object>) responseBody.get("data");
                     String text = (String) data.get("transcribed");
                     double score = ((Number) data.getOrDefault("score", 0)).doubleValue();
-                    return new AzureTranscriptionResult(text != null ? text : "", score, latencyMs, "local_asr", null, null);
+                    return new AzureTranscriptionResult(text != null ? text : "", score, latencyMs, "local_asr", null,
+                            null);
                 }
-                
+
                 // Fallback for other structures
                 String text = (String) responseBody.get("text");
                 return new AzureTranscriptionResult(text != null ? text : "", 0, latencyMs, "local_asr", null, null);
@@ -104,7 +187,8 @@ public class AIService {
                     "Local ASR status: " + response.getStatusCode(), null);
         } catch (Exception e) {
             log.warn("Local ASR failed, fallback to secondary if available: {}", e.getMessage());
-            return new AzureTranscriptionResult("", 0, System.currentTimeMillis() - start, "local_asr", e.getMessage(), null);
+            return new AzureTranscriptionResult("", 0, System.currentTimeMillis() - start, "local_asr", e.getMessage(),
+                    null);
         }
     }
 
@@ -116,7 +200,7 @@ public class AIService {
         return chatWithGroqOrFallback(message);
     }
 
-    public Map<String, Object> provideFeedback(String transcribedText, String targetText) {
+    public Map<String, Object> provideFeedback(String transcribedText, String targetText, String focusErrorTag) {
         if (transcribedText == null || targetText == null || transcribedText.isBlank() || targetText.isBlank()) {
             return Map.of(
                     "isCorrect", false,
@@ -145,7 +229,7 @@ public class AIService {
                     "aiProvider", "groq");
         }
 
-        String prompt = buildFeedbackPrompt(transcribedText, targetText);
+        String prompt = buildFeedbackPrompt(transcribedText, targetText, focusErrorTag);
         return callGroqFeedbackWithLatency(prompt, transcribedText, targetText);
     }
 
@@ -192,7 +276,33 @@ public class AIService {
         return candidates;
     }
 
-    private String buildFeedbackPrompt(String transcribedText, String targetText) {
+    private String buildFeedbackPrompt(String transcribedText, String targetText, String focusErrorTag) {
+        StringBuilder errorTagsHint = new StringBuilder("\nAvailable Error Categories for reference:\n");
+        try {
+            learningUnitRepository.findByType("ERROR_TAG").forEach(tag -> {
+                errorTagsHint.append("- ").append(tag.getName()).append(" (Code: ");
+                try {
+                    JsonNode node = objectMapper.readTree(tag.getMetadataJson());
+                    errorTagsHint.append(node.has("tag_code") ? node.get("tag_code").asText() : "N/A");
+                } catch (Exception e) {
+                    errorTagsHint.append("N/A");
+                }
+                errorTagsHint.append(")\n");
+            });
+        } catch (Exception e) {
+            log.warn("Could not fetch error tags for AI prompt: {}", e.getMessage());
+        }
+
+        String focusInstruction = "";
+        if (focusErrorTag != null && !focusErrorTag.isBlank()) {
+            focusInstruction = String.format(
+                    "\nCRITICAL FOCUS: The user is specifically being tested for the error category: '%s'. " +
+                            "Prioritize identifying and explaining issues related to this category. " +
+                            "If the pronunciation is mostly correct but fails specifically on this phonetic rule, " +
+                            "it MUST be marked as a regional error/mispronunciation and reflected in the accuracy score.",
+                    focusErrorTag);
+        }
+
         return String.format(
                 "System instruction:\n%s\n\n" +
                         "Input:\n" +
@@ -205,11 +315,15 @@ public class AIService {
                         "3. Do not say generic sentences like 'Phát âm chưa chính xác.' unless you also explain why.\n"
                         +
                         "4. If pronunciation is nearly correct, say what is close and what still needs fixing.\n" +
-                        "5. If there is a regional pronunciation issue, mention the likely sound pair and mouth/tongue/articulation clue.",
+                        "5. If there is a regional pronunciation issue, mention the likely sound pair and mouth/tongue/articulation clue.\n"
+                        +
+                        "%s%s",
                 SYSTEM_INSTRUCTION,
                 transcribedText,
                 targetText,
-                JSON_SCHEMA_INSTRUCTION);
+                JSON_SCHEMA_INSTRUCTION,
+                errorTagsHint.toString(),
+                focusInstruction);
     }
 
     private Map<String, Object> callGroqModel(String userMessage, String modelName) {
@@ -232,8 +346,9 @@ public class AIService {
         headers.setBearerAuth(groqApiKey);
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
 
-        ResponseEntity<Map> response = restTemplate.exchange(groqEndpoint, HttpMethod.POST,
-                new HttpEntity<>(requestBody, headers), Map.class);
+        ResponseEntity<Map<String, Object>> response = restTemplate.exchange(groqEndpoint, HttpMethod.POST,
+                new HttpEntity<>(requestBody, headers), new ParameterizedTypeReference<Map<String, Object>>() {
+                });
         return parseAndNormalizeOpenAiStyleResponse(response.getBody(), null, null, true);
     }
 
@@ -329,15 +444,22 @@ public class AIService {
         return "";
     }
 
-    private Map<String, Object> parseAndNormalizeOpenAiStyleResponse(Map responseBody, String targetText,
-            String transcribedText, boolean groq) {
+    private Map<String, Object> parseAndNormalizeOpenAiStyleResponse(Map<String, Object> responseBody,
+            String targetText,
+            String transcribedText, boolean useNormalization) {
         try {
-            if (responseBody == null)
-                return null;
-            List<Map> choices = (List<Map>) responseBody.get("choices");
-            if (choices == null || choices.isEmpty())
-                return null;
-            Map message = (Map) choices.get(0).get("message");
+            if (responseBody == null) {
+                throw new ApiException("INTERNAL_SERVER_ERROR", "Groq AI returned empty response");
+            }
+
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> choices = (List<Map<String, Object>>) responseBody.get("choices");
+            if (choices == null || choices.isEmpty()) {
+                throw new ApiException("INTERNAL_SERVER_ERROR", "Groq AI returned no choices");
+            }
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
             if (message == null)
                 return null;
             Object contentObj = message.get("content");
@@ -348,13 +470,15 @@ public class AIService {
             if (targetText == null) {
                 try {
                     JsonNode node = objectMapper.readTree(cleanJson);
-                    return objectMapper.convertValue(node, Map.class);
+                    return objectMapper.convertValue(node, new TypeReference<Map<String, Object>>() {
+                    });
                 } catch (Exception ignored) {
                     return Map.of("reply", cleanJson, "aiProvider", "groq");
                 }
             }
             JsonNode node = objectMapper.readTree(cleanJson);
-            Map<String, Object> parsed = objectMapper.convertValue(node, Map.class);
+            Map<String, Object> parsed = objectMapper.convertValue(node, new TypeReference<Map<String, Object>>() {
+            });
             return normalizeFeedbackResponse(parsed, transcribedText, targetText, null);
         } catch (Exception e) {
             return null;

@@ -12,6 +12,7 @@ import java.util.UUID;
 public interface LearningUnitRepository extends JpaRepository<LearningUnit, UUID> {
 
     List<LearningUnit> findByType(String type);
+    List<LearningUnit> findTop1000ByType(String type);
 
     List<LearningUnit> findByParentId(UUID parentId);
 

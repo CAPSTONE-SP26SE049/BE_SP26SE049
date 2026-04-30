@@ -20,4 +20,5 @@ public interface CustomLearningPathRepository extends JpaRepository<CustomLearni
     List<UUID> findAllStudentIdsWithActivePath();
 
     List<CustomLearningPath> findByIsActiveTrue();
+    List<CustomLearningPath> findByStudentId(UUID studentId);
 }

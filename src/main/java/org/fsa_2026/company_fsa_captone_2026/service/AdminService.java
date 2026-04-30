@@ -407,6 +407,11 @@ public class AdminService {
     }
 
     @Transactional(readOnly = true)
+    public List<LearningUnit> getErrorTags() {
+        return learningUnitRepository.findTop1000ByType("ERROR_TAG");
+    }
+
+    @Transactional(readOnly = true)
     public LevelResponse getLevelById(UUID id) {
         LearningUnit level = learningUnitRepository.findById(id)
                 .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));

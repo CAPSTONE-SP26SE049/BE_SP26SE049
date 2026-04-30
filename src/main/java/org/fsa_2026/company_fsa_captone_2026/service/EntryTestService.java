@@ -20,18 +20,8 @@ import org.fsa_2026.company_fsa_captone_2026.repository.CustomLearningPathReposi
 import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
 import org.fsa_2026.company_fsa_captone_2026.entity.CustomLearningPath;
 import org.fsa_2026.company_fsa_captone_2026.entity.CustomPathLevel;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -162,8 +152,11 @@ public class EntryTestService {
                 .orElseThrow(() -> new ResourceNotFoundException("Question not found"));
 
         byte[] audioData = audioFile.getBytes();
+        // Resolve the specific tag code for focus (e.g. L_N for NORTH_NL)
+        String tagCode = findErrorTagUnitId(question.getRegionCategory().name());
+        
         // === Sử dụng đúng pipeline của Quiz Speaking: Azure Speech + Groq AI ===
-        Map<String, Object> quizResult = aiService.evaluatePronunciation(audioData, question.getTargetText());
+        Map<String, Object> quizResult = aiService.evaluatePronunciation(audioData, question.getTargetText(), tagCode);
 
         // Upload to Firebase
         try {
@@ -249,25 +242,37 @@ public class EntryTestService {
         regionErrorCount.put(RegionCode.SOUTH, 0);
 
         for (Map<String, Object> res : stepResults) {
-            double accuracy = ((Number) res.getOrDefault("accuracy", 0)).doubleValue();
+            Object accObj = res.getOrDefault("accuracy", 0);
+            double accuracy = 0;
+            if (accObj instanceof Number num) {
+                accuracy = num.doubleValue();
+            } else if (accObj instanceof String s) {
+                try { accuracy = Double.parseDouble(s); } catch (Exception e) {}
+            }
             totalAccuracy += accuracy;
 
             boolean isRegional = Boolean.TRUE.equals(res.get("isRegional"));
             if (isRegional) {
                 Object catObj = res.get("regionCategory");
                 EntryTestRegionCategory category = null;
-                if (catObj instanceof String) {
-                    category = EntryTestRegionCategory.valueOf((String) catObj);
+                if (catObj instanceof String s && !s.isBlank()) {
+                    try {
+                        category = EntryTestRegionCategory.valueOf(s);
+                    } catch (IllegalArgumentException e) {
+                        log.warn("Invalid region category string: {}", s);
+                    }
                 } else if (catObj instanceof EntryTestRegionCategory) {
                     category = (EntryTestRegionCategory) catObj;
                 }
 
-                if (category == EntryTestRegionCategory.NORTH_NL)
-                    regionErrorCount.put(RegionCode.NORTH, regionErrorCount.get(RegionCode.NORTH) + 1);
-                else if (category == EntryTestRegionCategory.CENTRAL_DGIR)
-                    regionErrorCount.put(RegionCode.CENTRAL, regionErrorCount.get(RegionCode.CENTRAL) + 1);
-                else if (category == EntryTestRegionCategory.SOUTH_TRCH)
-                    regionErrorCount.put(RegionCode.SOUTH, regionErrorCount.get(RegionCode.SOUTH) + 1);
+                if (category != null) {
+                    if (category == EntryTestRegionCategory.NORTH_NL)
+                        regionErrorCount.put(RegionCode.NORTH, regionErrorCount.get(RegionCode.NORTH) + 1);
+                    else if (category == EntryTestRegionCategory.CENTRAL_DGIR)
+                        regionErrorCount.put(RegionCode.CENTRAL, regionErrorCount.get(RegionCode.CENTRAL) + 1);
+                    else if (category == EntryTestRegionCategory.SOUTH_TRCH)
+                        regionErrorCount.put(RegionCode.SOUTH, regionErrorCount.get(RegionCode.SOUTH) + 1);
+                }
             }
         }
 
@@ -293,15 +298,26 @@ public class EntryTestService {
             for (Map<String, Object> res : stepResults) {
                 Object catObj = res.get("regionCategory");
                 EntryTestRegionCategory category = null;
-                if (catObj instanceof String) {
-                    category = EntryTestRegionCategory.valueOf((String) catObj);
+                if (catObj instanceof String s && !s.isBlank()) {
+                    try {
+                        category = EntryTestRegionCategory.valueOf(s);
+                    } catch (IllegalArgumentException e) {
+                        log.warn("Invalid region category string for fallback: {}", s);
+                    }
                 } else if (catObj instanceof EntryTestRegionCategory) {
                     category = (EntryTestRegionCategory) catObj;
                 }
 
                 RegionCode rc = mapCategoryToRegionCode(category);
-                regionAccuracy.put(rc,
-                        regionAccuracy.get(rc) + ((Number) res.getOrDefault("accuracy", 0)).doubleValue());
+                Object accObj = res.getOrDefault("accuracy", 0);
+                double accVal = 0;
+                if (accObj instanceof Number num) {
+                    accVal = num.doubleValue();
+                } else if (accObj instanceof String s) {
+                    try { accVal = Double.parseDouble(s); } catch (Exception e) {}
+                }
+                
+                regionAccuracy.put(rc, regionAccuracy.get(rc) + accVal);
                 regionCount.put(rc, regionCount.get(rc) + 1);
             }
 
@@ -389,6 +405,7 @@ public class EntryTestService {
     }
 
     public void assignPersonalRoadmap(Account account, RegionCode region, EntryTestResult result, List<Map<String, Object>> stepResults) {
+        // === Bước 1: Thu thập điểm từng category để phân tích lỗi ===
         Map<String, List<Integer>> categoryScores = new HashMap<>();
         Map<String, Integer> totalWrong = new HashMap<>();
         
@@ -413,12 +430,8 @@ public class EntryTestService {
                 }
             }
             
-            // Dynamic mapping: Use the raw regionCategory string from the question
-            // The findErrorTagIdByName method will handle matching this to the DB
-            String errorCat = regionCatStr;
-
-            categoryScores.computeIfAbsent(errorCat, k -> new ArrayList<>()).add(accuracyValue);
-            if (accuracyValue < 30) totalWrong.put(errorCat, totalWrong.getOrDefault(errorCat, 0) + 1);
+            categoryScores.computeIfAbsent(regionCatStr, k -> new ArrayList<>()).add(accuracyValue);
+            if (accuracyValue < 30) totalWrong.put(regionCatStr, totalWrong.getOrDefault(regionCatStr, 0) + 1);
         }
 
         Map<String, Double> categoryAccuracy = new HashMap<>();
@@ -427,15 +440,31 @@ public class EntryTestService {
             categoryAccuracy.put(entry.getKey(), avg);
         }
 
+        // Sắp xếp category theo điểm tăng dần (lỗi nặng nhất lên đầu)
         List<String> sortedCategories = categoryAccuracy.keySet().stream()
                 .sorted((c1, c2) -> Double.compare(categoryAccuracy.get(c1), categoryAccuracy.get(c2)))
                 .collect(Collectors.toList());
 
+        // === Bước 2: Xác định difficulty_level dựa trên OVERALL SCORE từ roadmap_rules ===
+        double overallScore = result.getOverallScore();
+        List<String> difficultiesToAssign = roadmapRuleService.getDifficultiesForScore(overallScore);
+        log.info("[Roadmap] Overall score={}, difficulties từ roadmap_rules: {}", overallScore, difficultiesToAssign);
+
+        // === Bước 3: Deactivate các lộ trình cũ của học viên ===
+        List<CustomLearningPath> existingPaths = customLearningPathRepository.findByStudentIdAndIsActiveTrue(account.getId());
+        if (!existingPaths.isEmpty()) {
+            existingPaths.forEach(p -> p.setIsActive(false));
+            customLearningPathRepository.saveAll(existingPaths);
+            log.info("[Roadmap] Đã deactivate {} lộ trình cũ của học viên {}", existingPaths.size(), account.getEmail());
+        }
+
+        // === Bước 4: Tạo lộ trình mới ===
         CustomLearningPath customPath = CustomLearningPath.builder()
                 .student(account)
                 .title("Lộ trình Học cá nhân hóa")
                 .description("Lộ trình được tạo tự động bởi AI dựa trên kết quả kiểm tra đầu vào.")
                 .isAiGenerated(true)
+                .isActive(true)
                 .aiFeedback("Đang phân tích...")
                 .targetLevel(region.name())
                 .levels(new ArrayList<>())
@@ -443,37 +472,39 @@ public class EntryTestService {
         
         customPath = customLearningPathRepository.save(customPath);
 
+        // === Bước 5: Gán các bài học theo category lỗi + difficulties từ overall score ===
         int orderIndex = 1;
         for (String cat : sortedCategories) {
-            double acc = categoryAccuracy.get(cat);
-            List<String> difficultiesToAssign = roadmapRuleService.getDifficultiesForScore(acc);
-            
-            if (!difficultiesToAssign.isEmpty()) {
-                String tagId = findErrorTagIdByName(cat);
+            if (difficultiesToAssign.isEmpty()) {
+                log.warn("[Roadmap] Không có difficulty nào được tìm thấy cho overallScore={}", overallScore);
+                continue;
+            }
 
-                    for (String diff : difficultiesToAssign) {
-                        List<LearningUnit> units;
-                        if (tagId != null) {
-                            units = learningUnitRepository.findByTypeAndErrorTagIgnoreCaseAndDifficultyLevelIgnoreCase("LEVEL", tagId, diff);
-                            if (units.isEmpty()) {
-                                units = learningUnitRepository.findByTypeAndErrorTagIgnoreCaseAndDifficultyLevelIgnoreCase("LEVEL", cat, diff);
-                            }
-                        } else {
-                            units = learningUnitRepository.findByTypeAndErrorTagIgnoreCaseAndDifficultyLevelIgnoreCase("LEVEL", cat, diff);
-                        }
-                        
-                        // Fallback: If still no units for specific difficulty, get ANY units for this tag
-                        if (units.isEmpty() && tagId != null) {
-                            log.info("No units for difficulty {}, falling back to all units for tag {}", diff, tagId);
-                            units = learningUnitRepository.findByTypeAndErrorTagIgnoreCase("LEVEL", tagId);
-                        }
-                        
-                        log.info("Found {} units for category {} (tagId: {}) with difficulty {}", units.size(), cat, tagId, diff);
-                        
-                        for (LearningUnit unit : units) {
-                            customPath.addLevel(unit, orderIndex++);
-                        }
+            String resolvedErrorTagId = findErrorTagUnitId(cat);
+            log.info("[Roadmap] Xử lý category={} -> errorTagUnitId={}, difficulties={}", cat, resolvedErrorTagId, difficultiesToAssign);
+
+            for (String diff : difficultiesToAssign) {
+                List<LearningUnit> units;
+                if (resolvedErrorTagId != null) {
+                    units = learningUnitRepository.findByTypeAndErrorTagIgnoreCaseAndDifficultyLevelIgnoreCase("LEVEL", resolvedErrorTagId, diff);
+                    if (units.isEmpty()) {
+                        // Fallback dùng tên category gốc nếu UUID không khớp
+                        units = learningUnitRepository.findByTypeAndErrorTagIgnoreCaseAndDifficultyLevelIgnoreCase("LEVEL", cat, diff);
                     }
+                } else {
+                    units = learningUnitRepository.findByTypeAndErrorTagIgnoreCaseAndDifficultyLevelIgnoreCase("LEVEL", cat, diff);
+                }
+
+                if (units.isEmpty() && resolvedErrorTagId != null) {
+                    log.info("[Roadmap] Không tìm thấy unit với difficulty={}, fallback toàn bộ errorTagId={}", diff, resolvedErrorTagId);
+                    units = learningUnitRepository.findByTypeAndErrorTagIgnoreCase("LEVEL", resolvedErrorTagId);
+                }
+
+                log.info("[Roadmap] Tìm thấy {} units cho category={} (errorTagId={}) difficulty={}", units.size(), cat, resolvedErrorTagId, diff);
+
+                for (LearningUnit unit : units) {
+                    customPath.addLevel(unit, orderIndex++);
+                }
             }
         }
         customPath = customLearningPathRepository.save(customPath);
@@ -507,26 +538,80 @@ public class EntryTestService {
         }
     }
 
-    private String findErrorTagIdByName(String cat) {
-        String searchKey = cat.replaceAll("[_\\s-]", "").toUpperCase();
+    /**
+     * Tìm UUID của ERROR_TAG LearningUnit phù hợp với category từ entry test.
+     * Cột error_tag trong LEVEL records lưu UUID của ERROR_TAG unit.
+     * Dùng ký tự sorted để khớp: "NORTH_NL" → suffix "NL" ≡ "LN" trong tên "L - N".
+     */
+    private String findErrorTagUnitId(String categorySearch) {
+        if (categorySearch == null) return null;
+
+        // Trích xuất suffix sau "_" cuối (vd: "NORTH_NL" → "NL", "SOUTH_TRCH" → "TRCH")
+        String suffix = categorySearch.contains("_")
+                ? categorySearch.substring(categorySearch.lastIndexOf("_") + 1)
+                : categorySearch;
+        String normalizedSuffix = suffix.replaceAll("[^A-Za-z]", "").toUpperCase();
+        char[] suffixChars = normalizedSuffix.toCharArray();
+        java.util.Arrays.sort(suffixChars);
+        String sortedSuffix = new String(suffixChars);
+
+        log.info("[Roadmap] findErrorTagUnitId: category='{}', suffix='{}', sortedSuffix='{}'",
+                categorySearch, normalizedSuffix, sortedSuffix);
+
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+
+        return learningUnitRepository.findTop1000ByType("ERROR_TAG").stream()
+                .filter(lu -> {
+                    // 1. Khớp theo tên unit (sort ký tự để xử lý NL↔LN)
+                    String unitName = lu.getName().replaceAll("[^A-Za-z]", "").toUpperCase();
+                    char[] unitChars = unitName.toCharArray();
+                    java.util.Arrays.sort(unitChars);
+                    String sortedUnit = new String(unitChars);
+                    if (sortedSuffix.equals(sortedUnit)) {
+                        log.info("[Roadmap] Khớp theo tên unit: '{}' (sorted: {})", lu.getName(), sortedUnit);
+                        return true;
+                    }
+                    // 2. Khớp theo tag_code trong metadata
+                    try {
+                        if (lu.getMetadataJson() != null && !lu.getMetadataJson().isBlank()) {
+                            com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(lu.getMetadataJson());
+                            if (node.has("tag_code")) {
+                                String tagCode = node.get("tag_code").asText("").replaceAll("[^A-Za-z]", "").toUpperCase();
+                                char[] tagChars = tagCode.toCharArray();
+                                java.util.Arrays.sort(tagChars);
+                                String sortedTag = new String(tagChars);
+                                if (sortedSuffix.equals(sortedTag)) {
+                                    log.info("[Roadmap] Khớp theo tag_code: '{}' (sorted: {})", tagCode, sortedTag);
+                                    return true;
+                                }
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                    return false;
+                })
+                .map(lu -> lu.getId().toString())
+                .findFirst()
+                .orElseGet(() -> {
+                    log.warn("[Roadmap] Không tìm thấy ERROR_TAG nào khớp với category='{}'", categorySearch);
+                    return null;
+                });
+    }
+
+    private String findErrorTagName(String cat) {
+        if (cat == null) return null;
+        String categorySearch = cat.replaceAll("[_\\s-]", "").toUpperCase();
 
         return learningUnitRepository.findByType("ERROR_TAG").stream()
                 .filter(lu -> {
                     String unitName = lu.getName().replaceAll("[_\\s-]", "").toUpperCase();
-                    String categoryName = cat.replaceAll("[_\\s-]", "").toUpperCase();
                     
-                    // Match if:
-                    // 1. Exact match (e.g., "L_N" == "L_N")
-                    // 2. Contains (e.g., "NORTH_NL" contains "NL")
-                    // 3. Reversed contains (e.g., "NL" is part of "NORTH_NL")
-                    return unitName.equals(categoryName) || 
-                           unitName.contains(categoryName) || 
-                           categoryName.contains(unitName) ||
-                           // Special case for common regional suffixes
-                           (categoryName.endsWith("NL") && unitName.contains("LN")) ||
-                           (categoryName.endsWith("DGIR") && (unitName.contains("DGI") || unitName.contains("R")));
+                    return unitName.equals(categorySearch) || 
+                           unitName.contains(categorySearch) || 
+                           categorySearch.contains(unitName) ||
+                           (categorySearch.endsWith("NL") && unitName.contains("LN")) ||
+                           (categorySearch.endsWith("DGIR") && (unitName.contains("DGI") || unitName.contains("R")));
                 })
-                .map(lu -> lu.getId().toString())
+                .map(LearningUnit::getName) // Return the NAME of the tag
                 .findFirst()
                 .orElse(null);
     }

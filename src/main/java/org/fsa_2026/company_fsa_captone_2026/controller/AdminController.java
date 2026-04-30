@@ -204,6 +204,13 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách cấp độ thành công", responses));
     }
 
+    @GetMapping("/content/error-tags")
+    @Operation(summary = "Get All Error Tags", description = "Retrieves a list of all error tags from learning_unit table")
+    public ResponseEntity<ApiResponse<List<org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit>>> getErrorTags() {
+        log.info("Admin retrieving all error tags");
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách Error Tags thành công", adminService.getErrorTags()));
+    }
+
     @GetMapping("/content/levels/{id}")
     @Operation(summary = "Get Level Detail", description = "Get details of a specific level by ID")
     public ResponseEntity<ApiResponse<LevelResponse>> getLevelById(@PathVariable(name = "id") UUID id) {

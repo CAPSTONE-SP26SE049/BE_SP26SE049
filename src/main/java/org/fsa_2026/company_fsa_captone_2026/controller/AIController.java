@@ -94,7 +94,7 @@ public class AIController {
         }
 
         long startTime = System.currentTimeMillis();
-        Map<String, Object> result = new java.util.HashMap<>(aiService.provideFeedback(transcribedText, targetText));
+        Map<String, Object> result = new java.util.HashMap<>(aiService.provideFeedback(transcribedText, targetText, null));
         long endTime = System.currentTimeMillis();
         long processingTimeMs = endTime - startTime;
 
