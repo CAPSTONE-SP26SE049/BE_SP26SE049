@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="57-refactor-roadmap" author="antigravity">
+        <sql>
+            -- Drop deprecated tables if they exist
+            DROP TABLE IF EXISTS personal_roadmap_item CASCADE;
+            DROP TABLE IF EXISTS personal_roadmap CASCADE;
+            DROP TABLE IF EXISTS entry_test_result_detail CASCADE;
+
+            -- Alter custom_learning_paths to support AI-generated paths
+            ALTER TABLE custom_learning_paths ADD COLUMN IF NOT EXISTS is_ai_generated BOOLEAN NOT NULL DEFAULT FALSE;
+            ALTER TABLE custom_learning_paths ADD COLUMN IF NOT EXISTS ai_feedback TEXT;
+            ALTER TABLE custom_learning_paths ADD COLUMN IF NOT EXISTS target_level VARCHAR(50);
+            
+            -- Make educator_id nullable since AI-generated paths won't have an educator
+            ALTER TABLE custom_learning_paths ALTER COLUMN educator_id DROP NOT NULL;
+        </sql>
+    </changeSet>
+</databaseChangeLog>

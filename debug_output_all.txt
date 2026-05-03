@@ -1,0 +1,36 @@
+    <system-err><![CDATA[Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (/Users/penpen1112003/.m2/repository/net/bytebuddy/byte-buddy-agent/1.17.8/byte-buddy-agent-1.17.8.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+
+--- DUMP ALL LEARNING UNITS ---Unit: ID=1818a44f-3676-4397-915c-bd7c82e5e882, Name=Thực Hành Câu Ngắn N - L, Type=LEVEL, Tag=5f970b53-c5b4-4dac-ae3c-8554b87ba805, Level=INTERMEDIATE
+
+Total Units: 25
+Unit: ID=00000000-0000-0000-0001-000000000001, Name=NORTH, Type=DIALECT, Tag=null, Level=null
+Unit: ID=00000000-0000-0000-0001-000000000003, Name=SOUTH, Type=DIALECT, Tag=null, Level=null
+Unit: ID=00000000-0000-0000-0001-000000000002, Name=CENTRAL, Type=DIALECT, Tag=null, Level=null
+Unit: ID=71a319af-f7e3-4dc4-bc1a-806a8d89beb5, Name=Luyện nghe, Type=QUIZ, Tag=null, Level=null
+Unit: ID=52fceb9d-5ed7-4d8f-9771-10afc3e369a1, Name=Nhận Diện Khẩu Hình S - X, Type=LEVEL, Tag=null, Level=null
+Unit: ID=0e48352d-fb72-4559-ad78-a3454727d1a5, Name=Nhận Diện Khẩu Hình D - GI - R, Type=LEVEL, Tag=null, Level=null
+Unit: ID=39862e8c-b4ff-4700-9771-0ceaa0d8344d, Name=Phát Âm Từ Đơn N - L, Type=LEVEL, Tag=5f970b53-c5b4-4dac-ae3c-8554b87ba805, Level=BEGINNER
+Unit: ID=279ee2de-5e6b-4f3e-bcf3-8e574903d7d9, Name=Luyện Từ Ghép N - L, Type=LEVEL, Tag=5f970b53-c5b4-4dac-ae3c-8554b87ba805, Level=INTERMEDIATE
+Unit: ID=8e9d89cb-1559-4fa5-8063-e5676d14cdf0, Name=Phân Biệt Cặp Từ N - L, Type=LEVEL, Tag=5f970b53-c5b4-4dac-ae3c-8554b87ba805, Level=INTERMEDIATE
+Unit: ID=2ff9d970-1a90-4d4b-acf5-3f7b275050ba, Name=Nhận Diện Khẩu Hình N - L, Type=LEVEL, Tag=5f970b53-c5b4-4dac-ae3c-8554b87ba805, Level=BEGINNER
+Unit: ID=41cb76c5-64b8-4bab-8c0b-3eb125deedd4, Name=Luyện Phát Âm Cụm S - X, Type=LEVEL, Tag=null, Level=null
+Unit: ID=1fecbaed-5f9a-40ea-9c3e-e339b981917f, Name=Phân Biệt Cặp Từ S - X, Type=LEVEL, Tag=null, Level=null
+Unit: ID=53134fd0-715d-4aec-9b40-36a1a540d7c5, Name=Nhận Diện Khẩu Hình TR - CH, Type=LEVEL, Tag=null, Level=null
+Unit: ID=74ab25fe-45c6-4a40-9f48-cab4660bcd4f, Name=Luyện Phát Âm Cụm TR - CH, Type=LEVEL, Tag=null, Level=null
+Unit: ID=9acb48c6-35a8-472a-a0f7-5581ee7f4489, Name=Phân Biệt Cặp Từ TR - CH, Type=LEVEL, Tag=null, Level=null
+Unit: ID=b5a29c8a-6949-4e48-a4e5-7776a4c34083, Name=Thực Hành Câu Hỗn Hợp Miền Trung, Type=LEVEL, Tag=null, Level=null
+Unit: ID=719625ba-1f4d-43ca-aba8-f85799774627, Name=Đoạn Văn Ứng Dụng Miền Trung, Type=LEVEL, Tag=null, Level=null
+Unit: ID=ec8a784d-0ac5-4b74-a78b-00eddf36c8bd, Name=Phát Âm Từ Đơn D - GI - R, Type=LEVEL, Tag=null, Level=null
+Unit: ID=3eafb66d-a158-4a89-baf4-45a915c54c27, Name=Luyện Từ Ghép D - GI - R, Type=LEVEL, Tag=null, Level=null
+Unit: ID=90fd3615-5cc1-453f-a4f6-254f0c5927d6, Name=Phân Biệt Cặp Từ D - GI - R, Type=LEVEL, Tag=null, Level=null
+Unit: ID=16bd4f53-e1d5-42b9-b295-42dcaa5e8e40, Name=Thực Hành Câu Ngắn D - GI - R, Type=LEVEL, Tag=null, Level=null
+Unit: ID=8977a595-e066-471b-ba84-2648a58a92c7, Name=Đoạn Văn Ứng Dụng D - GI - R, Type=LEVEL, Tag=null, Level=null
+Unit: ID=5f970b53-c5b4-4dac-ae3c-8554b87ba805, Name=L-N, Type=ERROR_TAG, Tag=null, Level=null
+Unit: ID=79c70ce8-7ca6-4543-b7bc-51b44f42d9db, Name=Đoạn Văn Ứng Dụng N - L, Type=LEVEL, Tag=5f970b53-c5b4-4dac-ae3c-8554b87ba805, Level=BEGINNER
+Running assignPersonalRoadmap for hangul.notifications@gmail.com
+Path Levels: 0
+]]></system-err>

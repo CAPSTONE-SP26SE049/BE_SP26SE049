@@ -40,7 +40,6 @@ public class LoginResponse implements Serializable {
         private int totalStars;
         /** Total XP earned */
         private int totalExperience;
+        private boolean hasDoneEntryTest;
     }
 }
-
-

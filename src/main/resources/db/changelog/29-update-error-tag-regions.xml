@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="29-update-error-tag-regions" author="antigravity">
+        <sql>
+            -- Update North regions
+            UPDATE learning_unit 
+            SET metadata_json = '{"tag_code":"L_N","description":"Lỗi phát âm nhầm lẫn giữa L và N phổ biến ở miền Bắc","regions":["NORTH"]}'
+            WHERE id = '00000000-0000-0000-0003-000000000001';
+
+            UPDATE learning_unit 
+            SET metadata_json = '{"tag_code":"S_X","description":"Lỗi phát âm chưa phân biệt âm cuốn lưỡi S và X","regions":["NORTH","CENTRAL","SOUTH"]}'
+            WHERE id = '00000000-0000-0000-0003-000000000002';
+
+            UPDATE learning_unit 
+            SET metadata_json = '{"tag_code":"CH_TR","description":"Lỗi phát âm nhầm lẫn giữa CH và TR","regions":["NORTH","CENTRAL","SOUTH"]}'
+            WHERE id = '00000000-0000-0000-0003-000000000003';
+
+            -- Update Central/South regions
+            UPDATE learning_unit 
+            SET metadata_json = '{"tag_code":"V_D_CONFUSION","description":"Lỗi phát âm nhầm lẫn giữa V và D phổ biến ở miền Nam và Trung","regions":["CENTRAL","SOUTH"]}'
+            WHERE id = '00000000-0000-0000-0002-000000000001';
+
+            UPDATE learning_unit 
+            SET metadata_json = '{"tag_code":"TONE_INTERROGATIVE","description":"Lỗi phát âm không phân biệt rõ thanh hỏi và thanh ngã","regions":["CENTRAL","SOUTH"]}'
+            WHERE id = '00000000-0000-0000-0002-000000000002';
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

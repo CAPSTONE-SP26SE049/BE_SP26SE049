@@ -34,10 +34,11 @@ public class LevelController {
     @Operation(summary = "Get Levels by Dialect with Progress")
     public ResponseEntity<ApiResponse<List<LevelResponse>>> getLevelsByDialect(
             Authentication authentication,
-            @RequestParam String dialectId) {
+            @RequestParam("dialectId") String dialectId) {
 
-        log.info("Get levels for dialect: {} by user: {}", dialectId, authentication != null ? authentication.getName() : "anonymous");
-        
+        log.info("Get levels for dialect: {} by user: {}", dialectId,
+                authentication != null ? authentication.getName() : "anonymous");
+
         List<LevelResponse> levels;
         if (authentication != null && authentication.isAuthenticated()) {
             Account account = accountRepository.findByEmail(authentication.getName()).orElse(null);
@@ -56,10 +57,13 @@ public class LevelController {
     @GetMapping("/user")
     @Operation(summary = "Get User Roadmap Levels", description = "Get chapters (levels) tailored for the current user's dialect", security = @SecurityRequirement(name = "bearer-jwt"))
     public ResponseEntity<ApiResponse<List<LevelResponse>>> getUserLevels(
-            @RequestParam(required = false) String dialectId,
+            @RequestParam(value = "dialectId", required = false) String dialectId,
+            @RequestParam(value = "type", required = false) String type,
             Authentication authentication) {
-        log.info("Get roadmap levels for user: {} with dialectId: {}", authentication.getName(), dialectId);
-        List<LevelResponse> levels = levelService.getUserRoadmap(authentication.getName(), dialectId);
-        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách chương (roadmap) của người dùng thành công", levels));
+        log.info("Get roadmap levels for user: {} with dialectId: {} type: {}", authentication.getName(), dialectId,
+                type);
+        List<LevelResponse> levels = levelService.getUserRoadmap(authentication.getName(), dialectId, type);
+        return ResponseEntity
+                .ok(ApiResponse.success("Lấy danh sách chương (roadmap) của người dùng thành công", levels));
     }
 }

@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20240421-51-reset-entry-test-questions" author="antigravity">
+        <delete tableName="entry_test_question"/>
+
+        <!-- 1. NORTH_NL (Miền Bắc) -->
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Lúa nếp nương."/>
+            <column name="region_category" value="NORTH_NL"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Làm lụng nặng nề."/>
+            <column name="region_category" value="NORTH_NL"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Nói năng lưu loát."/>
+            <column name="region_category" value="NORTH_NL"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Nửa đêm ăn nếp nương nanh."/>
+            <column name="region_category" value="NORTH_NL"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Lên núi lấy lá lốt làm thuốc."/>
+            <column name="region_category" value="NORTH_NL"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Phụ nữ Việt Nam nên luyện nói năng."/>
+            <column name="region_category" value="NORTH_NL"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Lúa nếp nương lá nảy xanh non, nắng nồng nàn lung linh bên lán."/>
+            <column name="region_category" value="NORTH_NL"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Năm nay lũ lớn liên miên, làm làng lênh láng lúa nước."/>
+            <column name="region_category" value="NORTH_NL"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Luộc hột vịt lộn, luộc lộn hột vịt lạc, ăn lộn hột vịt lộn luộc lại."/>
+            <column name="region_category" value="NORTH_NL"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Nàng Lê lên núi lấy nước nấu lẩu, leo lên lầu lấy lọ muối lại làm rơi."/>
+            <column name="region_category" value="NORTH_NL"/>
+        </insert>
+
+        <!-- 2. SOUTH_TRCH (Miền Nam) -->
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Trăng tròn trên tre."/>
+            <column name="region_category" value="SOUTH_TRCH"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Chú chó chăn trâu."/>
+            <column name="region_category" value="SOUTH_TRCH"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Chiếc chiếu chông chênh."/>
+            <column name="region_category" value="SOUTH_TRCH"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Trẻ chăn trâu che chung chiếc chiếu."/>
+            <column name="region_category" value="SOUTH_TRCH"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Cha chở chú Chi đi chợ Chợ Lớn."/>
+            <column name="region_category" value="SOUTH_TRCH"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Trời trong trẻo trên triền đê vắng."/>
+            <column name="region_category" value="SOUTH_TRCH"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Trăng tròn trên tre, chú chó chui ra khỏi chuồng chạy trong sân chung."/>
+            <column name="region_category" value="SOUTH_TRCH"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Trên trời có đám mây trắng, dưới đất có con trâu trắng đang gặm cỏ trong chuồng tre."/>
+            <column name="region_category" value="SOUTH_TRCH"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Chị Chín chở chú Chiến đi chơi chợ, chú Chiến cho chị Chín chiếc chiếu chàm."/>
+            <column name="region_category" value="SOUTH_TRCH"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Trần Trọng Triết trúng tuyển trường trẻ, trở thành triết gia trẻ trung trên thị trấn."/>
+            <column name="region_category" value="SOUTH_TRCH"/>
+        </insert>
+
+        <!-- 3. CENTRAL_DGIR (Miền Trung) -->
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Sương sa xào xạc."/>
+            <column name="region_category" value="CENTRAL_DGIR"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Dòng rạch rộn ràng."/>
+            <column name="region_category" value="CENTRAL_DGIR"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Gió giục giã giữa rừng."/>
+            <column name="region_category" value="CENTRAL_DGIR"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Rì rào rặng rào rung rinh trong gió."/>
+            <column name="region_category" value="CENTRAL_DGIR"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Sáng sớm xem sao sáng rực trên sân."/>
+            <column name="region_category" value="CENTRAL_DGIR"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Dì Diệp dắt dê đi dọc dòng sông."/>
+            <column name="region_category" value="CENTRAL_DGIR"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Sáng sớm sương xuống xào xạc, sau song sắt sen sắp nở xòe sang trọng."/>
+            <column name="region_category" value="CENTRAL_DGIR"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Dòng rạch rộn ràng reo rắt, rừng rậm rúng rinh rộn rã rêu rao."/>
+            <column name="region_category" value="CENTRAL_DGIR"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Giặc giã gieo giống gian nan, giữ gìn giang sơn gấm vóc gia đình."/>
+            <column name="region_category" value="CENTRAL_DGIR"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Sáu sắc sảo xách sọt xuống xuồng, sang sông xem sổ sách sòng phẳng."/>
+            <column name="region_category" value="CENTRAL_DGIR"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

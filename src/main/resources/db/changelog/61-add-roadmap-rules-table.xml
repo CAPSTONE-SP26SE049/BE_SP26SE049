@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="61-add-roadmap-rules-table" author="antigravity">
+        <sql>
+            CREATE TABLE IF NOT EXISTS roadmap_rules (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                created_by VARCHAR(50),
+                updated_by VARCHAR(50),
+                min_percent DOUBLE PRECISION NOT NULL,
+                max_percent DOUBLE PRECISION NOT NULL,
+                difficulties VARCHAR(255) NOT NULL,
+                is_active BOOLEAN NOT NULL DEFAULT TRUE
+            );
+        </sql>
+    </changeSet>
+
+    <changeSet id="61-seed-roadmap-rules" author="antigravity">
+        <sql>
+            INSERT INTO roadmap_rules (min_percent, max_percent, difficulties, is_active)
+            VALUES (0.0, 50.0, 'BEGINNER,INTERMEDIATE,ADVANCED', TRUE),
+                   (50.1, 70.0, 'INTERMEDIATE,ADVANCED', TRUE),
+                   (80.0, 90.0, 'ADVANCED', TRUE);
+        </sql>
+    </changeSet>
+</databaseChangeLog>

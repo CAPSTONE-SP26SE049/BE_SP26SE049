@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="56-add-missing-base-entity-columns" author="antigravity">
+        <sql>
+            ALTER TABLE entry_test_result_detail ADD COLUMN IF NOT EXISTS created_by VARCHAR(50);
+            ALTER TABLE entry_test_result_detail ADD COLUMN IF NOT EXISTS updated_by VARCHAR(50);
+
+            ALTER TABLE personal_roadmap ADD COLUMN IF NOT EXISTS created_by VARCHAR(50);
+            ALTER TABLE personal_roadmap ADD COLUMN IF NOT EXISTS updated_by VARCHAR(50);
+
+            ALTER TABLE personal_roadmap_item ADD COLUMN IF NOT EXISTS created_by VARCHAR(50);
+            ALTER TABLE personal_roadmap_item ADD COLUMN IF NOT EXISTS updated_by VARCHAR(50);
+        </sql>
+    </changeSet>
+</databaseChangeLog>

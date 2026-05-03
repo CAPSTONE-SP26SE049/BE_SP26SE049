@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="55-add-personal-roadmap-tables" author="antigravity">
+        <sql>
+            ALTER TABLE learning_unit ADD COLUMN IF NOT EXISTS difficulty_level VARCHAR(50);
+            ALTER TABLE learning_unit ADD COLUMN IF NOT EXISTS error_tag VARCHAR(50);
+
+            CREATE TABLE IF NOT EXISTS entry_test_result_detail (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+                entry_test_result_id UUID NOT NULL,
+                question_id UUID NOT NULL,
+                target_word VARCHAR(255) NOT NULL,
+                status VARCHAR(50) NOT NULL,
+                error_category VARCHAR(50),
+                CONSTRAINT fk_entry_test_result_detail_result FOREIGN KEY (entry_test_result_id) REFERENCES entry_test_result (id),
+                CONSTRAINT fk_entry_test_result_detail_question FOREIGN KEY (question_id) REFERENCES entry_test_question (id)
+            );
+
+            CREATE TABLE IF NOT EXISTS personal_roadmap (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+                account_id UUID NOT NULL,
+                entry_test_result_id UUID NOT NULL,
+                ai_analysis TEXT,
+                CONSTRAINT fk_personal_roadmap_account FOREIGN KEY (account_id) REFERENCES account (id),
+                CONSTRAINT fk_personal_roadmap_result FOREIGN KEY (entry_test_result_id) REFERENCES entry_test_result (id)
+            );
+
+            CREATE TABLE IF NOT EXISTS personal_roadmap_item (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+                personal_roadmap_id UUID NOT NULL,
+                learning_unit_id UUID NOT NULL,
+                error_category_target VARCHAR(50),
+                order_index INT NOT NULL,
+                status VARCHAR(50) NOT NULL,
+                CONSTRAINT fk_personal_roadmap_item_roadmap FOREIGN KEY (personal_roadmap_id) REFERENCES personal_roadmap (id),
+                CONSTRAINT fk_personal_roadmap_item_unit FOREIGN KEY (learning_unit_id) REFERENCES learning_unit (id)
+            );
+        </sql>
+    </changeSet>
+</databaseChangeLog>

@@ -30,18 +30,18 @@ public interface SpeakingAttemptRepository extends JpaRepository<SpeakingAttempt
         long countByDialectAndConsentGivenTrue(String dialect);
 
         /** Đếm số attempts lỗi (score < threshold) theo dialect */
-        long countByDialectAndConsentGivenTrueAndGeminiScoreLessThan(String dialect, Integer threshold);
+        long countByDialectAndConsentGivenTrueAndGroqScoreLessThan(String dialect, Integer threshold);
 
         /** Đếm tổng số attempts có consent */
         long countByConsentGivenTrue();
 
-        /** Đếm tổng số attempts có consent và có gemini score */
-        @Query("SELECT COUNT(sa) FROM SpeakingAttempt sa WHERE sa.consentGiven = true AND sa.geminiScore IS NOT NULL")
-        long countWithGeminiScoreAndConsentGivenTrue();
+        /** Đếm tổng số attempts có consent và có groq score */
+        @Query("SELECT COUNT(sa) FROM SpeakingAttempt sa WHERE sa.consentGiven = true AND sa.groqScore IS NOT NULL")
+        long countWithGroqScoreAndConsentGivenTrue();
 
-        /** Tính điểm trung bình gemini score trên các attempts có consent */
-        @Query("SELECT COALESCE(AVG(sa.geminiScore), 0) FROM SpeakingAttempt sa WHERE sa.consentGiven = true AND sa.geminiScore IS NOT NULL")
-        Double averageGeminiScoreWithConsentGivenTrue();
+        /** Tính điểm trung bình groq score trên các attempts có consent */
+        @Query("SELECT COALESCE(AVG(sa.groqScore), 0) FROM SpeakingAttempt sa WHERE sa.consentGiven = true AND sa.groqScore IS NOT NULL")
+        Double averageGroqScoreWithConsentGivenTrue();
 
         /** Tính thời gian xử lý trung bình của AI */
         @Query("SELECT AVG(sa.processingTimeMs) FROM SpeakingAttempt sa WHERE sa.consentGiven = true AND sa.processingTimeMs IS NOT NULL")

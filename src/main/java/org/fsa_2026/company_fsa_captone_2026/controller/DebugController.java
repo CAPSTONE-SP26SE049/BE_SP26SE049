@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
  * DELETE THIS CONTROLLER before production deployment.
  */
 @Slf4j
-@RestController
+@RestController 
 @RequestMapping(Constants.API_PREFIX + "/public/debug")
 @RequiredArgsConstructor
 public class DebugController {
@@ -31,6 +31,9 @@ public class DebugController {
     private final QuizChallengeItemRepository quizChallengeItemRepository;
     private final ContentItemRepository contentItemRepository;
     private final LearningUnitRepository learningUnitRepository;
+    private final org.fsa_2026.company_fsa_captone_2026.repository.EntryTestResultRepository entryTestResultRepository;
+    private final org.fsa_2026.company_fsa_captone_2026.repository.CustomLearningPathRepository customLearningPathRepository;
+    private final org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository accountRepository;
 
     @GetMapping("/challenge-bank")
     public ResponseEntity<Map<String, Object>> getAllChallenges() {

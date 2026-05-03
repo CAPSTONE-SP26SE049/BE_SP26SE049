@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="54-drop-quiz-learning-unit-data" author="antigravity">
+        <comment>Drop data for learning units of type QUIZ and associated content items (questions)</comment>
+        
+        <!-- 1. Delete associated session details (attempts) and their sessions -->
+        <delete tableName="session_detail">
+            <where>content_item_id IN (
+                SELECT id FROM content_item 
+                WHERE learning_unit_id IN (SELECT id FROM learning_unit WHERE type = 'QUIZ')
+            )</where>
+        </delete>
+
+        <delete tableName="study_session">
+            <where>session_type = 'QUIZ'</where>
+        </delete>
+
+        <!-- 2. Delete progress tracking and learning path references -->
+        <delete tableName="account_learning_unit">
+            <where>learning_unit_id IN (SELECT id FROM learning_unit WHERE type = 'QUIZ')</where>
+        </delete>
+
+        <delete tableName="custom_path_progress">
+            <where>learning_unit_id IN (SELECT id FROM learning_unit WHERE type = 'QUIZ')</where>
+        </delete>
+
+        <delete tableName="custom_path_levels">
+            <where>level_id IN (SELECT id FROM learning_unit WHERE type = 'QUIZ')</where>
+        </delete>
+
+        <!-- 3. Delete content items (Quizzes and their questions in items_json) -->
+        <delete tableName="content_item">
+            <where>learning_unit_id IN (SELECT id FROM learning_unit WHERE type = 'QUIZ')</where>
+        </delete>
+
+        <!-- 4. Delete assignments if the table exists -->
+        <sql splitStatements="false">
+            DO $$ 
+            BEGIN
+                IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'assignment') THEN
+                    DELETE FROM assignment WHERE learning_unit_id IN (SELECT id FROM learning_unit WHERE type = 'QUIZ');
+                END IF;
+            END $$;
+        </sql>
+
+        <!-- 5. Finally delete the learning units -->
+        <delete tableName="learning_unit">
+            <where>type = 'QUIZ'</where>
+        </delete>
+    </changeSet>
+
+</databaseChangeLog>

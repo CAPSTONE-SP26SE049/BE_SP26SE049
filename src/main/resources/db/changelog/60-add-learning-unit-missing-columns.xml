@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="60-add-learning-unit-missing-columns" author="antigravity">
+        <validCheckSum>*</validCheckSum>
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="learning_unit" columnName="difficulty_level"/>
+            </not>
+            <not>
+                <columnExists tableName="learning_unit" columnName="error_tag"/>
+            </not>
+            <not>
+                <columnExists tableName="learning_unit" columnName="reward_catalog_id"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="learning_unit">
+            <column name="difficulty_level" type="VARCHAR(50)"/>
+            <column name="error_tag" type="VARCHAR(50)"/>
+            <column name="reward_catalog_id" type="UUID"/>
+        </addColumn>
+        <addForeignKeyConstraint baseTableName="learning_unit" baseColumnNames="reward_catalog_id"
+                                 constraintName="fk_learning_unit_reward"
+                                 referencedTableName="reward_catalog" referencedColumnNames="id"/>
+    </changeSet>
+
+</databaseChangeLog>

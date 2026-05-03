@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import org.fsa_2026.company_fsa_captone_2026.entity.Account;
 import org.fsa_2026.company_fsa_captone_2026.entity.ChatMessage;
 import org.fsa_2026.company_fsa_captone_2026.entity.EducatorFeedback;
+import org.fsa_2026.company_fsa_captone_2026.entity.CustomLearningPath;
 import org.fsa_2026.company_fsa_captone_2026.entity.SessionDetail;
 import org.fsa_2026.company_fsa_captone_2026.entity.enums.MessageStatus;
 import org.fsa_2026.company_fsa_captone_2026.entity.enums.RoleCode;
@@ -70,8 +71,16 @@ public class EducatorService {
     @Transactional(readOnly = true)
     public List<UserManagementResponse> getStudentAccounts(String educatorEmail) {
         List<Account> students = findStudents();
-        List<UUID> studentIdsWithPath = customPathRepository.findAllStudentIdsWithActivePath();
-        java.util.Set<UUID> pathSet = new java.util.HashSet<>(studentIdsWithPath);
+        List<CustomLearningPath> activePaths = customPathRepository.findByIsActiveTrue();
+
+        // Map studentId -> isAiGenerated
+        Map<UUID, Boolean> pathTypeMap = activePaths.stream()
+                .collect(Collectors.toMap(
+                        p -> p.getStudent().getId(),
+                        p -> Boolean.TRUE.equals(p.getIsAiGenerated()),
+                        (v1, v2) -> v1 // In case of duplicates, keep first (though isActive should be unique per
+                                       // student)
+                ));
 
         Account educator = resolveEducator(educatorEmail);
         List<Object[]> unreadCountsRaw = chatMessageRepository.countUnreadMessagesGroupedBySender(educator.getId());
@@ -80,12 +89,15 @@ public class EducatorService {
 
         return students.stream()
                 .map(student -> {
-                    boolean hasPath = pathSet.contains(student.getId());
-                    UserManagementResponse resp = UserManagementResponse.fromEntity(student, hasPath);
+                    Boolean isAi = pathTypeMap.get(student.getId());
+                    boolean hasPath = isAi != null;
+                    String type = "NONE";
+                    if (hasPath) {
+                        type = isAi ? "AI" : "MANUAL";
+                    }
+
+                    UserManagementResponse resp = UserManagementResponse.fromEntity(student, hasPath, type);
                     resp.setUnreadCount(unreadMap.getOrDefault(student.getId(), 0L));
-                    // For now, let's not fetch last message in the list to avoid N+1 and slow
-                    // response
-                    // We can add a specialized bulk query for this later if needed
                     resp.setLastMessage("Mở hội thoại để xem...");
                     return resp;
                 })

@@ -57,4 +57,4 @@ $RECYCLE.BIN/
 # --- Cho MacOS (Phòng hờ bạn khác trong nhóm dùng MacBook) ---
 .DS_Store
 .AppleDouble
-.LSOverride
+.LSOverridesrc/main/resources/firebase-service-account.json

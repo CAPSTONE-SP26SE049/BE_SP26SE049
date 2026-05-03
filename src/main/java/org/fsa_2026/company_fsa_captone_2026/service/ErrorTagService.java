@@ -10,7 +10,6 @@ import org.fsa_2026.company_fsa_captone_2026.dto.ErrorTagResponse;
 import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
 import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
 import org.fsa_2026.company_fsa_captone_2026.repository.LearningUnitRepository;
-import org.fsa_2026.company_fsa_captone_2026.repository.PlacementRuleRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,25 +30,31 @@ public class ErrorTagService {
     private static final String META_TAG_CODE = "tag_code";
 
     private final LearningUnitRepository learningUnitRepository;
-    private final PlacementRuleRepository placementRuleRepository;
     private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
     public List<ErrorTagResponse> getErrorTagsByDialect(UUID dialectId) {
+        List<ErrorTagResponse> allTags = getAllErrorTags();
         if (dialectId == null) {
-            return getAllErrorTags();
+            return allTags;
         }
-        List<ErrorTagResponse> tags = placementRuleRepository.findByTargetDialectId(dialectId).stream()
-                .map(rule -> ErrorTagResponse.fromEntity(rule.getErrorTag()))
-                .distinct()
-                .collect(Collectors.toList());
+        
+        LearningUnit dialect = learningUnitRepository.findById(dialectId).orElse(null);
+        if (dialect != null && dialect.getName() != null) {
+            String name = dialect.getName().toLowerCase();
+            String region = null;
+            if (name.contains("bắc") || name.contains("north")) region = "NORTH";
+            else if (name.contains("trung") || name.contains("central")) region = "CENTRAL";
+            else if (name.contains("nam") || name.contains("south")) region = "SOUTH";
 
-        // If no specifically linked tags via placement rules, return all tags
-        // so the teacher can select and create a new rule/assignment.
-        if (tags.isEmpty()) {
-            return getAllErrorTags();
+            if (region != null) {
+                final String r = region;
+                return allTags.stream()
+                        .filter(t -> t.getRegions() == null || t.getRegions().isEmpty() || t.getRegions().contains(r))
+                        .collect(Collectors.toList());
+            }
         }
-        return tags;
+        return allTags;
     }
 
     @Transactional(readOnly = true)
@@ -98,6 +103,7 @@ public class ErrorTagService {
         LearningUnit tag = LearningUnit.builder()
                 .name(name)
                 .type(TYPE_ERROR_TAG)
+                .errorTag(tagCode) // NEW: Populate the dedicated column
                 .metadataJson(metadataJson)
                 .build();
 
@@ -117,6 +123,10 @@ public class ErrorTagService {
 
         if (!TYPE_ERROR_TAG.equals(tag.getType())) {
             throw new ApiException("BAD_REQUEST", "ID không phải Error Tag");
+        }
+
+        if (tagCode != null) {
+            tag.setErrorTag(tagCode); // NEW: Update the dedicated column
         }
 
         try {
@@ -152,14 +162,6 @@ public class ErrorTagService {
 
         if (!TYPE_ERROR_TAG.equals(tag.getType())) {
             throw new ApiException("BAD_REQUEST", "ID không phải Error Tag");
-        }
-
-        boolean usedInPlacementRule = !placementRuleRepository.findAll().stream()
-                .filter(r -> r.getErrorTag() != null && r.getErrorTag().getId().equals(id))
-                .collect(Collectors.toList()).isEmpty();
-
-        if (usedInPlacementRule) {
-            throw new ApiException("PRECONDITION_FAILED", "Không thể xóa mã lỗi đang được dùng trong Placement Rules");
         }
 
         learningUnitRepository.deleteById(id);
