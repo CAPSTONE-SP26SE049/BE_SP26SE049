@@ -21,6 +21,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -31,6 +33,11 @@ public class LeaderboardService {
     private final AccountRepository accountRepository;
     private final LeaderboardRepository leaderboardRepository;
     private final LeaderboardEntryRepository leaderboardEntryRepository;
+
+    // Lock để tránh concurrent refresh gây PSQLException (duplicate key)
+    private final ReentrantLock refreshLock = new ReentrantLock();
+    // Per-leaderboard lock để tránh cùng 1 leaderboard được refresh bởi 2 luồng song song
+    private final ConcurrentHashMap<String, ReentrantLock> leaderboardLocks = new ConcurrentHashMap<>();
 
     // ─── Canonical regions (normalized) ──────────────────────────────────────
     private static final String[] ACTIVE_REGIONS = {"NORTH", "CENTRAL", "SOUTH"};
@@ -129,21 +136,29 @@ public class LeaderboardService {
      */
     @Transactional
     public void refreshAllLeaderboards() {
-        log.info("[Leaderboard] Starting optimized refresh (4 boards)...");
-        long start = System.currentTimeMillis();
-
-        final LeaderboardPeriodType period = LeaderboardPeriodType.ALL_TIME;
-        final LeaderboardSortBy sortBy     = LeaderboardSortBy.TOTAL_STARS;
-
-        // 1. Global
-        refreshLeaderboard(LeaderboardScope.GLOBAL, null, period, sortBy);
-
-        // 2. Three canonical regions
-        for (String region : ACTIVE_REGIONS) {
-            refreshLeaderboard(LeaderboardScope.REGIONAL, region, period, sortBy);
+        if (!refreshLock.tryLock()) {
+            log.info("[Leaderboard] Refresh đang được thực thi bởi luồng khác, bỏ qua lần này.");
+            return;
         }
+        try {
+            log.info("[Leaderboard] Starting optimized refresh (4 boards)...");
+            long start = System.currentTimeMillis();
 
-        log.info("[Leaderboard] Refresh completed in {}ms", System.currentTimeMillis() - start);
+            final LeaderboardPeriodType period = LeaderboardPeriodType.ALL_TIME;
+            final LeaderboardSortBy sortBy     = LeaderboardSortBy.TOTAL_STARS;
+
+            // 1. Global
+            refreshLeaderboard(LeaderboardScope.GLOBAL, null, period, sortBy);
+
+            // 2. Three canonical regions
+            for (String region : ACTIVE_REGIONS) {
+                refreshLeaderboard(LeaderboardScope.REGIONAL, region, period, sortBy);
+            }
+
+            log.info("[Leaderboard] Refresh completed in {}ms", System.currentTimeMillis() - start);
+        } finally {
+            refreshLock.unlock();
+        }
     }
 
     /**
@@ -155,34 +170,46 @@ public class LeaderboardService {
         // Only support TOTAL_STARS for now
         sortBy = LeaderboardSortBy.TOTAL_STARS;
 
-        LocalDate[] range = calculatePeriodRange(period);
+        // Per-leaderboard lock key để tránh 2 luồng refresh cùng 1 leaderboard
+        String lockKey = scope.name() + "_" + (regionCode != null ? regionCode : "GLOBAL") + "_" + period.name();
+        ReentrantLock lock = leaderboardLocks.computeIfAbsent(lockKey, k -> new ReentrantLock());
 
-        // Find or create leaderboard header row
-        Leaderboard leaderboard = findOrCreateLeaderboard(scope, regionCode, period, sortBy, range[0], range[1]);
+        if (!lock.tryLock()) {
+            log.info("[Leaderboard] Leaderboard '{}' đang được refresh bởi luồng khác, bỏ qua.", lockKey);
+            return;
+        }
+        try {
+            LocalDate[] range = calculatePeriodRange(period);
 
-        // Fetch top 50 accounts ordered by totalStars DESC
-        List<Account> top50 = getTop50AccountsForScope(scope, regionCode);
+            // Find or create leaderboard header row
+            Leaderboard leaderboard = findOrCreateLeaderboard(scope, regionCode, period, sortBy, range[0], range[1]);
 
-        // Bulk delete stale entries (single DELETE query), then insert fresh
-        leaderboardEntryRepository.deleteByLeaderboard(leaderboard);
+            // Fetch top 50 accounts ordered by totalStars DESC
+            List<Account> top50 = getTop50AccountsForScope(scope, regionCode);
 
-        AtomicInteger rank = new AtomicInteger(1);
-        List<LeaderboardEntry> entries = top50.stream()
-                .map(account -> LeaderboardEntry.builder()
-                        .leaderboard(leaderboard)
-                        .account(account)
-                        .rankPosition(rank.getAndIncrement())
-                        .totalXp(0) // XP removed from system
-                        .totalStars(account.getTotalStars() != null ? account.getTotalStars() : 0)
-                        .challengesCompleted(0) // Account entity does not track this directly
-                        .averageScore(BigDecimal.ZERO)
-                        .streakDays(account.getCurrentStreakDays() != null ? account.getCurrentStreakDays() : 0)
-                        .badgeCount(account.getBadgeCount() != null ? account.getBadgeCount() : 0)
-                        .build())
-                .collect(Collectors.toList());
+            // Bulk delete stale entries (single DELETE query), then insert fresh
+            leaderboardEntryRepository.deleteByLeaderboard(leaderboard);
 
-        leaderboardEntryRepository.saveAll(entries);
-        log.debug("[Leaderboard] Refreshed {} entries for scope={} region={}", entries.size(), scope, regionCode);
+            AtomicInteger rank = new AtomicInteger(1);
+            List<LeaderboardEntry> entries = top50.stream()
+                    .map(account -> LeaderboardEntry.builder()
+                            .leaderboard(leaderboard)
+                            .account(account)
+                            .rankPosition(rank.getAndIncrement())
+                            .totalXp(0) // XP removed from system
+                            .totalStars(account.getTotalStars() != null ? account.getTotalStars() : 0)
+                            .challengesCompleted(0) // Account entity does not track this directly
+                            .averageScore(BigDecimal.ZERO)
+                            .streakDays(account.getCurrentStreakDays() != null ? account.getCurrentStreakDays() : 0)
+                            .badgeCount(account.getBadgeCount() != null ? account.getBadgeCount() : 0)
+                            .build())
+                    .collect(Collectors.toList());
+
+            leaderboardEntryRepository.saveAll(entries);
+            log.debug("[Leaderboard] Refreshed {} entries for scope={} region={}", entries.size(), scope, regionCode);
+        } finally {
+            lock.unlock();
+        }
     }
 
     // ─── Private Helpers ─────────────────────────────────────────────────

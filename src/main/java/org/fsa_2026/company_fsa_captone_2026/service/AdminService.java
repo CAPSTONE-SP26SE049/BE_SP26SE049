@@ -407,6 +407,11 @@ public class AdminService {
     }
 
     @Transactional(readOnly = true)
+    public List<LearningUnit> getErrorTags() {
+        return learningUnitRepository.findTop1000ByType("ERROR_TAG");
+    }
+
+    @Transactional(readOnly = true)
     public LevelResponse getLevelById(UUID id) {
         LearningUnit level = learningUnitRepository.findById(id)
                 .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
@@ -425,6 +430,8 @@ public class AdminService {
                 .parent(parent)
                 .name(request.getName())
                 .type(TYPE_LEVEL)
+                .difficultyLevel(request.getDifficultyLevel())
+                .errorTag(request.getErrorTag())
                 .build();
 
         try {
@@ -454,6 +461,8 @@ public class AdminService {
 
         level.setName(request.getName());
         level.setType(request.getType());
+        level.setDifficultyLevel(request.getDifficultyLevel());
+        level.setErrorTag(request.getErrorTag());
 
         try {
             Map<String, Object> metadata = request.getMetadataJson() != null

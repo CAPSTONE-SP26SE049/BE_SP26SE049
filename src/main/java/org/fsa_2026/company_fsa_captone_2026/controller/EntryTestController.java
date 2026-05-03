@@ -51,9 +51,9 @@ public class EntryTestController {
     @Operation(summary = "Analyze Step", description = "Analyze one pronunciation attempt with Local ASR and AI")
     public ResponseEntity<ApiResponse<Map<String, Object>>> analyzeStep(
             @RequestParam("questionId") UUID questionId,
-            @RequestParam("audio") MultipartFile audio) {
+            @RequestParam("file") MultipartFile audio) {
         try {
-            Map<String, Object> result = entryTestService.analyzeEntryTestStep(questionId, audio.getBytes());
+            Map<String, Object> result = entryTestService.analyzeEntryTestStep(questionId, audio);
             return ResponseEntity.ok(ApiResponse.success("Chẩn đoán bước này thành công", result));
         } catch (Exception e) {
             log.error("Analysis step failed", e);

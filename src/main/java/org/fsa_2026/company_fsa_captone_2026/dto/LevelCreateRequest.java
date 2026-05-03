@@ -38,4 +38,12 @@ public class LevelCreateRequest {
 
     @Schema(example = "Educator updated content description")
     private String comment;
+
+    @Schema(example = "BEGINNER")
+    @JsonProperty("difficulty_level")
+    private String difficultyLevel;
+
+    @Schema(example = "L_N")
+    @JsonProperty("error_tag")
+    private String errorTag;
 }

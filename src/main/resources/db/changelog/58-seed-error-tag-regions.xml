@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="58-seed-error-tag-regions" author="antigravity">
+        <sql>
+            UPDATE learning_unit 
+            SET metadata_json = jsonb_set(metadata_json, '{regions}', '["NORTH"]'::jsonb)
+            WHERE type = 'ERROR_TAG' AND metadata_json->>'tag_code' = 'L_N';
+
+            UPDATE learning_unit 
+            SET metadata_json = jsonb_set(metadata_json, '{regions}', '["NORTH", "CENTRAL", "SOUTH"]'::jsonb)
+            WHERE type = 'ERROR_TAG' AND metadata_json->>'tag_code' = 'S_X';
+
+            UPDATE learning_unit 
+            SET metadata_json = jsonb_set(metadata_json, '{regions}', '["NORTH", "CENTRAL", "SOUTH"]'::jsonb)
+            WHERE type = 'ERROR_TAG' AND metadata_json->>'tag_code' = 'CH_TR';
+
+            UPDATE learning_unit 
+            SET metadata_json = jsonb_set(metadata_json, '{regions}', '["CENTRAL", "SOUTH"]'::jsonb)
+            WHERE type = 'ERROR_TAG' AND metadata_json->>'tag_code' = 'V_D_CONFUSION';
+
+            UPDATE learning_unit 
+            SET metadata_json = jsonb_set(metadata_json, '{regions}', '["NORTH", "CENTRAL", "SOUTH"]'::jsonb)
+            WHERE type = 'ERROR_TAG' AND metadata_json->>'tag_code' = 'TONE_INTERROGATIVE';
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

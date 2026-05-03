@@ -31,8 +31,18 @@ public class CustomLearningPath extends BaseEntity {
     private Account student;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "educator_id", nullable = false)
+    @JoinColumn(name = "educator_id") // Made nullable for AI-generated paths
     private Account educator;
+
+    @Column(name = "is_ai_generated", nullable = false)
+    @Builder.Default
+    private Boolean isAiGenerated = false;
+
+    @Column(name = "ai_feedback", columnDefinition = "TEXT")
+    private String aiFeedback;
+
+    @Column(name = "target_level", length = 50)
+    private String targetLevel;
 
     @Column(name = "is_active", nullable = false)
     @Builder.Default
