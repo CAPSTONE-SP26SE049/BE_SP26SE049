@@ -33,8 +33,13 @@ public class LevelCreateRequest {
 
     @NotNull(message = "Metadata JSON is required")
     @JsonProperty("metadata_json")
-    @Schema(example = "{\"status\":\"APPROVED\",\"audio_url\":null,\"level_order\":2,\"ai_threshold\":75,\"error_tag_id\":\"00000000-0000-0000-0002-000000000001\",\"rejection_reason\":null,\"min_stars_required\":3}")
+    @Schema(example = "{\"status\":\"APPROVED\",\"audio_url\":null,\"level_order\":2,\"ai_threshold\":75,\"error_tag\":\"L/N\",\"rejection_reason\":null,\"min_stars_required\":3}")
     private Map<String, Object> metadataJson;
+
+    @JsonProperty("metadataJson")
+    public void setMetadataJsonCamelCase(Map<String, Object> metadataJson) {
+        this.metadataJson = metadataJson;
+    }
 
     @Schema(example = "Educator updated content description")
     private String comment;

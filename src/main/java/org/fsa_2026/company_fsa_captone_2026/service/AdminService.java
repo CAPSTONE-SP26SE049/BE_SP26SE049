@@ -456,11 +456,24 @@ public class AdminService {
         level.setType(request.getType());
 
         try {
-            Map<String, Object> metadata = request.getMetadataJson() != null
+            Map<String, Object> existingMetadata = new java.util.HashMap<>();
+            if (level.getMetadataJson() != null && !level.getMetadataJson().isBlank()) {
+                try {
+                    existingMetadata = objectMapper.readValue(level.getMetadataJson(), new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+                } catch (Exception e) {
+                    log.warn("Failed to parse existing metadata for level {}: {}", id, e.getMessage());
+                }
+            }
+
+            Map<String, Object> newMetadata = request.getMetadataJson() != null
                     ? new java.util.HashMap<>(request.getMetadataJson())
                     : new java.util.HashMap<>();
-            metadata.put("status", "APPROVED");
-            level.setMetadataJson(objectMapper.writeValueAsString(metadata));
+            
+            // Merge: new metadata overwrites existing
+            existingMetadata.putAll(newMetadata);
+            existingMetadata.put("status", "APPROVED");
+            
+            level.setMetadataJson(objectMapper.writeValueAsString(existingMetadata));
         } catch (JsonProcessingException e) {
             log.error("Failed to update Level metadata", e);
         }

@@ -30,10 +30,19 @@ public class LevelResponse implements Serializable {
     private String name;
     private String description;
     private Integer minStarsRequired;
-    private ErrorTagResponse errorTag;
+    @JsonProperty("errorTag")
+    private String errorTag;
+
+    @JsonProperty("aiThreshold")
     private Integer aiThreshold;
+
+    @JsonProperty("audioUrl")
     private String audioUrl;
+
+    @JsonProperty("status")
     private String status;
+
+    @JsonProperty("rejectionReason")
     private String rejectionReason;
     private Instant createdAt;
     private Instant updatedAt;
@@ -54,14 +63,22 @@ public class LevelResponse implements Serializable {
         String description = "";
         Integer minStarsRequired = 0;
         Integer aiThreshold = null;
+        String errorTag = null;
         String audioUrl = "";
         String status = "";
         String rejectionReason = "";
 
         try {
-            if (level.getMetadataJson() != null) {
-                Map<String, Object> metadata = objectMapper.readValue(level.getMetadataJson(), Map.class);
+            String json = level.getMetadataJson();
+            if (json != null && !json.isBlank()) {
+                Map<String, Object> metadata = objectMapper.readValue(json, 
+                    new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
                 
+                if (level.getName().contains("D - GI - R")) {
+                    System.out.println("[DEBUG] Metadata keys for D-GI-R: " + metadata.keySet());
+                    System.out.println("[DEBUG] Metadata values for D-GI-R: " + metadata);
+                }
+
                 // Robust parsing for level_order
                 Object lo = metadata.get("level_order");
                 if (lo instanceof Number) {
@@ -95,11 +112,32 @@ public class LevelResponse implements Serializable {
                 }
 
                 audioUrl = (String) metadata.get("audio_url");
+                
+                // Try multiple variants for error tag
+                if (metadata.containsKey("error_tag")) {
+                    errorTag = String.valueOf(metadata.get("error_tag"));
+                } else if (metadata.containsKey("errorTag")) {
+                    errorTag = String.valueOf(metadata.get("errorTag"));
+                } else if (metadata.containsKey("error_tag_id")) {
+                    errorTag = String.valueOf(metadata.get("error_tag_id"));
+                }
+                
+                // Fallback for debugging if it's still null but we know it's D-GI-R
+                if (errorTag == null && level.getName().contains("D - GI - R")) {
+                    // Try to find ANY key that might be the one
+                    for (String key : metadata.keySet()) {
+                        if (key.toLowerCase().contains("error") || key.toLowerCase().contains("tag")) {
+                            errorTag = "FOUND_IN_KEY_" + key + "_" + metadata.get(key);
+                            break;
+                        }
+                    }
+                }
+
                 status = (String) metadata.get("status");
                 rejectionReason = (String) metadata.get("rejection_reason");
             }
-        } catch (JsonProcessingException | ClassCastException ignored) {
-            // Keep fallback values when metadata parsing fails.
+        } catch (Exception e) {
+            System.err.println("[ERROR] Failed to parse metadata for level " + level.getId() + ": " + e.getMessage());
         }
 
         return LevelResponse.builder()
@@ -109,6 +147,7 @@ public class LevelResponse implements Serializable {
                 .name(level.getName())
                 .description(description)
                 .minStarsRequired(minStarsRequired)
+                .errorTag(errorTag)
                 .aiThreshold(aiThreshold)
                 .audioUrl(audioUrl)
                 .status(status)
