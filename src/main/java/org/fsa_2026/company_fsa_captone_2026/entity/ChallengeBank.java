@@ -43,7 +43,7 @@ public class ChallengeBank {
      * Miền: BAC (Bắc), TRUNG (Trung), NAM (Nam).
      */
     @Builder.Default
-    @Column(name = "region", length = 20)
+    @Column(name = "region", length = 20, nullable = false)
     private String region = "BAC";
     /**
      * CỰC KỲ QUAN TRỌNG: Cột kiểu JSONB trong Postgres.
