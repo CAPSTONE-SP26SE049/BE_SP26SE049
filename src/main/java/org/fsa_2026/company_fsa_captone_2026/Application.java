@@ -2,10 +2,8 @@ package org.fsa_2026.company_fsa_captone_2026;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Main Application Entry Point
@@ -18,24 +16,15 @@ import org.springframework.web.filter.CorsFilter;
  * - Swagger/OpenAPI documentation
  * - PostgreSQL database
  * - Async email sending
+ * - Scheduled tasks (Leaderboard refresh)
  */
 @SpringBootApplication
 @EnableAsync
+@EnableScheduling
 public class Application {
 
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
-    }
-
-    /**
-     * CORS Filter Bean - Áp dụng CORS configuration toàn ứng dụng
-     *
-     * @param corsConfigurationSource nguồn cấu hình CORS được Spring quản lý
-     * @return CorsFilter sử dụng cấu hình CORS toàn cục
-     */
-    @Bean
-    public CorsFilter corsFilter(CorsConfigurationSource corsConfigurationSource) {
-        return new CorsFilter(corsConfigurationSource);
     }
 }
 

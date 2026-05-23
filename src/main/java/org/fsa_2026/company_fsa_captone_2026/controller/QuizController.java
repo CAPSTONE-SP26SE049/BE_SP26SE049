@@ -6,11 +6,15 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.fsa_2026.company_fsa_captone_2026.dto.ApiResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.LevelProgressResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.QuizCompleteRequest;
+import org.fsa_2026.company_fsa_captone_2026.dto.QuizCompleteResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.QuizCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
 import org.fsa_2026.company_fsa_captone_2026.service.QuizService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -45,8 +49,10 @@ public class QuizController {
 
     @GetMapping("/levels/{levelId}/quizzes")
     @Operation(summary = "Get Quizzes by Level", description = "Fetch quizzes inside a specific level for user selection", security = @SecurityRequirement(name = "bearer-jwt"))
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuizzesByLevel(@PathVariable UUID levelId) {
-        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách quiz theo level thành công", quizService.getQuizzesByLevel(levelId)));
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuizzesByLevel(
+            @PathVariable("levelId") UUID levelId) {
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách quiz theo level thành công",
+                quizService.getQuizzesByLevel(levelId)));
     }
 
 }

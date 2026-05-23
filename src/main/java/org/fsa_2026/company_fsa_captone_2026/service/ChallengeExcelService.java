@@ -6,7 +6,6 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.fsa_2026.company_fsa_captone_2026.entity.ChallengeBank;
 import org.fsa_2026.company_fsa_captone_2026.entity.QuizChallengeItem;
-import org.fsa_2026.company_fsa_captone_2026.entity.enums.DifficultyTag;
 import org.fsa_2026.company_fsa_captone_2026.entity.enums.SkillType;
 import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.ChallengeBankRepository;
@@ -43,8 +42,7 @@ public class ChallengeExcelService {
 
     /** Các cột chung cho tất cả kỹ năng */
     private static final String COL_CONTENT_TEXT  = "Tiêu đề / Yêu cầu";
-    private static final String COL_DIFFICULTY    = "Độ khó (BEGINNER/INTERMEDIATE/ADVANCED)";
-    private static final String COL_REGION        = "Miền (BAC/TRUNG/NAM)";
+    private static final String COL_REGION        = "Region (NORTH/CENTRAL/SOUTH)";
 
     /** Cột riêng theo kỹ năng */
     private static final String COL_OPTIONS        = "Các lựa chọn (phân cách bằng |)";
@@ -53,25 +51,33 @@ public class ChallengeExcelService {
     // private static final String COL_IMAGE_URL      = "Hình ảnh URL"; // Not used for READING anymore, but kept for legacy/other
     private static final String COL_AUDIO_URL      = "Audio URL";
     private static final String COL_TRANSCRIPT     = "Transcript / Lời thoại";
-    private static final String COL_SCRAMBLED      = "Các từ xáo trộn (phân cách bằng |)";
-    private static final String COL_CORRECT_SENTENCE = "Câu hoàn chỉnh đúng";
+    private static final String COL_WRITING_BLANK_SENTENCE = "Nội dung câu đố (với ký hiệu _ )";
+    private static final String COL_WRITING_CORRECT_ANSWER = "Đáp án đúng (Correct Answer)";
+    private static final String COL_WRITING_ALTERNATIVES   = "Đáp án chấp nhận khác (Alternative)";
+
+    // LISTENING — 4 cột đáp án riêng (khớp với form trên web)
+    private static final String COL_LISTENING_OPT1    = "Đáp án 1";
+    private static final String COL_LISTENING_OPT2    = "Đáp án 2";
+    private static final String COL_LISTENING_OPT3    = "Đáp án 3";
+    private static final String COL_LISTENING_OPT4    = "Đáp án 4";
+    private static final String COL_LISTENING_CORRECT = "Đáp án đúng";
     
     // New constants for READING
-    private static final String COL_READING_WORDS = "Các từ trong câu (phân cách bằng |)";
-    private static final String COL_READING_ERROR_INDEX = "Vị trí từ sai (bắt đầu từ 0)";
-    private static final String COL_READING_CORRECT_WORD = "Từ viết đúng";
+    private static final String COL_READING_SENTENCE = "Câu chứa lỗi sai (Sentence with Error)";
+    private static final String COL_READING_WRONG_WORD = "Từ bị sai (Wrong Word)";
+    private static final String COL_READING_CORRECT_WORD = "Từ viết đúng (Correct Word)";
 
     /**
      * Trả về danh sách headers cho từng skill type.
      */
     private List<String> getHeaders(SkillType skillType) {
-        List<String> headers = new ArrayList<>(List.of(COL_CONTENT_TEXT, COL_DIFFICULTY, COL_REGION));
+        List<String> headers = new ArrayList<>(List.of(COL_CONTENT_TEXT, COL_REGION));
 
         switch (skillType) {
-            case READING -> headers.addAll(List.of(COL_READING_WORDS, COL_READING_ERROR_INDEX, COL_READING_CORRECT_WORD, COL_HINT));
-            case LISTENING -> headers.addAll(List.of(COL_AUDIO_URL, COL_OPTIONS, COL_CORRECT_ANSWER, COL_TRANSCRIPT));
-            case WRITING -> headers.addAll(List.of(COL_SCRAMBLED, COL_CORRECT_SENTENCE, COL_HINT));
-            case SPEAKING, ENTRY_TEST -> headers.addAll(List.of(COL_AUDIO_URL, COL_TRANSCRIPT, COL_HINT));
+            case READING -> headers.addAll(List.of(COL_READING_SENTENCE, COL_READING_WRONG_WORD, COL_READING_CORRECT_WORD, COL_HINT));
+            case LISTENING -> headers.addAll(List.of(COL_LISTENING_OPT1, COL_LISTENING_OPT2, COL_LISTENING_OPT3, COL_LISTENING_OPT4, COL_LISTENING_CORRECT, COL_TRANSCRIPT));
+            case WRITING -> headers.addAll(List.of(COL_WRITING_BLANK_SENTENCE, COL_WRITING_CORRECT_ANSWER, COL_WRITING_ALTERNATIVES, COL_HINT));
+            case SPEAKING, ENTRY_TEST -> headers.addAll(List.of(COL_TRANSCRIPT, COL_HINT));
         }
 
         return headers;
@@ -191,34 +197,34 @@ public class ChallengeExcelService {
     private List<List<String>> getSampleData(SkillType skillType) {
         return switch (skillType) {
             case READING -> List.of(
-                List.of("Tìm từ viết SAI trong câu (D/Đ/GI/R)", "BEGINNER", "BAC",
-                         "Con|lai|kia|chạy|lên|nương", "1", "nai", "Chú ý âm đầu L/N, lai -> nai"),
-                List.of("Tìm từ viết SAI trong câu", "INTERMEDIATE", "TRUNG",
-                         "Trời|nạnh|quá|mọi|người|mặc|áo|ấm", "1", "lạnh", "L/N, nạnh -> lạnh")
+                List.of("Tìm lỗi sai L/N trong câu", "NORTH",
+                         "Con trâu đang ăn cỏ trên lồng.", "lồng.", "đồng", "Cánh đồng rộng lớn."),
+                List.of("Tìm từ viết SAI trong câu", "CENTRAL",
+                         "Trời nạnh quá mọi người mặc áo ấm", "nạnh", "lạnh", "L/N, nạnh -> lạnh")
             );
             case LISTENING -> List.of(
-                List.of("Nghe và chọn từ đúng", "BEGINNER", "BAC",
-                         "https://example.com/audio1.mp3", "Lúa nếp|Lúa nết|Núa nếp", "Lúa nếp", "Lúa nếp là lúa nếp làng"),
-                List.of("Nghe đoạn audio và chọn đáp án", "INTERMEDIATE", "NAM",
-                         "https://example.com/audio2.mp3", "Nón lá|Lón lá|Nón nà", "Nón lá", "Chiếc nón lá Việt Nam")
+                List.of("Nghe và chọn từ đúng", "SOUTH",
+                         "Lúa nếp", "Lúa nết", "Núa nếp", "Lúa tẻ", "Lúa nếp", "Lúa nếp là lúa nếp làng"),
+                List.of("Nghe và chọn từ đúng", "SOUTH",
+                         "Nón lá", "Lón lá", "Nón nà", "Nóm lá", "Nón lá", "Chiếc nón lá Việt Nam")
             );
             case WRITING -> List.of(
-                List.of("Sắp xếp lại câu đúng", "BEGINNER", "BAC",
-                         "Nếp|Lúa|Làng|Là|Nếp|Lúa", "Lúa nếp là lúa nếp làng", "Gợi ý: câu tục ngữ"),
-                List.of("Viết lại câu hoàn chỉnh", "INTERMEDIATE", "TRUNG",
-                         "Việt|Nam|Nón|Lá|Chiếc", "Chiếc nón lá Việt Nam", "")
+                List.of("Chọn từ đúng chính tả để điền vào chỗ trống", "NORTH",
+                         "Lúa _ là lúa nếp làng", "nếp", "nếp cái,nếp thơm", "Ngược lại with nếp là tẻ"),
+                List.of("Điền từ vào chỗ trống", "CENTRAL",
+                         "Chiếc nón _ Việt Nam", "lá", "", "Làm từ lá cọ")
             );
             case SPEAKING -> List.of(
-                List.of("Đọc to câu sau", "BEGINNER", "NAM",
-                         "https://example.com/ref1.mp3", "Lúa nếp là lúa nếp làng", "Chú ý phân biệt N và L"),
-                List.of("Phát âm câu sau", "INTERMEDIATE", "BAC",
-                         "https://example.com/ref2.mp3", "Con lợn nằm trong chuồng", "Chú ý âm đầu L")
+                List.of("Đọc to câu sau", "SOUTH",
+                         "Lúa nếp là lúa nếp làng", "Chú ý phân biệt N và L"),
+                List.of("Phát âm câu sau", "NORTH",
+                         "Con lợn nằm trong chuồng", "Chú ý âm đầu L")
             );
             case ENTRY_TEST -> List.of(
-                List.of("Vui lòng đọc câu sau để đánh giá giọng đọc của bạn", "BEGINNER", "BAC",
-                        "", "Lúa nếp là lúa nếp làng", "Hãy đọc chậm và rõ ràng"),
-                List.of("Vui lòng đọc câu sau", "BEGINNER", "TRUNG",
-                        "", "Trời nắng chang chang vườn hoa vẫy gọi", "Chú ý âm sắc")
+                List.of("Vui lòng đọc câu sau để đánh giá giọng đọc của bạn", "NORTH",
+                         "Lúa nếp là lúa nếp làng", "Hãy đọc chậm và rõ ràng"),
+                List.of("Vui lòng đọc câu sau", "CENTRAL",
+                         "Trời nắng chang chang vườn hoa vẫy gọi", "Chú ý âm sắc")
             );
         };
     }
@@ -270,9 +276,19 @@ public class ChallengeExcelService {
             for (int i = 0; i < headerRow.getLastCellNum(); i++) {
                 Cell cell = headerRow.getCell(i);
                 if (cell != null) {
-                    colMap.put(getCellString(cell).trim(), i);
+                    String raw = getCellString(cell).trim();
+                    colMap.put(raw, i);
+                    String normalized = raw.replaceAll("[\\s/()\\[\\]{}]+", " ").trim();
+                    colMap.putIfAbsent(normalized, i);
                 }
             }
+            // Alias fallback for common header name variants
+            colMap.putIfAbsent(COL_CONTENT_TEXT, colMap.getOrDefault("Tiêu đề bài tập / Yêu cầu",
+                    colMap.getOrDefault("Tiêu đề", colMap.get("Yêu cầu"))));
+            colMap.putIfAbsent(COL_REGION, colMap.getOrDefault("Vùng miền",
+                    colMap.getOrDefault("Region", colMap.get("Miền"))));
+            colMap.values().removeIf(v -> v == null);
+            log.info("[Excel Import-Bank] headers: {}", colMap.keySet());
 
             for (int r = 1; r <= sheet.getLastRowNum(); r++) {
                 Row row = sheet.getRow(r);
@@ -284,8 +300,6 @@ public class ChallengeExcelService {
                         continue;
                     }
 
-                    String diffStr = getCellValue(row, colMap, COL_DIFFICULTY);
-                    DifficultyTag difficulty = parseDifficulty(diffStr);
                     String regionStr = getCellValue(row, colMap, COL_REGION);
                     String region = parseRegion(regionStr);
 
@@ -294,7 +308,6 @@ public class ChallengeExcelService {
                     ChallengeBank challenge = ChallengeBank.builder()
                             .contentText(contentText)
                             .skillType(skillType)
-                            .difficultyTag(difficulty)
                                     .region(region)
                             .metadataJson(metadata)
                             .createdBy(createdBy)
@@ -376,9 +389,23 @@ public class ChallengeExcelService {
                 for (int i = 0; i < headerRow.getLastCellNum(); i++) {
                     Cell cell = headerRow.getCell(i);
                     if (cell != null) {
-                        colMap.put(getCellString(cell).trim(), i);
+                        String raw = getCellString(cell).trim();
+                        colMap.put(raw, i);
+                        // Also normalize: remove ()/{}/[] details for fuzzy match
+                        String normalized = raw.replaceAll("[\\s/()\\[\\]{}]+", " ").trim();
+                        colMap.putIfAbsent(normalized, i);
                     }
                 }
+
+                // Also register key alias variants so old files still work
+                colMap.putIfAbsent(COL_CONTENT_TEXT, colMap.getOrDefault("Tiêu đề bài tập / Yêu cầu",
+                        colMap.getOrDefault("Tiêu đề", colMap.get("Yêu cầu"))));
+                colMap.putIfAbsent(COL_REGION, colMap.getOrDefault("Vùng miền",
+                        colMap.getOrDefault("Region", colMap.get("Miền"))));
+                colMap.values().removeIf(v -> v == null);
+
+                // Debug: log detected columns
+                log.info("[Excel Import] Sheet '{}' headers: {}", st.name(), colMap.keySet());
 
                 for (int r = 1; r <= sheet.getLastRowNum(); r++) {
                     Row row = sheet.getRow(r);
@@ -388,8 +415,6 @@ public class ChallengeExcelService {
                         String contentText = getCellValue(row, colMap, COL_CONTENT_TEXT);
                         if (contentText == null || contentText.isBlank()) continue;
 
-                        String diffStr = getCellValue(row, colMap, COL_DIFFICULTY);
-                        DifficultyTag difficulty = parseDifficulty(diffStr);
                         String regionStr = getCellValue(row, colMap, COL_REGION);
                         String region = parseRegion(regionStr);
                         Map<String, Object> metadata = buildMetadata(st, row, colMap);
@@ -397,7 +422,6 @@ public class ChallengeExcelService {
                         ChallengeBank challenge = ChallengeBank.builder()
                                 .contentText(contentText)
                                 .skillType(st)
-                                .difficultyTag(difficulty)
                                 .region(region)
                                 .metadataJson(metadata)
                                 .createdBy(createdBy)
@@ -475,8 +499,6 @@ public class ChallengeExcelService {
                     String contentText = getCsvValue(cols, colMap, COL_CONTENT_TEXT);
                     if (contentText == null || contentText.isBlank()) continue;
 
-                    String diffStr = getCsvValue(cols, colMap, COL_DIFFICULTY);
-                    DifficultyTag difficulty = parseDifficulty(diffStr);
                     String regionStr = getCsvValue(cols, colMap, COL_REGION);
                     String region = parseRegion(regionStr);
 
@@ -486,7 +508,6 @@ public class ChallengeExcelService {
                     ChallengeBank challenge = ChallengeBank.builder()
                             .contentText(contentText)
                             .skillType(skillType)
-                            .difficultyTag(difficulty)
                             .region(region)
                             .metadataJson(metadata)
                             .createdBy(createdBy)
@@ -553,31 +574,51 @@ public class ChallengeExcelService {
 
         switch (skillType) {
             case READING -> {
-                meta.put("words", splitPipe(getCsvValue(cols, colMap, COL_READING_WORDS)));
-                String errorIndexStr = getCsvValue(cols, colMap, COL_READING_ERROR_INDEX);
+                String sentence = getCsvValue(cols, colMap, COL_READING_SENTENCE);
+                String wrongWord = getCsvValue(cols, colMap, COL_READING_WRONG_WORD);
+                List<String> words = sentence != null && !sentence.isBlank() ? Arrays.asList(sentence.trim().split("\\s+")) : new ArrayList<>();
                 int errorIndex = 0;
-                try {
-                    if (errorIndexStr != null && !errorIndexStr.isBlank()) {
-                        errorIndex = (int) Double.parseDouble(errorIndexStr.trim());
+                if (wrongWord != null && !wrongWord.isEmpty() && !words.isEmpty()) {
+                    String cleanWrong = wrongWord.toLowerCase().replaceAll("[.,!?;:]", "");
+                    for (int i = 0; i < words.size(); i++) {
+                        if (words.get(i).toLowerCase().replaceAll("[.,!?;:]", "").equals(cleanWrong)) {
+                            errorIndex = i;
+                            break;
+                        }
                     }
-                } catch (NumberFormatException ignored) {}
+                }
+                meta.put("words", words);
                 meta.put("error_index", errorIndex);
                 meta.put("correct_word", getCsvValue(cols, colMap, COL_READING_CORRECT_WORD));
                 meta.put("hint", getCsvValue(cols, colMap, COL_HINT));
             }
             case LISTENING -> {
-                meta.put("audioUrl", getCsvValue(cols, colMap, COL_AUDIO_URL));
-                meta.put("options", splitPipe(getCsvValue(cols, colMap, COL_OPTIONS)));
-                meta.put("correctAnswer", getCsvValue(cols, colMap, COL_CORRECT_ANSWER));
+                String csvO1 = getCsvValue(cols, colMap, COL_LISTENING_OPT1);
+                String csvO2 = getCsvValue(cols, colMap, COL_LISTENING_OPT2);
+                String csvO3 = getCsvValue(cols, colMap, COL_LISTENING_OPT3);
+                String csvO4 = getCsvValue(cols, colMap, COL_LISTENING_OPT4);
+                if (csvO1.isBlank() && csvO2.isBlank()) {
+                    meta.put("options", splitPipe(getCsvValue(cols, colMap, COL_OPTIONS)));
+                    meta.put("correctAnswer", getCsvValue(cols, colMap, COL_CORRECT_ANSWER));
+                } else {
+                    java.util.List<String> csvOpts = new ArrayList<>();
+                    if (!csvO1.isBlank()) csvOpts.add(csvO1);
+                    if (!csvO2.isBlank()) csvOpts.add(csvO2);
+                    if (!csvO3.isBlank()) csvOpts.add(csvO3);
+                    if (!csvO4.isBlank()) csvOpts.add(csvO4);
+                    meta.put("options", csvOpts);
+                    meta.put("correctAnswer", getCsvValue(cols, colMap, COL_LISTENING_CORRECT));
+                }
                 meta.put("transcript", getCsvValue(cols, colMap, COL_TRANSCRIPT));
             }
             case WRITING -> {
-                meta.put("scrambledWords", splitPipe(getCsvValue(cols, colMap, COL_SCRAMBLED)));
-                meta.put("correctSentence", getCsvValue(cols, colMap, COL_CORRECT_SENTENCE));
+                meta.put("blankSentence", getCsvValue(cols, colMap, COL_WRITING_BLANK_SENTENCE));
+                meta.put("correctAnswer", getCsvValue(cols, colMap, COL_WRITING_CORRECT_ANSWER));
+                String altStr = getCsvValue(cols, colMap, COL_WRITING_ALTERNATIVES);
+                meta.put("alternatives", altStr != null && !altStr.isBlank() ? Arrays.stream(altStr.split("[,;]+")).map(String::trim).filter(s -> !s.isEmpty()).toList() : List.of());
                 meta.put("hint", getCsvValue(cols, colMap, COL_HINT));
             }
             case SPEAKING, ENTRY_TEST -> {
-                meta.put("audioUrl", getCsvValue(cols, colMap, COL_AUDIO_URL));
                 meta.put("transcript", getCsvValue(cols, colMap, COL_TRANSCRIPT));
                 meta.put("hint", getCsvValue(cols, colMap, COL_HINT));
             }
@@ -600,34 +641,51 @@ public class ChallengeExcelService {
 
         switch (skillType) {
             case READING -> {
-                // Parse READING as Godot game format: words, error_index, correct_word, hint
-                meta.put("words", splitPipe(getCellValue(row, colMap, COL_READING_WORDS)));
-                
-                String errorIndexStr = getCellValue(row, colMap, COL_READING_ERROR_INDEX);
+                String sentence = getCellValue(row, colMap, COL_READING_SENTENCE);
+                String wrongWord = getCellValue(row, colMap, COL_READING_WRONG_WORD);
+                List<String> words = sentence != null && !sentence.isBlank() ? Arrays.asList(sentence.trim().split("\\s+")) : new ArrayList<>();
                 int errorIndex = 0;
-                try {
-                    if (errorIndexStr != null && !errorIndexStr.isBlank()) {
-                        errorIndex = (int) Double.parseDouble(errorIndexStr.trim());
+                if (wrongWord != null && !wrongWord.isEmpty() && !words.isEmpty()) {
+                    String cleanWrong = wrongWord.toLowerCase().replaceAll("[.,!?;:]", "");
+                    for (int i = 0; i < words.size(); i++) {
+                        if (words.get(i).toLowerCase().replaceAll("[.,!?;:]", "").equals(cleanWrong)) {
+                            errorIndex = i;
+                            break;
+                        }
                     }
-                } catch (NumberFormatException ignored) {}
+                }
+                meta.put("words", words);
                 meta.put("error_index", errorIndex);
-                
                 meta.put("correct_word", getCellValue(row, colMap, COL_READING_CORRECT_WORD));
                 meta.put("hint", getCellValue(row, colMap, COL_HINT));
             }
             case LISTENING -> {
-                meta.put("audioUrl", getCellValue(row, colMap, COL_AUDIO_URL));
-                meta.put("options", splitPipe(getCellValue(row, colMap, COL_OPTIONS)));
-                meta.put("correctAnswer", getCellValue(row, colMap, COL_CORRECT_ANSWER));
+                String xO1 = getCellValue(row, colMap, COL_LISTENING_OPT1);
+                String xO2 = getCellValue(row, colMap, COL_LISTENING_OPT2);
+                String xO3 = getCellValue(row, colMap, COL_LISTENING_OPT3);
+                String xO4 = getCellValue(row, colMap, COL_LISTENING_OPT4);
+                if ((xO1 == null || xO1.isBlank()) && (xO2 == null || xO2.isBlank())) {
+                    meta.put("options", splitPipe(getCellValue(row, colMap, COL_OPTIONS)));
+                    meta.put("correctAnswer", getCellValue(row, colMap, COL_CORRECT_ANSWER));
+                } else {
+                    java.util.List<String> xOpts = new ArrayList<>();
+                    if (xO1 != null && !xO1.isBlank()) xOpts.add(xO1);
+                    if (xO2 != null && !xO2.isBlank()) xOpts.add(xO2);
+                    if (xO3 != null && !xO3.isBlank()) xOpts.add(xO3);
+                    if (xO4 != null && !xO4.isBlank()) xOpts.add(xO4);
+                    meta.put("options", xOpts);
+                    meta.put("correctAnswer", getCellValue(row, colMap, COL_LISTENING_CORRECT));
+                }
                 meta.put("transcript", getCellValue(row, colMap, COL_TRANSCRIPT));
             }
             case WRITING -> {
-                meta.put("scrambledWords", splitPipe(getCellValue(row, colMap, COL_SCRAMBLED)));
-                meta.put("correctSentence", getCellValue(row, colMap, COL_CORRECT_SENTENCE));
+                meta.put("blankSentence", getCellValue(row, colMap, COL_WRITING_BLANK_SENTENCE));
+                meta.put("correctAnswer", getCellValue(row, colMap, COL_WRITING_CORRECT_ANSWER));
+                String altStr = getCellValue(row, colMap, COL_WRITING_ALTERNATIVES);
+                meta.put("alternatives", altStr != null && !altStr.isBlank() ? Arrays.stream(altStr.split("[,;]+")).map(String::trim).filter(s -> !s.isEmpty()).toList() : List.of());
                 meta.put("hint", getCellValue(row, colMap, COL_HINT));
             }
             case SPEAKING, ENTRY_TEST -> {
-                meta.put("audioUrl", getCellValue(row, colMap, COL_AUDIO_URL));
                 meta.put("transcript", getCellValue(row, colMap, COL_TRANSCRIPT));
                 meta.put("hint", getCellValue(row, colMap, COL_HINT));
             }
@@ -707,35 +765,53 @@ public class ChallengeExcelService {
 
             // Common columns
             row.createCell(0).setCellValue(cb.getContentText());
-            row.createCell(1).setCellValue(cb.getDifficultyTag() != null ? cb.getDifficultyTag().name() : "");
-            row.createCell(2).setCellValue(cb.getRegion() != null ? cb.getRegion() : "BAC");
+            row.createCell(1).setCellValue(mapRegionToEnglish(cb.getRegion()));
 
             // Skill-specific columns
-            int col = 3;
+            int col = 2;
             switch (skillType) {
                 case READING -> {
-                    row.createCell(col++).setCellValue(joinList(meta.get("words")));
+                    Object wordsObj = meta.get("words");
+                    String sentence = wordsObj instanceof List<?> list ? String.join(" ", list.stream().map(Object::toString).toList()) : str(wordsObj);
+                    row.createCell(col++).setCellValue(sentence);
                     
-                    Object errIdx = meta.get("error_index");
-                    String errIdxStr = errIdx != null ? String.valueOf(errIdx) : "";
-                    row.createCell(col++).setCellValue(errIdxStr);
+                    Object errIdxObj = meta.get("error_index");
+                    String wrongWord = "";
+                    if (wordsObj instanceof List<?> list) {
+                        try {
+                            int idx = -1;
+                            if (errIdxObj instanceof Number n) idx = n.intValue();
+                            else if (errIdxObj instanceof String s) idx = Integer.parseInt(s);
+                            
+                            if (idx >= 0 && idx < list.size()) {
+                                wrongWord = String.valueOf(list.get(idx));
+                            }
+                        } catch (Exception ignore) {}
+                    }
+                    row.createCell(col++).setCellValue(wrongWord);
                     
                     row.createCell(col++).setCellValue(str(meta.get("correct_word")));
                     row.createCell(col).setCellValue(str(meta.get("hint")));
                 }
                 case LISTENING -> {
-                    row.createCell(col++).setCellValue(str(meta.get("audioUrl")));
-                    row.createCell(col++).setCellValue(joinList(meta.get("options")));
+                    Object wo = meta.get("options");
+                    java.util.List<?> wol = wo instanceof java.util.List<?> wl ? wl : java.util.List.of();
+                    row.createCell(col++).setCellValue(wol.size() > 0 ? str(wol.get(0)) : "");
+                    row.createCell(col++).setCellValue(wol.size() > 1 ? str(wol.get(1)) : "");
+                    row.createCell(col++).setCellValue(wol.size() > 2 ? str(wol.get(2)) : "");
+                    row.createCell(col++).setCellValue(wol.size() > 3 ? str(wol.get(3)) : "");
                     row.createCell(col++).setCellValue(str(meta.get("correctAnswer")));
                     row.createCell(col).setCellValue(str(meta.get("transcript")));
                 }
                 case WRITING -> {
-                    row.createCell(col++).setCellValue(joinList(meta.get("scrambledWords")));
-                    row.createCell(col++).setCellValue(str(meta.get("correctSentence")));
+                    row.createCell(col++).setCellValue(str(meta.get("blankSentence")));
+                    row.createCell(col++).setCellValue(str(meta.get("correctAnswer")));
+                    Object altObj = meta.get("alternatives");
+                    String altStr = altObj instanceof List<?> list ? String.join(",", list.stream().map(Object::toString).toList()) : str(altObj);
+                    row.createCell(col++).setCellValue(altStr);
                     row.createCell(col).setCellValue(str(meta.get("hint")));
                 }
                 case SPEAKING, ENTRY_TEST -> {
-                    row.createCell(col++).setCellValue(str(meta.get("audioUrl")));
                     row.createCell(col++).setCellValue(str(meta.get("transcript")));
                     row.createCell(col).setCellValue(str(meta.get("hint")));
                 }
@@ -788,23 +864,25 @@ public class ChallengeExcelService {
         return value != null ? value.toString() : "";
     }
 
-    private DifficultyTag parseDifficulty(String s) {
-        if (s == null || s.isBlank()) return DifficultyTag.BEGINNER;
-        try {
-            return DifficultyTag.valueOf(s.trim().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return DifficultyTag.BEGINNER;
-        }
-    }
 
     private String parseRegion(String s) {
         if (s == null || s.isBlank()) return "BAC";
         String upper = s.trim().toUpperCase();
         return switch (upper) {
-            case "BAC", "BẮC", "NORTH" -> "BAC";
-            case "TRUNG", "CENTRAL" -> "TRUNG";
-            case "NAM", "SOUTH" -> "NAM";
+            case "NORTH", "NORTHERN", "BAC", "BẮC" -> "BAC";
+            case "CENTRAL", "TRUNG" -> "TRUNG";
+            case "SOUTH", "SOUTHERN", "NAM" -> "NAM";
             default -> "BAC";
+        };
+    }
+
+    private String mapRegionToEnglish(String regionCode) {
+        if (regionCode == null) return "NORTH";
+        return switch (regionCode.toUpperCase()) {
+            case "BAC" -> "NORTH";
+            case "TRUNG" -> "CENTRAL";
+            case "NAM" -> "SOUTH";
+            default -> "NORTH";
         };
     }
 }

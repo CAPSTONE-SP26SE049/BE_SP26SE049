@@ -29,7 +29,6 @@ public class ChallengeCreateRequest implements Serializable {
 
     private String skillType; // LISTENING, SPEAKING, READING, WRITING
 
-    private org.fsa_2026.company_fsa_captone_2026.entity.enums.DifficultyLevel difficulty;
 
     @NotBlank(message = "Nội dung văn bản không được để trống")
     private String contentText;

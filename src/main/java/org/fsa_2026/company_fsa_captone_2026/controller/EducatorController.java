@@ -1,21 +1,12 @@
 package org.fsa_2026.company_fsa_captone_2026.controller;
 
-import java.util.List;
-import java.util.UUID;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.fsa_2026.company_fsa_captone_2026.dto.ApiResponse;
-import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeCreateRequest;
-import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeResponse;
-import org.fsa_2026.company_fsa_captone_2026.dto.EducatorDashboardSummaryResponse;
-import org.fsa_2026.company_fsa_captone_2026.dto.ErrorTagResponse;
-import org.fsa_2026.company_fsa_captone_2026.dto.FeedbackCreateRequest;
-import org.fsa_2026.company_fsa_captone_2026.dto.LevelCreateRequest;
-import org.fsa_2026.company_fsa_captone_2026.dto.LevelResponse;
-import org.fsa_2026.company_fsa_captone_2026.dto.PlacementRuleRequest;
-import org.fsa_2026.company_fsa_captone_2026.dto.PlacementRuleResponse;
-import org.fsa_2026.company_fsa_captone_2026.dto.StudentAnalyticsResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.UserManagementResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.FeedbackDtos.*;
 import org.fsa_2026.company_fsa_captone_2026.service.EducatorService;
-import org.fsa_2026.company_fsa_captone_2026.service.ErrorTagService;
+import org.fsa_2026.company_fsa_captone_2026.service.FeedbackService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -30,172 +21,199 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
-@Slf4j
 @RestController
 @RequestMapping("/api/v1/educator")
 @RequiredArgsConstructor
-@Tag(name = "Educator", description = "Educator Portal APIs")
-@SecurityRequirement(name = "bearer-jwt")
+@Slf4j
 public class EducatorController {
 
         private static final String MSG_SUCCESS = "Thành công";
 
         private final EducatorService educatorService;
-        private final ErrorTagService errorTagService;
+        private final FeedbackService feedbackService;
 
         @GetMapping("/dashboard/summary")
-        @Operation(summary = "Get Dashboard Summary", description = "Overview stats for educator")
-        public ResponseEntity<ApiResponse<EducatorDashboardSummaryResponse>> getDashboardSummary(
-                        Authentication authentication) {
+        public ResponseEntity<ApiResponse<Map<String, Object>>> getDashboardSummary(Authentication authentication) {
                 return ResponseEntity
                                 .ok(ApiResponse.success(MSG_SUCCESS,
                                                 educatorService.getDashboardSummary(authentication.getName())));
         }
 
+        @GetMapping("/students")
+        public ResponseEntity<ApiResponse<List<UserManagementResponse>>> getStudents(Authentication authentication) {
+                return ResponseEntity
+                                .ok(ApiResponse.success(MSG_SUCCESS,
+                                                educatorService.getStudentAccounts(authentication.getName())));
+        }
 
-        @GetMapping("/students/{id}/analytics")
-        @Operation(summary = "Get Student Analytics", description = "Detailed pronunciation report for a student")
-        public ResponseEntity<ApiResponse<StudentAnalyticsResponse>> getStudentAnalytics(
-                        @PathVariable UUID id,
+        @GetMapping("/students/{id}")
+        public ResponseEntity<ApiResponse<UserManagementResponse>> getStudentById(@PathVariable("id") UUID id,
                         Authentication authentication) {
                 return ResponseEntity.ok(
                                 ApiResponse.success(MSG_SUCCESS,
-                                                educatorService.getStudentAnalytics(authentication.getName(), id)));
+                                                educatorService.getStudentAccountById(authentication.getName(), id)));
         }
 
-        @GetMapping("/curriculum/{region}")
-        @Operation(summary = "Get Curriculum by Region", description = "List levels filtered by region")
-        public ResponseEntity<ApiResponse<List<LevelResponse>>> getCurriculumByRegion(
-                        @PathVariable String region,
+        @PostMapping("/students/learning-paths")
+        public ResponseEntity<ApiResponse<Map<String, Object>>> createLearningPath(
+                        @RequestBody Map<String, Object> request,
                         Authentication authentication) {
-                return ResponseEntity.ok(
-                                ApiResponse.success(MSG_SUCCESS, educatorService.getCurriculumByRegion(region)));
-        }
+                UUID studentId = UUID.fromString(String.valueOf(request.get("studentId")));
+                String title = String.valueOf(request.get("title"));
+                String focusArea = String.valueOf(request.get("focusArea"));
+                @SuppressWarnings("unchecked")
+                List<String> milestones = (List<String>) request.getOrDefault("milestones", List.of());
+                String description = request.get("description") != null ? String.valueOf(request.get("description"))
+                                : null;
 
-        @PostMapping("/curriculum/levels")
-        @Operation(summary = "Create Level", description = "Create a new learning level")
-        public ResponseEntity<ApiResponse<LevelResponse>> createLevel(
-                        @Valid @RequestBody LevelCreateRequest request,
-                        Authentication authentication) {
                 return ResponseEntity.status(HttpStatus.CREATED)
-                                .body(ApiResponse.success("Tạo cấp độ thành công",
-                                                educatorService.createLevel(authentication.getName(), request)));
+                                .body(ApiResponse.success(MSG_SUCCESS,
+                                                educatorService.createCustomLearningPath(authentication.getName(),
+                                                                studentId, title, focusArea,
+                                                                milestones, description)));
         }
 
-        @GetMapping("/content/{id}/history")
-        @Operation(summary = "Get Content Approval History", description = "View the audit log for a specific level or challenge")
-        public ResponseEntity<ApiResponse<List<org.fsa_2026.company_fsa_captone_2026.dto.ContentApprovalHistoryResponse>>> getContentApprovalHistory(
-                        @PathVariable UUID id) {
-                return ResponseEntity.ok(ApiResponse.success("Lấy lịch sử duyệt thành công",
-                                educatorService.getContentApprovalHistory(id)));
+        @GetMapping("/progress/overview")
+        public ResponseEntity<ApiResponse<Map<String, Object>>> getProgressOverview(Authentication authentication) {
+                return ResponseEntity
+                                .ok(ApiResponse.success(MSG_SUCCESS,
+                                                educatorService.getProgressOverview(authentication.getName())));
         }
 
-        @PatchMapping("/curriculum/levels/{levelId}")
-        @Operation(summary = "Update Level", description = "Update level details like title and threshold")
-        public ResponseEntity<ApiResponse<LevelResponse>> updateLevel(
-                        @PathVariable UUID levelId,
-                        @Valid @RequestBody LevelCreateRequest request,
+        @GetMapping("/progress/pronunciation-analytics")
+        public ResponseEntity<ApiResponse<Map<String, Object>>> getPronunciationAnalytics(
+                        @RequestParam(value = "studentId", required = false) UUID studentId,
                         Authentication authentication) {
-                return ResponseEntity.ok(
-                                ApiResponse.success("Cập nhật cấp độ thành công",
-                                                educatorService.updateLevel(authentication.getName(), levelId,
-                                                                request)));
+                return ResponseEntity.ok(ApiResponse.success(MSG_SUCCESS,
+                                educatorService.getPronunciationAnalytics(authentication.getName(), studentId)));
         }
 
-        @DeleteMapping("/curriculum/levels/{levelId}")
-        @Operation(summary = "Delete Level", description = "Delete a level and cascade delete its challenges")
-        public ResponseEntity<ApiResponse<Void>> deleteLevel(
-                        @PathVariable UUID levelId,
-                        Authentication authentication) {
-                educatorService.deleteLevel(authentication.getName(), levelId);
-                return ResponseEntity.ok(ApiResponse.success("Level deleted successfully", null));
+        @GetMapping("/lessons")
+        public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getLessonPlans(Authentication authentication) {
+                return ResponseEntity
+                                .ok(ApiResponse.success(MSG_SUCCESS,
+                                                educatorService.getLessonPlans(authentication.getName())));
         }
 
-        @PostMapping("/curriculum/challenges")
-        @Operation(summary = "Create Challenge", description = "Create a new pronunciation challenge")
-        public ResponseEntity<ApiResponse<ChallengeResponse>> createChallenge(
-                        @Valid @RequestBody ChallengeCreateRequest request,
+        @PostMapping("/lessons")
+        public ResponseEntity<ApiResponse<Map<String, Object>>> createLessonPlan(
+                        @RequestBody Map<String, Object> request,
                         Authentication authentication) {
+                String title = String.valueOf(request.get("title"));
+                String objective = String.valueOf(request.get("objective"));
+                @SuppressWarnings("unchecked")
+                List<String> targetStudents = (List<String>) request.getOrDefault("targetStudents", List.of());
+                @SuppressWarnings("unchecked")
+                List<String> achievementGoals = (List<String>) request.getOrDefault("achievementGoals", List.of());
                 return ResponseEntity.status(HttpStatus.CREATED)
-                                .body(ApiResponse.success("Đã thêm thử thách mới thành công",
-                                                educatorService.createChallenge(authentication.getName(), request)));
+                                .body(ApiResponse.success(MSG_SUCCESS,
+                                                educatorService.createLessonPlan(authentication.getName(), title,
+                                                                objective, targetStudents,
+                                                                achievementGoals)));
         }
 
-        @PutMapping("/curriculum/challenges/{challengeId}")
-        @Operation(summary = "Update Challenge", description = "Update an existing challenge by ID")
-        public ResponseEntity<ApiResponse<ChallengeResponse>> updateChallenge(
-                        @PathVariable UUID challengeId,
-                        @Valid @RequestBody ChallengeCreateRequest request,
+        @PatchMapping("/lessons/{id}")
+        public ResponseEntity<ApiResponse<Map<String, Object>>> updateLessonPlan(
+                        @PathVariable("id") UUID id,
+                        @RequestBody Map<String, Object> request,
                         Authentication authentication) {
-                return ResponseEntity.ok(ApiResponse.success("Cập nhật thử thách thành công",
-                                educatorService.updateChallenge(authentication.getName(), challengeId, request)));
+                String title = String.valueOf(request.getOrDefault("title", ""));
+                String objective = String.valueOf(request.getOrDefault("objective", ""));
+                @SuppressWarnings("unchecked")
+                List<String> targetStudents = (List<String>) request.getOrDefault("targetStudents", List.of());
+                @SuppressWarnings("unchecked")
+                List<String> achievementGoals = (List<String>) request.getOrDefault("achievementGoals", List.of());
+                return ResponseEntity.ok(ApiResponse.success(MSG_SUCCESS,
+                                educatorService.updateLessonPlan(authentication.getName(), id, title, objective,
+                                                targetStudents,
+                                                achievementGoals)));
         }
 
-        @DeleteMapping("/curriculum/challenges/{id}")
-        @Operation(summary = "Delete Challenge", description = "Delete a challenge by ID")
-        public ResponseEntity<ApiResponse<Void>> deleteChallenge(
-                        @PathVariable UUID id,
+        @GetMapping("/messages/{studentId}")
+        public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getMessages(
+                        @PathVariable("studentId") String studentId,
                         Authentication authentication) {
-                educatorService.deleteChallenge(authentication.getName(), id);
-                return ResponseEntity.ok(ApiResponse.success("Xóa thử thách thành công", null));
+                try {
+                        String cleanId = studentId.trim();
+                        UUID sId = UUID.fromString(cleanId);
+                        return ResponseEntity.ok(ApiResponse.success(MSG_SUCCESS,
+                                        educatorService.getConversationMessages(authentication.getName(), sId)));
+                } catch (IllegalArgumentException e) {
+                        log.error("Invalid student UUID format: '{}'", studentId);
+                        return ResponseEntity.badRequest()
+                                        .body(ApiResponse.error("ID học viên không hợp lệ: " + studentId
+                                                        + ". Chi tiết: " + e.getMessage()));
+                } catch (Exception e) {
+                        log.error("Error fetching messages for student {}: ", studentId, e);
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                        .body(ApiResponse.error("Lỗi hệ thống khi tải tin nhắn: " + e.getMessage()));
+                }
         }
 
-        @PostMapping("/curriculum/levels/{levelId}/audio")
-        @Operation(summary = "Upload Level Audio", description = "Upload reference audio for a level")
-        public ResponseEntity<ApiResponse<Void>> uploadLevelAudio(
-                        @PathVariable UUID levelId,
-                        @RequestParam String audioUrl) {
-                educatorService.uploadLevelAudio(levelId, audioUrl);
-                return ResponseEntity.ok(ApiResponse.success("Tải âm thanh mẫu thành công", null));
-        }
-
-        @GetMapping("/curriculum/error-tags")
-        @Operation(summary = "Get All Error Tags", description = "Retrieve list of all error tags (optional: filter by dialect)")
-        public ResponseEntity<ApiResponse<List<ErrorTagResponse>>> getErrorTags(
-                        @RequestParam(required = false) UUID dialectId) {
-                return ResponseEntity.ok(ApiResponse.success("Lấy danh sách mã lỗi thành công",
-                                errorTagService.getErrorTagsByDialect(dialectId)));
-        }
-
-        @PostMapping("/students/{id}/feedback")
-        @Operation(summary = "Submit Student Feedback", description = "Teacher provides manual feedback on an attempt")
-        public ResponseEntity<ApiResponse<Void>> submitFeedback(
-                        @PathVariable UUID id,
-                        @Valid @RequestBody FeedbackCreateRequest request,
+        @PostMapping("/messages")
+        public ResponseEntity<ApiResponse<Map<String, Object>>> sendMessage(
+                        @RequestBody Map<String, Object> request,
                         Authentication authentication) {
-                educatorService.submitFeedback(authentication.getName(), id, request);
-                return ResponseEntity.ok(ApiResponse.success("Gửi phản hồi thành công", null));
+                UUID studentId = UUID.fromString(String.valueOf(request.get("studentId")));
+                String content = String.valueOf(request.get("content"));
+                return ResponseEntity.status(HttpStatus.CREATED)
+                                .body(ApiResponse.success(MSG_SUCCESS,
+                                                educatorService.sendMessage(authentication.getName(), studentId,
+                                                                content)));
         }
 
-        @GetMapping("/placement/rules")
-        @Operation(summary = "Get Placement Rules", description = "List all student routing rules")
-        public ResponseEntity<ApiResponse<List<PlacementRuleResponse>>> getPlacementRules(
+        @GetMapping("/analytics/reports")
+        public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAnalyticsReports(
                         Authentication authentication) {
-                return ResponseEntity.ok(
-                                ApiResponse.success(MSG_SUCCESS, educatorService.getPlacementRules()));
+                return ResponseEntity
+                                .ok(ApiResponse.success(MSG_SUCCESS,
+                                                educatorService.getAnalyticsReports(authentication.getName())));
         }
 
-        @PostMapping("/placement/rules")
-        @Operation(summary = "Update/Create Placement Rule", description = "Configure evaluation thresholds")
-        public ResponseEntity<ApiResponse<PlacementRuleResponse>> updatePlacementRule(
-                        @Valid @RequestBody PlacementRuleRequest request,
+        @GetMapping("/analytics/reports/{studentId}")
+        public ResponseEntity<ApiResponse<Map<String, Object>>> getAnalyticsReportByStudent(
+                        @PathVariable("studentId") UUID studentId,
                         Authentication authentication) {
-                return ResponseEntity.ok(
-                                ApiResponse.success("Cấu hình quy tắc thành công",
-                                                educatorService.updateOrCreatePlacementRule(request)));
+                return ResponseEntity.ok(ApiResponse.success(MSG_SUCCESS,
+                                educatorService.getAnalyticsReportByStudent(authentication.getName(), studentId)));
         }
 
-        @GetMapping("/levels")
-        @Operation(summary = "Get Levels", description = "List all approved levels")
-        public ResponseEntity<ApiResponse<List<LevelResponse>>> getLevelsForSelection() {
-                return ResponseEntity.ok(
-                                ApiResponse.success(MSG_SUCCESS, educatorService.getAllLevelsForSelection()));
+        @GetMapping("/feedback")
+        public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getFeedbackItems(Authentication authentication) {
+                return ResponseEntity.ok(ApiResponse.success(MSG_SUCCESS,
+                                educatorService.getFeedbackItems(authentication.getName())));
+        }
+
+        // Feedback & Interaction Endpoints
+        @PostMapping("/feedback")
+        public ResponseEntity<ApiResponse<FeedbackResponse>> sendFeedback(
+                        @RequestBody CreateFeedbackRequest request,
+                        Authentication authentication) {
+                return ResponseEntity.ok(ApiResponse.success("Gửi phản hồi thành công",
+                                feedbackService.sendFeedback(request, authentication.getName())));
+        }
+
+        @GetMapping("/interactions/attempts/{studentId}")
+        public ResponseEntity<ApiResponse<List<SpeakingAttemptResponse>>> getStudentSpeakingAttempts(
+                        @PathVariable("studentId") UUID studentId) {
+                return ResponseEntity.ok(ApiResponse.success(feedbackService.getRecentSpeakingAttempts(studentId)));
+        }
+
+        @GetMapping("/feedback/student/{studentId}")
+        public ResponseEntity<ApiResponse<List<FeedbackResponse>>> getStudentFeedbacks(
+                        @PathVariable("studentId") UUID studentId) {
+                return ResponseEntity.ok(ApiResponse.success(feedbackService.getStudentFeedbacks(studentId)));
+        }
+
+        @PostMapping("/messages/read/{studentId}")
+        public ResponseEntity<ApiResponse<Void>> markAsRead(
+                        @PathVariable("studentId") UUID studentId,
+                        Authentication authentication) {
+                educatorService.markAsRead(authentication.getName(), studentId);
+                return ResponseEntity.ok(ApiResponse.success("Đã đánh dấu đã đọc", null));
         }
 }

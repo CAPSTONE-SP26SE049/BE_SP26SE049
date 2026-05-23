@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20240421-50-create-entry-test-question-table" author="antigravity">
+        <createTable tableName="entry_test_question">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+            <column name="target_text" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="region_category" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="20240421-50-1-seed-entry-test-questions" author="antigravity">
+        <!-- NORTH_NL -->
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Lúa nếp nương lá nảy xanh non"/>
+            <column name="region_category" value="NORTH_NL"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Nói năng nên luyện lung tung"/>
+            <column name="region_category" value="NORTH_NL"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Nửa đêm nhai nếp nương nanh"/>
+            <column name="region_category" value="NORTH_NL"/>
+        </insert>
+
+        <!-- CENTRAL_DGIR -->
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Dòng rạch giữa rừng rộn ràng"/>
+            <column name="region_category" value="CENTRAL_DGIR"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Rì rào rặng rào rung rinh"/>
+            <column name="region_category" value="CENTRAL_DGIR"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Gió giục giã giữa dòng gian nan"/>
+            <column name="region_category" value="CENTRAL_DGIR"/>
+        </insert>
+
+        <!-- SOUTH_TRCH -->
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Trẻ chăn trâu che chung chiếc chiếu"/>
+            <column name="region_category" value="SOUTH_TRCH"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Chú chó chạy trong chuồng tre"/>
+            <column name="region_category" value="SOUTH_TRCH"/>
+        </insert>
+        <insert tableName="entry_test_question">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="target_text" value="Trăng tròn trên tre chông chênh"/>
+            <column name="region_category" value="SOUTH_TRCH"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="20240421-50-2-create-entry-test-result-table" author="antigravity">
+        <createTable tableName="entry_test_result">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+            <column name="account_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_etr_account" referencedTableName="account" referencedColumnNames="id"/>
+            </column>
+            <column name="overall_score" type="NUMERIC(5,2)"/>
+            <column name="detected_region" type="VARCHAR(20)"/>
+            <column name="total_questions" type="INTEGER"/>
+            <column name="details" type="TEXT"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="20240421-50-3-add-is-unlocked-to-alu" author="antigravity">
+        <addColumn tableName="account_learning_unit">
+            <column name="is_unlocked" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="20240421-50-4-add-has-done-test-to-account" author="antigravity">
+        <addColumn tableName="account">
+            <column name="has_done_entry_test" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

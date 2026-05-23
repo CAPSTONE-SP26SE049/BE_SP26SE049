@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Drop criteria_json and category from reward_catalog (no longer needed) -->
+    <changeSet id="36-simplify-reward-catalog" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <columnExists tableName="reward_catalog" columnName="criteria_json"/>
+        </preConditions>
+        <dropColumn tableName="reward_catalog" columnName="criteria_json"/>
+    </changeSet>
+
+    <changeSet id="36-drop-reward-category" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <columnExists tableName="reward_catalog" columnName="category"/>
+        </preConditions>
+        <dropColumn tableName="reward_catalog" columnName="category"/>
+    </changeSet>
+
+</databaseChangeLog>

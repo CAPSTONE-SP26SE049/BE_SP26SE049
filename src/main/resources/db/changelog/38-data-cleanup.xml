@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="38-cleanup-learning-unit-and-challenge-bank-v4" author="antigravity">
+        <!-- 1. Delete user progress related to the units we are about to delete -->
+        <delete tableName="account_learning_unit">
+            <where>learning_unit_id IN (SELECT id FROM learning_unit WHERE type IN ('QUIZ', 'LEVEL'))</where>
+        </delete>
+
+        <!-- 2. Delete assignments related to these units -->
+        <delete tableName="assignment">
+            <where>learning_unit_id IN (SELECT id FROM learning_unit WHERE type IN ('QUIZ', 'LEVEL'))</where>
+        </delete>
+
+        <!-- 3. Delete content items related to these units -->
+        <delete tableName="content_item">
+            <where>learning_unit_id IN (SELECT id FROM learning_unit WHERE type IN ('QUIZ', 'LEVEL'))</where>
+        </delete>
+
+        <!-- 4. Delete quizzes and levels from learning_unit -->
+        <delete tableName="learning_unit">
+            <where>type IN ('QUIZ', 'LEVEL')</where>
+        </delete>
+
+        <!-- 5. Delete all from challenge_bank -->
+        <delete tableName="challenge_bank"/>
+    </changeSet>
+</databaseChangeLog>

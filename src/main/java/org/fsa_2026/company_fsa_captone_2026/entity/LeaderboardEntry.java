@@ -60,6 +60,10 @@ public class LeaderboardEntry {
     @Builder.Default
     private int streakDays = 0;
 
+    @Column(name = "badge_count", nullable = false)
+    @Builder.Default
+    private int badgeCount = 0;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="59-delete-error-tags-data" author="antigravity">
+        <validCheckSum>ANY</validCheckSum>
+        <sql>
+            
+            -- Xóa toàn bộ dữ liệu Error Tag trong bảng learning_unit
+            DELETE FROM learning_unit WHERE type = 'ERROR_TAG';
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

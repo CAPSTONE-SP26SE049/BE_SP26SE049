@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet id="20260402-seed-10-achievements" author="antigravity">
+        <comment>Seeding 10 starter achievements with lightweight icons</comment>
+        
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="code" value="LEARN_FIRST_STEP"/>
+            <column name="name" value="Bước chân đầu tiên 👣"/>
+            <column name="description" value="Hoàn thành màn chơi đầu tiên trong hành trình."/>
+            <column name="reward_type" value="ACHIEVEMENT"/>
+            <column name="icon_url" value="https://icons.iconarchive.com/icons/paomedia/small-n-flat/128/medal-icon.png"/>
+            <column name="xp_reward" value="100"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="code" value="LEARN_DILIGENT"/>
+            <column name="name" value="Người học chăm chỉ 📚"/>
+            <column name="description" value="Hoàn thành 5 bài học khác nhau."/>
+            <column name="reward_type" value="ACHIEVEMENT"/>
+            <column name="icon_url" value="https://icons.iconarchive.com/icons/paomedia/small-n-flat/128/book-icon.png"/>
+            <column name="xp_reward" value="250"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="code" value="PHONEME_MASTER"/>
+            <column name="name" value="Bậc thầy phát âm 🎤"/>
+            <column name="description" value="Đạt điểm tuyệt đối 100% trong một bài kiểm tra phát âm."/>
+            <column name="reward_type" value="ACHIEVEMENT"/>
+            <column name="icon_url" value="https://icons.iconarchive.com/icons/paomedia/small-n-flat/128/star-icon.png"/>
+            <column name="xp_reward" value="500"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="code" value="CONQUEROR_NORTH"/>
+            <column name="name" value="Nhà chinh phục miền Bắc 🏯"/>
+            <column name="description" value="Hoàn thành tất cả các cấp độ giọng miền Bắc."/>
+            <column name="reward_type" value="ACHIEVEMENT"/>
+            <column name="icon_url" value="https://icons.iconarchive.com/icons/paomedia/small-n-flat/128/map-icon.png"/>
+            <column name="xp_reward" value="1000"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="code" value="STAR_COLLECTOR"/>
+            <column name="name" value="Thợ săn vì sao ⭐"/>
+            <column name="description" value="Tích lũy tổng cộng 50 sao từ các bài học."/>
+            <column name="reward_type" value="ACHIEVEMENT"/>
+            <column name="icon_url" value="https://icons.iconarchive.com/icons/paomedia/small-n-flat/128/trophy-icon.png"/>
+            <column name="xp_reward" value="300"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="code" value="ERROR_DESTROYER"/>
+            <column name="name" value="Kẻ hủy diệt lỗi 🛠️"/>
+            <column name="description" value="Sửa thành công 10 lỗi phát âm phổ biến."/>
+            <column name="reward_type" value="ACHIEVEMENT"/>
+            <column name="icon_url" value="https://icons.iconarchive.com/icons/paomedia/small-n-flat/128/check-icon.png"/>
+            <column name="xp_reward" value="400"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="code" value="SMART_LEARNER"/>
+            <column name="name" value="Học giả thông thái 💡"/>
+            <column name="description" value="Hoàn thành bài học mà không mắc bất kỳ lỗi nào."/>
+            <column name="reward_type" value="ACHIEVEMENT"/>
+            <column name="icon_url" value="https://icons.iconarchive.com/icons/paomedia/small-n-flat/128/lightbulb-icon.png"/>
+            <column name="xp_reward" value="350"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="code" value="SPEED_RACER"/>
+            <column name="name" value="Thần tốc 🚀"/>
+            <column name="description" value="Hoàn thành một Quiz trong vòng dưới 30 giây."/>
+            <column name="reward_type" value="ACHIEVEMENT"/>
+            <column name="icon_url" value="https://icons.iconarchive.com/icons/paomedia/small-n-flat/128/rocket-icon.png"/>
+            <column name="xp_reward" value="450"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="code" value="FRIENDLY_USER"/>
+            <column name="name" value="Người bạn thân thiện ❤️"/>
+            <column name="description" value="Thêm 3 người bạn mới vào danh sách."/>
+            <column name="reward_type" value="ACHIEVEMENT"/>
+            <column name="icon_url" value="https://icons.iconarchive.com/icons/paomedia/small-n-flat/128/heart-icon.png"/>
+            <column name="xp_reward" value="200"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="reward_catalog">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="code" value="DAILY_GIFT"/>
+            <column name="name" value="Quà tặng mỗi ngày 🎁"/>
+            <column name="description" value="Hoàn thành chuỗi học tập trong 7 ngày liên tiếp."/>
+            <column name="reward_type" value="ACHIEVEMENT"/>
+            <column name="icon_url" value="https://icons.iconarchive.com/icons/paomedia/small-n-flat/128/gift-icon.png"/>
+            <column name="xp_reward" value="600"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+    </changeSet>
+
+</databaseChangeLog>

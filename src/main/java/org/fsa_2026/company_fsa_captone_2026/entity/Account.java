@@ -48,8 +48,6 @@ public class Account extends BaseEntity {
 
     // Removed nativeLanguage and targetLanguage
 
-
-
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean isActive = true;
@@ -57,6 +55,10 @@ public class Account extends BaseEntity {
     @Column(name = "email_verified", nullable = false)
     @Builder.Default
     private Boolean emailVerified = false;
+
+    @Column(name = "has_done_entry_test", nullable = false)
+    @Builder.Default
+    private Boolean hasDoneEntryTest = false;
 
     @Column(name = "email_verify_code", length = 6)
     private String emailVerifyCode;
@@ -85,6 +87,10 @@ public class Account extends BaseEntity {
     @Builder.Default
     private Integer currentStreakDays = 0;
 
+    @Column(name = "badge_count", nullable = false)
+    @Builder.Default
+    private Integer badgeCount = 0;
+
     /**
      * Date of the most recent login — used to calculate daily streak.
      * null for accounts that have never logged in after this feature was added.
@@ -99,10 +105,10 @@ public class Account extends BaseEntity {
     /**
      * Factory: tạo Account mới với role USER cho đăng ký thường
      *
-     * @param email email người dùng
+     * @param email        email người dùng
      * @param passwordHash mật khẩu đã băm
-     * @param phone số điện thoại
-     * @param region vùng miền
+     * @param phone        số điện thoại
+     * @param region       vùng miền
      * @return thực thể Account mới ở role USER
      */
     public static Account createUserAccount(String email, String passwordHash, String phone, String region) {

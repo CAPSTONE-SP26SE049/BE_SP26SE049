@@ -12,6 +12,7 @@ public interface QuizChallengeItemRepository extends JpaRepository<QuizChallenge
     List<QuizChallengeItem> findByChallengeIdOrderByOrderIndex(UUID challengeId);
     List<QuizChallengeItem> findByQuizIdOrderByOrderIndex(UUID quizId);
     List<QuizChallengeItem> findByChallengeId(UUID challengeId);
+    long countByQuizId(UUID quizId);
     void deleteByChallengeBankId(UUID challengeBankId);
     void deleteByChallengeId(UUID challengeId);
     void deleteByQuizIdAndChallengeBankId(UUID quizId, UUID challengeBankId);

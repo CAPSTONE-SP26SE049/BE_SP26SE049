@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="42-create-chat-message-table" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="chat_message"/>
+            </not>
+        </preConditions>
+
+        <createTable tableName="chat_message">
+            <!-- BaseEntity fields -->
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+
+            <!-- ChatMessage fields -->
+            <column name="sender_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="recipient_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="timestamp" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(20)" defaultValue="SENT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Optional: FK to account (keeps integrity) -->
+        <addForeignKeyConstraint
+                baseTableName="chat_message"
+                baseColumnNames="sender_id"
+                constraintName="fk_chat_message_sender"
+                referencedTableName="account"
+                referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint
+                baseTableName="chat_message"
+                baseColumnNames="recipient_id"
+                constraintName="fk_chat_message_recipient"
+                referencedTableName="account"
+                referencedColumnNames="id"/>
+
+        <createIndex tableName="chat_message" indexName="idx_chat_message_pair_time">
+            <column name="sender_id"/>
+            <column name="recipient_id"/>
+            <column name="timestamp"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
+

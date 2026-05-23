@@ -11,7 +11,7 @@ import java.io.Serializable;
 
 /**
  * RewardCreateRequest — DTO để Admin tạo/sửa huy hiệu
- * reward_type và xp_reward không còn cần thiết, mọi phần thưởng đều là HUY HIỆU
+ * Điều kiện unlock: vượt qua quiz được gắn thành tựu này (không cần criteriaJson).
  */
 @Data
 @NoArgsConstructor
@@ -25,23 +25,11 @@ public class RewardCreateRequest implements Serializable {
     @NotBlank(message = "Tên huy hiệu không được để trống")
     private String name;
 
-    private String description;
-
-    /** LEARNING | PRONUNCIATION | MINI_GAMES | SCORE | SOCIAL | SPECIAL | GENERAL */
-    @NotBlank(message = "Danh mục không được để trống")
-    private String category;
-
     private String iconUrl;
 
-    /**
-     * JSON string định nghĩa điều kiện unlock.
-     * Ví dụ: {"type":"levels_completed","threshold":5}
-     */
-    @NotBlank(message = "Tiêu chí unlock (criteriaJson) không được để trống")
-    private String criteriaJson;
-
-    /** FIX: @JsonProperty ensures FE sends 'isActive' and backend receives it correctly */
+    /** FIX: Use Boolean (wrapper) instead of boolean (primitive) to allow null from FE */
     @JsonProperty("isActive")
     @Builder.Default
-    private boolean isActive = true;
+    private Boolean isActive = true;
 }
+

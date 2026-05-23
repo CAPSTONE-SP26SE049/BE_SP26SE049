@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -39,21 +40,23 @@ public class ChallengeBankController {
     @GetMapping("/challenge-bank")
     @Operation(summary = "Lấy danh sách tất cả câu hỏi trong kho")
     public ResponseEntity<ApiResponse<List<ChallengeBank>>> getAllChallenges() {
-        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách câu hỏi thành công", challengeBankService.getAllChallenges()));
+        return ResponseEntity
+                .ok(ApiResponse.success("Lấy danh sách câu hỏi thành công", challengeBankService.getAllChallenges()));
     }
 
     @PostMapping("/quiz/{quizId}/challenges")
     @Operation(summary = "Gán câu hỏi vào quiz")
-    public ResponseEntity<ApiResponse<List<QuizChallengeItem>>> assignChallengesToQuiz(
-            @PathVariable UUID quizId,
+    public ResponseEntity<ApiResponse<Map<String, Object>>> assignChallengesToQuiz(
+            @PathVariable(name = "quizId") UUID quizId,
             @RequestBody ChallengeAssignRequest request) {
-        return ResponseEntity.ok(ApiResponse.success("Gán câu hỏi vào quiz thành công", 
+        return ResponseEntity.ok(ApiResponse.success("Gán câu hỏi vào quiz thành công",
                 challengeBankService.assignChallengesToQuiz(quizId, request.getChallengeIds())));
     }
+
     @GetMapping("/quiz/{quizId}/challenges")
     @Operation(summary = "Lấy danh sách câu hỏi đã gán vào quiz")
     public ResponseEntity<ApiResponse<List<QuizChallengeItemResponse>>> getChallengesByQuizId(
-            @PathVariable UUID quizId) {
+            @PathVariable(name = "quizId") UUID quizId) {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách câu hỏi thành công",
                 challengeBankService.getChallengesByQuizId(quizId)));
     }
@@ -61,25 +64,25 @@ public class ChallengeBankController {
     @PutMapping("/challenge-bank/{id}")
     @Operation(summary = "Cập nhật câu hỏi")
     public ResponseEntity<ApiResponse<ChallengeBank>> updateChallenge(
-            @PathVariable UUID id,
+            @PathVariable(name = "id") UUID id,
             @Valid @RequestBody ChallengeBankRequest request) {
-        return ResponseEntity.ok(ApiResponse.success("Cập nhật câu hỏi thành công", 
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật câu hỏi thành công",
                 challengeBankService.updateChallenge(id, request)));
     }
 
     @DeleteMapping("/challenge-bank/{id}")
     @Operation(summary = "Xóa câu hỏi khỏi kho (sẽ bị gỡ khỏi tất cả quiz)")
-    public ResponseEntity<ApiResponse<Void>> deleteChallenge(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<Void>> deleteChallenge(@PathVariable(name = "id") UUID id) {
         challengeBankService.deleteChallenge(id);
         return ResponseEntity.ok(ApiResponse.success("Xóa câu hỏi thành công", null));
     }
 
     @DeleteMapping("/quiz/{quizId}/challenges/{challengeId}")
     @Operation(summary = "Gỡ câu hỏi khỏi một quiz nhưng vẫn giữ trong kho")
-    public ResponseEntity<ApiResponse<Void>> removeChallengeFromQuiz(
-            @PathVariable UUID quizId,
-            @PathVariable UUID challengeId) {
-        challengeBankService.removeChallengeFromQuiz(quizId, challengeId);
-        return ResponseEntity.ok(ApiResponse.success("Gỡ câu hỏi khỏi quiz thành công", null));
+    public ResponseEntity<ApiResponse<Map<String, Object>>> removeChallengeFromQuiz(
+            @PathVariable(name = "quizId") UUID quizId,
+            @PathVariable(name = "challengeId") UUID challengeId) {
+        return ResponseEntity.ok(ApiResponse.success("Gỡ câu hỏi khỏi quiz thành công",
+                challengeBankService.removeChallengeFromQuiz(quizId, challengeId)));
     }
 }

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="41-create-speaking-attempt-table" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="speaking_attempt"/>
+            </not>
+        </preConditions>
+
+        <createTable tableName="speaking_attempt">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+
+            <!-- Who spoke -->
+            <column name="account_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_speaking_attempt_account"
+                             referencedTableName="account"
+                             referencedColumnNames="id"/>
+            </column>
+
+            <!-- Which challenge -->
+            <column name="challenge_id" type="UUID">
+                <constraints nullable="true"
+                             foreignKeyName="fk_speaking_attempt_challenge"
+                             referencedTableName="challenge_bank"
+                             referencedColumnNames="id"/>
+            </column>
+
+            <!-- What they were supposed to say -->
+            <column name="target_text" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+
+            <!-- What ASR understood -->
+            <column name="asr_transcription" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+
+            <!-- Cloudinary audio URL -->
+            <column name="audio_url" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+
+            <!-- AI Evaluation -->
+            <column name="gemini_score" type="INTEGER">
+                <constraints nullable="true"/>
+            </column>
+            <column name="is_correct" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+
+            <!-- Dialect/Region -->
+            <column name="dialect" type="VARCHAR(20)">
+                <constraints nullable="true"/>
+            </column>
+
+            <!-- Consent flag -->
+            <column name="consent_given" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Index for admin queries -->
+        <createIndex tableName="speaking_attempt" indexName="idx_speaking_attempt_account">
+            <column name="account_id"/>
+        </createIndex>
+        <createIndex tableName="speaking_attempt" indexName="idx_speaking_attempt_dialect">
+            <column name="dialect"/>
+        </createIndex>
+        <createIndex tableName="speaking_attempt" indexName="idx_speaking_attempt_created_at">
+            <column name="created_at"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

@@ -14,7 +14,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface AssignmentRepository extends JpaRepository<Assignment, UUID> {
 
-    List<Assignment> findByClassroomId(UUID classroomId);
+    @Query("SELECT a FROM Assignment a JOIN FETCH a.learningUnit JOIN FETCH a.assignedBy WHERE a.classroomId = :classroomId")
+    List<Assignment> findByClassroomId(@Param("classroomId") UUID classroomId);
 
     @Query("""
             SELECT new org.fsa_2026.company_fsa_captone_2026.dto.AssignmentDTO(

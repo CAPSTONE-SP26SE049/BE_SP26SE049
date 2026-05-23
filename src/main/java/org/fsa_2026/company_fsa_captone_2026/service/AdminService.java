@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.fsa_2026.company_fsa_captone_2026.dto.AnalyticsOverviewResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.UserAnalyticsResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.ContentApprovalHistoryResponse;
@@ -37,6 +38,8 @@ import org.fsa_2026.company_fsa_captone_2026.repository.ContentItemRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.DailyAnalyticsRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.RewardCatalogRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.LearningUnitRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.AccountLearningUnitRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.SpeakingAttemptRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.StudySessionRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -67,14 +70,17 @@ public class AdminService {
 
     private final AccountRepository accountRepository;
     private final LearningUnitRepository learningUnitRepository;
+    private final AccountLearningUnitRepository accountLearningUnitRepository;
     private final ContentItemRepository contentItemRepository;
     private final StudySessionRepository studySessionRepository;
+    private final SpeakingAttemptRepository speakingAttemptRepository;
     private final ContentApprovalHistoryRepository contentApprovalHistoryRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final DailyAnalyticsRepository dailyAnalyticsRepository;
     private final ObjectMapper objectMapper;
     private final RewardCatalogRepository rewardCatalogRepository;
+    private final org.fsa_2026.company_fsa_captone_2026.repository.AccountRewardRepository accountRewardRepository;
 
     /**
      * Create a new Educator account
@@ -135,15 +141,114 @@ public class AdminService {
         return response;
     }
 
+    /**
+     * Create a new user account with a specified role (USER or EDUCATOR)
+     *
+     * @param email    email của user mới
+     * @param fullName họ tên
+     * @param roleCode vai trò: USER hoặc EDUCATOR
+     * @return thông tin tài khoản sau khi tạo
+     */
+    @Transactional
+    public RegisterResponse createUserWithRole(String email, String fullName, String roleCode) {
+        if (accountRepository.existsByEmail(email)) {
+            throw new ApiException("CONFLICT", "Email đã tồn tại trong hệ thống");
+        }
+
+        RoleCode role;
+        try {
+            role = RoleCode.valueOf(roleCode.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new ApiException("BAD_REQUEST", "Vai trò không hợp lệ: " + roleCode);
+        }
+
+        // Do not allow creating ADMIN via this endpoint
+        if (role == RoleCode.ADMIN) {
+            throw new ApiException("FORBIDDEN", "Không thể tạo tài khoản Admin qua chức năng này");
+        }
+
+        String prefix = email.split("@")[0];
+        int randomNum = 1000 + SECURE_RANDOM.nextInt(9000);
+        String generatedPassword = prefix + randomNum + "@";
+
+        Account account = Account.createUserAccount(email, passwordEncoder.encode(generatedPassword), null, null);
+        account.setRoleCode(role);
+        account.setEmailVerified(true);
+        account.setFullName(fullName);
+        account.setAvatarUrl(generateDefaultAvatar(fullName));
+        account = accountRepository.save(account);
+
+        log.info("Admin created {} account: email={}", role, email);
+
+        RegisterResponse response = RegisterResponse.builder()
+                .id(account.getId().toString())
+                .email(account.getEmail())
+                .fullName(fullName)
+                .role(account.getRoleCode().name())
+                .build();
+
+        try {
+            emailService.sendEducatorAccountCreatedEmail(email, fullName, generatedPassword);
+        } catch (Exception e) {
+            log.error("Lỗi khi gửi email mật khẩu: {} - {}", email, e.getMessage(), e);
+        }
+
+        return response;
+    }
+
     // ==========================================
     // User Management
     // ==========================================
 
     @Transactional(readOnly = true)
+    public List<UserAnalyticsResponse> getUsersAnalytics() {
+        // 1. Fetch only users (exclude Educator and Admin)
+        List<Account> users = accountRepository.findAllByRoleCodeIn(List.of(RoleCode.USER));
+
+        // 2. Count total quizzes in system
+        long totalQuizzes = learningUnitRepository.countByType("QUIZ");
+
+        // 3. Bulk fetch progress for all users to avoid N+1 issue
+        List<UUID> userIds = users.stream().map(Account::getId).collect(Collectors.toList());
+        List<AccountLearningUnitRepository.UserProgressProjection> progressList = accountLearningUnitRepository
+                .findProgressByAccountIds(userIds);
+
+        // Map for quick lookup O(1)
+        Map<UUID, AccountLearningUnitRepository.UserProgressProjection> progressMap = progressList.stream()
+                .collect(Collectors.toMap(
+                        AccountLearningUnitRepository.UserProgressProjection::getAccountId,
+                        p -> p));
+
+        return users.stream().map(user -> {
+            AccountLearningUnitRepository.UserProgressProjection p = progressMap.get(user.getId());
+            return UserAnalyticsResponse.builder()
+                    .id(user.getId())
+                    .fullName(user.getFullName())
+                    .email(user.getEmail())
+                    .completedQuizzes(p != null ? p.getCompletedCount().intValue() : 0)
+                    .totalQuizzes((int) totalQuizzes)
+                    .totalStars(user.getTotalStars() != null ? user.getTotalStars() : 0)
+                    .currentStreak(user.getCurrentStreakDays() != null ? user.getCurrentStreakDays() : 0)
+                    .averageScore(p != null ? p.getAverageScore() : 0.0)
+                    .build();
+        }).collect(Collectors.toList());
+    }
+
+    public Map<String, Object> getAiPerformance() {
+        Double avgLatency = speakingAttemptRepository.getAverageProcessingTimeMs();
+        Double accuracyRate = speakingAttemptRepository.getAccuracyRate();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("averageLatencyMs", avgLatency != null ? Math.round(avgLatency) : 0);
+        response.put("accuracyRate", accuracyRate != null ? accuracyRate : 0.0);
+        return response;
+    }
+
+    @Transactional(readOnly = true)
     public List<UserManagementResponse> getAllUsers() {
-        // Filter tại DB thay vì load toàn bộ rồi filter bằng Java
+        // Lấy toàn bộ user/educator, bao gồm cả active và inactive
         return accountRepository
-                .findAllActiveByRoleCodeIn(List.of(RoleCode.USER, RoleCode.EDUCATOR))
+                .findAllByRoleCodeIn(List.of(RoleCode.USER, RoleCode.EDUCATOR))
                 .stream()
                 .map(UserManagementResponse::fromEntity)
                 .collect(Collectors.toList());
@@ -214,9 +319,6 @@ public class AdminService {
         try {
             Map<String, Object> metadata = new java.util.HashMap<>();
             metadata.put("skill_type", request.getSkillType());
-            if (request.getDifficulty() != null) {
-                metadata.put("difficulty", request.getDifficulty().name());
-            }
             metadata.put("content_text", request.getContentText());
             metadata.put("phonetic_transcription_ipa", request.getPhoneticTranscriptionIpa());
             metadata.put("reference_audio_url", request.getReferenceAudioUrl());
@@ -253,9 +355,6 @@ public class AdminService {
         try {
             Map<String, Object> metadata = new java.util.HashMap<>();
             metadata.put("skill_type", request.getSkillType());
-            if (request.getDifficulty() != null) {
-                metadata.put("difficulty", request.getDifficulty().name());
-            }
             metadata.put("content_text", request.getContentText());
             metadata.put("phonetic_transcription_ipa", request.getPhoneticTranscriptionIpa());
             metadata.put("reference_audio_url", request.getReferenceAudioUrl());
@@ -293,53 +392,6 @@ public class AdminService {
         return ChallengeResponse.fromEntity(challenge);
     }
 
-    @Transactional
-    public DialectResponse createDialect(DialectCreateRequest request) {
-        LearningUnit dialect = LearningUnit.builder()
-                .name(request.getName())
-                .type("DIALECT")
-                .build();
-
-        try {
-            Map<String, Object> metadata = new java.util.HashMap<>();
-            metadata.put("description", request.getDescription());
-            dialect.setMetadataJson(objectMapper.writeValueAsString(metadata));
-        } catch (JsonProcessingException e) {
-            log.error("Failed to serialize Dialect metadata", e);
-        }
-
-        return DialectResponse.fromEntity(learningUnitRepository.save(dialect));
-    }
-
-    @Transactional
-    @SuppressWarnings("unchecked")
-    public DialectResponse updateDialect(UUID id, DialectCreateRequest request) {
-        LearningUnit dialect = learningUnitRepository.findById(id)
-                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy Dialect"));
-
-        dialect.setName(request.getName());
-
-        try {
-            Map<String, Object> metadata = new java.util.HashMap<>();
-            if (dialect.getMetadataJson() != null) {
-                metadata = objectMapper.readValue(dialect.getMetadataJson(), Map.class);
-            }
-            metadata.put("description", request.getDescription());
-            dialect.setMetadataJson(objectMapper.writeValueAsString(metadata));
-        } catch (JsonProcessingException e) {
-            log.error("Failed to update Dialect metadata", e);
-        }
-
-        return DialectResponse.fromEntity(learningUnitRepository.save(dialect));
-    }
-
-    @Transactional
-    public void deleteDialect(UUID id) {
-        if (!learningUnitRepository.existsById(id)) {
-            throw new ApiException(CODE_NOT_FOUND, "Không tìm thấy Dialect");
-        }
-        learningUnitRepository.deleteById(id);
-    }
 
     // ==========================================
     // 1c. Content Management: Levels
@@ -349,8 +401,14 @@ public class AdminService {
     public List<LevelResponse> getAllLevels() {
         return learningUnitRepository.findAll().stream()
                 .filter(unit -> TYPE_LEVEL.equals(unit.getType()))
+                .filter(this::isNotDeleted)
                 .map(LevelResponse::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<LearningUnit> getErrorTags() {
+        return learningUnitRepository.findTop1000ByType("ERROR_TAG");
     }
 
     @Transactional(readOnly = true)
@@ -372,6 +430,8 @@ public class AdminService {
                 .parent(parent)
                 .name(request.getName())
                 .type(TYPE_LEVEL)
+                .difficultyLevel(request.getDifficultyLevel())
+                .errorTag(request.getErrorTag())
                 .build();
 
         try {
@@ -401,6 +461,8 @@ public class AdminService {
 
         level.setName(request.getName());
         level.setType(request.getType());
+        level.setDifficultyLevel(request.getDifficultyLevel());
+        level.setErrorTag(request.getErrorTag());
 
         try {
             Map<String, Object> metadata = request.getMetadataJson() != null
@@ -431,10 +493,32 @@ public class AdminService {
 
     @Transactional
     public void deleteLevel(UUID id) {
-        if (!learningUnitRepository.existsById(id)) {
-            throw new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND);
+        LearningUnit level = learningUnitRepository.findById(id)
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, MSG_LEVEL_NOT_FOUND));
+
+        List<LearningUnit> children = learningUnitRepository.findByParentId(id);
+        boolean hasActiveChild = children.stream().anyMatch(this::isNotDeleted);
+        if (hasActiveChild) {
+            throw new ApiException("CONFLICT", "Không thể xóa màn học do vẫn còn bài kiểm tra / bài học bên trong. Vui lòng xóa các mục con trước.");
         }
+
+        // Xóa toàn bộ progress của user liên quan đến màn học này
+        accountLearningUnitRepository.deleteByLearningUnitId(id);
+
+        // Hard delete khỏi database
         learningUnitRepository.deleteById(id);
+        log.info("Level {} đã được xóa cứng khỏi database", id);
+    }
+
+    private boolean isNotDeleted(LearningUnit unit) {
+        if (unit.getMetadataJson() == null || unit.getMetadataJson().isBlank()) return true;
+        try {
+            Map<String, Object> metadata = objectMapper.readValue(
+                    unit.getMetadataJson(), new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+            return !"DELETED".equals(metadata.get("status"));
+        } catch (Exception e) {
+            return true;
+        }
     }
 
     /**
@@ -447,35 +531,55 @@ public class AdminService {
         LocalDate today = LocalDate.now();
         Optional<DailyAnalytics> analyticsOpt = dailyAnalyticsRepository.findByRecordDate(today);
 
+        long totalUsers = accountRepository.count();
+        long totalAttempts = speakingAttemptRepository.countByConsentGivenTrue();
+        double averageScore = speakingAttemptRepository.averageGroqScoreWithConsentGivenTrue();
+        java.time.Instant sevenDaysAgo = java.time.Instant.now().minus(7, java.time.temporal.ChronoUnit.DAYS);
+        long activeUsers7Days = studySessionRepository.countDistinctAccountByStartedAtAfter(sevenDaysAgo);
+
         DailyAnalytics analytics;
         if (analyticsOpt.isPresent()) {
-            analytics = analyticsOpt.get(); // Trả về data đã gom trong ngày để tránh query lớn
+            analytics = analyticsOpt.get();
+            analytics.setTotalUsers(totalUsers);
+            analytics.setTotalAttempts(totalAttempts);
+            analytics.setAverageScore(averageScore);
+            analytics.setActiveUsers(activeUsers7Days);
+            analytics = dailyAnalyticsRepository.save(analytics);
         } else {
-            long totalUsers = accountRepository.count();
-            // Update analytics with proper JSONB aggregation for scores if needed
-            long totalAttempts = studySessionRepository.count();
-
-            double averageScore = 0.0; // Placeholder due to schema change
-
-            java.time.Instant sevenDaysAgo = java.time.Instant.now().minus(7, java.time.temporal.ChronoUnit.DAYS);
-            long activeUsers7Days = studySessionRepository.countDistinctAccountByStartedAtAfter(sevenDaysAgo);
-
             analytics = new DailyAnalytics();
             analytics.setRecordDate(today);
             analytics.setTotalUsers(totalUsers);
             analytics.setTotalAttempts(totalAttempts);
             analytics.setAverageScore(averageScore);
             analytics.setActiveUsers(activeUsers7Days);
-
             analytics = dailyAnalyticsRepository.save(analytics);
         }
 
         return AnalyticsOverviewResponse.builder()
-                .totalUsers(analytics.getTotalUsers())
-                .activeUsers7Days(analytics.getActiveUsers())
-                .totalAttempts(analytics.getTotalAttempts())
-                .averageScore(analytics.getAverageScore())
+                .totalUsers(totalUsers)
+                .activeUsers7Days(activeUsers7Days)
+                .totalAttempts(totalAttempts)
+                .averageScore(averageScore)
                 .build();
+    }
+
+    /**
+     * Get Error Heatmaps from DB by dialect
+     * Rate = (count groq_score < 80) / (total count)
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getErrorHeatmaps() {
+        Map<String, Object> stats = new HashMap<>();
+        String[] dialects = { "NORTH", "SOUTH", "CENTRAL" };
+
+        for (String d : dialects) {
+            long total = speakingAttemptRepository.countByDialectAndConsentGivenTrue(d);
+            long errors = speakingAttemptRepository.countByDialectAndConsentGivenTrueAndGroqScoreLessThan(d, 80);
+
+            double rate = total > 0 ? (double) errors / total : 0.0;
+            stats.put(d.toLowerCase(), rate);
+        }
+        return stats;
     }
 
     /**
@@ -493,14 +597,16 @@ public class AdminService {
     @Transactional(readOnly = true)
     public List<RewardResponse> getAllRewards() {
         return rewardCatalogRepository.findAll()
-                .stream().map(RewardResponse::fromEntity).collect(Collectors.toList());
+                .stream()
+                .map(this::enrichRewardResponse)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public RewardResponse getRewardById(UUID id) {
         RewardCatalog reward = rewardCatalogRepository.findById(id)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy phần thưởng"));
-        return RewardResponse.fromEntity(reward);
+        return enrichRewardResponse(reward);
     }
 
     @Transactional
@@ -508,15 +614,12 @@ public class AdminService {
         RewardCatalog reward = RewardCatalog.builder()
                 .code(request.getCode())
                 .name(request.getName())
-                .description(request.getDescription())
                 .rewardType(org.fsa_2026.company_fsa_captone_2026.entity.enums.RewardType.BADGE)
-                .category(request.getCategory())
                 .iconUrl(request.getIconUrl())
-                .criteriaJson(request.getCriteriaJson())
                 .xpReward(0)
-                .isActive(request.isActive())
+                .isActive(request.getIsActive() != null ? request.getIsActive() : true)
                 .build();
-        return RewardResponse.fromEntity(rewardCatalogRepository.save(reward));
+        return enrichRewardResponse(rewardCatalogRepository.save(reward));
     }
 
     @Transactional
@@ -525,12 +628,9 @@ public class AdminService {
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy phần thưởng"));
         reward.setCode(request.getCode());
         reward.setName(request.getName());
-        reward.setDescription(request.getDescription());
-        reward.setCategory(request.getCategory());
         reward.setIconUrl(request.getIconUrl());
-        reward.setCriteriaJson(request.getCriteriaJson());
-        reward.setActive(request.isActive());
-        return RewardResponse.fromEntity(rewardCatalogRepository.save(reward));
+        reward.setActive(request.getIsActive() != null ? request.getIsActive() : reward.isActive());
+        return enrichRewardResponse(rewardCatalogRepository.save(reward));
     }
 
     @Transactional
@@ -538,7 +638,7 @@ public class AdminService {
         RewardCatalog reward = rewardCatalogRepository.findById(id)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy phần thưởng"));
         reward.setActive(!reward.isActive());
-        return RewardResponse.fromEntity(rewardCatalogRepository.save(reward));
+        return enrichRewardResponse(rewardCatalogRepository.save(reward));
     }
 
     @Transactional
@@ -546,6 +646,70 @@ public class AdminService {
         if (!rewardCatalogRepository.existsById(id)) {
             throw new ApiException("NOT_FOUND", "Không tìm thấy phần thưởng");
         }
+        
+        // Check if any quiz is linked to this reward
+        Optional<LearningUnit> linkedQuiz = learningUnitRepository.findByRewardCatalogId(id);
+        if (linkedQuiz.isPresent()) {
+            throw new ApiException("CONFLICT", "Không thể xóa phần thưởng này vì đang được gán cho bài kiểm tra: " + linkedQuiz.get().getName());
+        }
+
+        // Check if any users have already earned this reward
+        if (accountRewardRepository.existsByRewardCatalogId(id)) {
+            throw new ApiException("CONFLICT", "Không thể xóa phần thưởng này vì đã có học viên nhận được!");
+        }
+
         rewardCatalogRepository.deleteById(id);
+    }
+
+    /**
+     * Attach/Detach a reward to a quiz.
+     */
+    @Transactional
+    public void attachRewardToQuiz(UUID rewardId, UUID quizId) {
+        LearningUnit quiz = learningUnitRepository.findById(quizId)
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy bài kiểm tra"));
+
+        RewardCatalog reward = rewardCatalogRepository.findById(rewardId)
+                .orElseThrow(() -> new ApiException(CODE_NOT_FOUND, "Không tìm thấy thành tựu"));
+
+        // Rule: Each reward can only be assigned to one quiz
+        Optional<LearningUnit> otherQuiz = learningUnitRepository.findByRewardCatalogId(rewardId);
+        if (otherQuiz.isPresent() && !otherQuiz.get().getId().equals(quizId)) {
+            throw new ApiException("CONFLICT",
+                    "Thành tựu này đã được gán cho bài kiểm tra: " + otherQuiz.get().getName());
+        }
+
+        // Toggle logic
+        if (quiz.getRewardCatalog() != null && quiz.getRewardCatalog().getId().equals(rewardId)) {
+            quiz.setRewardCatalog(null);
+            log.info("Detached reward {} from quiz {}", rewardId, quizId);
+        } else {
+            quiz.setRewardCatalog(reward);
+            log.info("Attached reward {} to quiz {}", rewardId, quizId);
+        }
+
+        learningUnitRepository.save(quiz);
+    }
+
+    /**
+     * Enrich RewardResponse with linked quiz/level information.
+     */
+    private RewardResponse enrichRewardResponse(RewardCatalog reward) {
+        RewardResponse response = RewardResponse.fromEntity(reward);
+
+        // Find the quiz that this reward is linked to
+        Optional<LearningUnit> linkedQuiz = learningUnitRepository.findByRewardCatalogId(reward.getId());
+        if (linkedQuiz.isPresent()) {
+            LearningUnit quiz = linkedQuiz.get();
+            response.setLinkedQuizId(quiz.getId());
+            response.setLinkedQuizName(quiz.getName());
+
+            // Get the parent level name
+            if (quiz.getParent() != null) {
+                response.setLinkedLevelName(quiz.getParent().getName());
+            }
+        }
+
+        return response;
     }
 }

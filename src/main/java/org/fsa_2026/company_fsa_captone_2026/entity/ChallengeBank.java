@@ -2,7 +2,6 @@ package org.fsa_2026.company_fsa_captone_2026.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.fsa_2026.company_fsa_captone_2026.entity.enums.DifficultyTag;
 import org.fsa_2026.company_fsa_captone_2026.entity.enums.SkillType;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -37,16 +36,14 @@ public class ChallengeBank {
     @Column(name = "skill_type", length = 50, nullable = false)
     private SkillType skillType;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "difficulty_tag", length = 50, nullable = false)
-    private DifficultyTag difficultyTag;
+
 
 
     /**
      * Miền: BAC (Bắc), TRUNG (Trung), NAM (Nam).
      */
     @Builder.Default
-    @Column(name = "region", length = 20)
+    @Column(name = "region", length = 20, nullable = false)
     private String region = "BAC";
     /**
      * CỰC KỲ QUAN TRỌNG: Cột kiểu JSONB trong Postgres.

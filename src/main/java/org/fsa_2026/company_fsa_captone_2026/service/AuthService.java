@@ -45,10 +45,11 @@ public class AuthService {
      */
     @Transactional
     public RegisterResponse register(RegisterRequest request) {
+        String email = request.getEmail() != null ? request.getEmail().toLowerCase() : null;
         // Validate uniqueness
         Map<String, String> errors = new HashMap<>();
 
-        if (accountRepository.existsByEmail(request.getEmail())) {
+        if (accountRepository.existsByEmail(email)) {
             errors.put("email", "Email đã tồn tại");
         }
         if (accountRepository.existsByPhone(request.getPhone())) {
@@ -65,22 +66,19 @@ public class AuthService {
 
         // Create Account với role USER (đăng ký thường)
         Account account = Account.createUserAccount(
-                request.getEmail(),
+                email,
                 passwordEncoder.encode(request.getPassword()),
                 request.getPhone(),
                 null);
-        
+
         account.setEmailVerifyCode(verifyCode);
         account.setEmailVerifyExpiresAt(Instant.now().plusSeconds(900)); // 15 phút
         account.setFullName(request.getFullName());
         account.setAvatarUrl(generateDefaultAvatar(request.getFullName()));
 
-        // DEV BYPASS: Auto-verify for immediate login in development
-        account.setEmailVerified(true);
-
         account = accountRepository.save(account);
 
-        log.info("Đăng ký thành công: email={}, role={}", request.getEmail(), account.getRoleCode().name());
+        log.info("Đăng ký thành công: email={}, role={}", email, account.getRoleCode().name());
 
         // Build response TRƯỚC khi gửi email (đảm bảo response không bị block)
         RegisterResponse response = RegisterResponse.builder()
@@ -93,11 +91,11 @@ public class AuthService {
         // Gửi email xác thực (async - không block response, không ảnh hưởng
         // transaction)
         try {
-            emailService.sendEmailVerification(request.getEmail(), request.getFullName(), verifyCode);
+            emailService.sendEmailVerification(email, request.getFullName(), verifyCode);
         } catch (Exception e) {
             // @Async method: exception thường không tới đây, nhưng phòng trường hợp proxy
             // lỗi
-            log.error("Lỗi khi gửi email xác thực đến: {} - {}", request.getEmail(), e.getMessage(), e);
+            log.error("Lỗi khi gửi email xác thực đến: {} - {}", email, e.getMessage(), e);
         }
 
         return response;
@@ -108,10 +106,11 @@ public class AuthService {
      */
     @Transactional
     public RegisterResponse createAdmin(AdminCreateRequest request) {
+        String email = request.getEmail() != null ? request.getEmail().toLowerCase() : null;
         // Validate uniqueness
         Map<String, String> errors = new HashMap<>();
 
-        if (accountRepository.existsByEmail(request.getEmail())) {
+        if (accountRepository.existsByEmail(email)) {
             errors.put("email", "Email đã tồn tại");
         }
 
@@ -121,7 +120,7 @@ public class AuthService {
 
         // Create Account với role ADMIN
         Account account = Account.createUserAccount(
-                request.getEmail(),
+                email,
                 passwordEncoder.encode(request.getPassword()),
                 null,
                 null);
@@ -149,16 +148,17 @@ public class AuthService {
      */
     @Transactional
     public LoginResponse login(LoginRequest request) {
+        String email = request.getEmail() != null ? request.getEmail().toLowerCase() : null;
         try {
             // Authenticate with Spring Security
             authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
+                    new UsernamePasswordAuthenticationToken(email, request.getPassword()));
         } catch (BadCredentialsException e) {
             throw new ApiException("UNAUTHORIZED", "Email hoặc mật khẩu không đúng");
         }
 
         // Load account
-        Account account = accountRepository.findByEmail(request.getEmail())
+        Account account = accountRepository.findByEmail(email)
                 .orElseThrow(() -> new ApiException("UNAUTHORIZED", "Email hoặc mật khẩu không đúng"));
 
         // Kiểm tra email đã xác thực chưa
@@ -200,10 +200,14 @@ public class AuthService {
                         .fullName(account.getFullName())
                         .role(account.getRoleCode().name())
                         .region(account.getRegion())
-                        .avatar(account.getAvatarUrl())
+                        .avatarUrl(account.getAvatarUrl())
                         .currentStreakDays(account.getCurrentStreakDays())
+                        .totalStars(account.getTotalStars() != null ? account.getTotalStars() : 0)
+                        .totalExperience(account.getTotalExperience() != null ? account.getTotalExperience() : 0)
+                        .hasDoneEntryTest(account.getHasDoneEntryTest() != null && account.getHasDoneEntryTest())
                         .build())
                 .build();
+
     }
 
     /**
@@ -274,10 +278,11 @@ public class AuthService {
                 .phone(account.getPhone())
                 .region(account.getRegion())
                 .role(account.getRoleCode().name())
-                .avatar(account.getAvatarUrl())
+                .avatarUrl(account.getAvatarUrl())
                 .totalStars(account.getTotalStars())
                 .currentStreakDays(account.getCurrentStreakDays())
                 .totalExperience(account.getTotalExperience())
+                .hasDoneEntryTest(account.getHasDoneEntryTest() != null && account.getHasDoneEntryTest())
                 .createdAt(account.getCreatedAt())
                 .build();
     }
@@ -286,10 +291,10 @@ public class AuthService {
      * Update login streak for the given account.
      *
      * Rules:
-     *   - First ever login (lastLoginDate == null)  → streak = 1
-     *   - Same day login                            → no change (already counted)
-     *   - Logged in yesterday                       → streak++
-     *   - Missed one or more days                   → streak reset to 1
+     * - First ever login (lastLoginDate == null) → streak = 1
+     * - Same day login → no change (already counted)
+     * - Logged in yesterday → streak++
+     * - Missed one or more days → streak reset to 1
      *
      * Must be called BEFORE saving the account.
      */
@@ -332,7 +337,8 @@ public class AuthService {
      * Xác thực email bằng mã OTP
      */
     @Transactional
-    public void verifyEmail(String email, String code) {
+    public void verifyEmail(String emailRaw, String code) {
+        String email = emailRaw != null ? emailRaw.toLowerCase() : null;
         Account account = accountRepository.findByEmail(email)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy tài khoản với email này"));
 
@@ -361,7 +367,8 @@ public class AuthService {
      * Gửi lại mã xác thực email
      */
     @Transactional
-    public void resendVerificationEmail(String email) {
+    public void resendVerificationEmail(String emailRaw) {
+        String email = emailRaw != null ? emailRaw.toLowerCase() : null;
         Account account = accountRepository.findByEmail(email)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy tài khoản với email này"));
 
@@ -391,7 +398,8 @@ public class AuthService {
      * Quên mật khẩu - gửi mã OTP 6 số qua email
      */
     @Transactional
-    public void forgotPassword(String email) {
+    public void forgotPassword(String emailRaw) {
+        String email = emailRaw != null ? emailRaw.toLowerCase() : null;
         Account account = accountRepository.findByEmail(email)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy tài khoản với email này"));
 
@@ -420,7 +428,8 @@ public class AuthService {
      * Đặt lại mật khẩu bằng mã OTP
      */
     @Transactional
-    public void resetPassword(String email, String resetCode, String newPassword) {
+    public void resetPassword(String emailRaw, String resetCode, String newPassword) {
+        String email = emailRaw != null ? emailRaw.toLowerCase() : null;
         Account account = accountRepository.findByEmail(email)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy tài khoản với email này"));
 

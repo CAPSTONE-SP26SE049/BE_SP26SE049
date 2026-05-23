@@ -42,8 +42,5 @@ public class QuizLearningUnitCreateRequest implements Serializable {
 
         @NotNull(message = "Distribution is required")
         private Map<String, Integer> distribution;
-
-        @NotBlank(message = "Difficulty is required")
-        private String difficulty;
     }
 }
