@@ -92,4 +92,16 @@ public class SpeakingAttempt {
     @Column(name = "groq_feedback", columnDefinition = "TEXT")
     private String groqFeedback;
 
+    /** Điểm của model ASR */
+    @Column(name = "asr_score")
+    private Integer asrScore;
+
+    /** Chi tiết phát âm từng từ dưới dạng JSON string */
+    @Column(name = "word_details", columnDefinition = "TEXT")
+    private String wordDetails;
+
+    /** Record ID của lượt ghi âm nhận diện */
+    @Column(name = "record_id", length = 255)
+    private String recordId;
+
 }

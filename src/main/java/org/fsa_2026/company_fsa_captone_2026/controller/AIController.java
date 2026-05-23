@@ -22,6 +22,7 @@ public class AIController {
     private final SpeakingAttemptService speakingAttemptService;
     private final org.fsa_2026.company_fsa_captone_2026.service.TTSService ttsService;
     private final org.fsa_2026.company_fsa_captone_2026.service.FirebaseStorageService firebaseStorageService;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     @PostMapping("/tts")
     public Map<String, Object> tts(@RequestBody Map<String, String> request) {
@@ -89,12 +90,39 @@ public class AIController {
             asrProcessingTimeMs = extractLong(request.get("asrLatencyMs"));
         }
 
+        Integer asrScore = extractInteger(request.get("asrScore"));
+        if (asrScore == null) {
+            asrScore = extractInteger(request.get("score"));
+        }
+
+        Object wordDetailsObj = request.get("wordDetails");
+        if (wordDetailsObj == null) {
+            wordDetailsObj = request.get("word_details");
+        }
+        String wordDetailsJson = null;
+        if (wordDetailsObj != null) {
+            try {
+                wordDetailsJson = objectMapper.writeValueAsString(wordDetailsObj);
+            } catch (Exception e) {
+                log.error("Failed to stringify wordDetails", e);
+            }
+        }
+
+        String recordId = (String) request.get("recordId");
+        if (recordId == null) {
+            recordId = (String) request.get("record_id");
+        }
+
         if (transcribedText == null || targetText == null) {
             throw new ApiException("BAD_REQUEST", "Thiếu transcribedText hoặc targetText");
         }
 
         long startTime = System.currentTimeMillis();
-        Map<String, Object> result = new java.util.HashMap<>(aiService.provideFeedback(transcribedText, targetText, null));
+        String focusErrorTag = null;
+        if (dialect != null && !dialect.isBlank()) {
+            focusErrorTag = aiService.findErrorTagUnitId(dialect);
+        }
+        Map<String, Object> result = new java.util.HashMap<>(aiService.provideFeedback(transcribedText, targetText, focusErrorTag));
         long endTime = System.currentTimeMillis();
         long processingTimeMs = endTime - startTime;
 
@@ -121,6 +149,10 @@ public class AIController {
         result.put("errorDetail", aiFeedback);
         result.put("transcribedText", transcribedText);
 
+        result.put("asrScore", asrScore);
+        result.put("wordDetails", wordDetailsObj);
+        result.put("recordId", recordId);
+
         if (consentGiven && authentication != null) {
             int score = 0;
             Object scoreObj = result.get("accuracy");
@@ -145,7 +177,10 @@ public class AIController {
                     dialect,
                     processingTimeMs,
                     asrProcessingTimeMs,
-                    aiFeedback);
+                    aiFeedback,
+                    asrScore,
+                    wordDetailsJson,
+                    recordId);
         }
 
         return result;
@@ -192,6 +227,20 @@ public class AIController {
         if (value instanceof String text) {
             try {
                 return Long.parseLong(text.trim());
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private Integer extractInteger(Object value) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value instanceof String text) {
+            try {
+                return Integer.parseInt(text.trim());
             } catch (NumberFormatException ignored) {
                 return null;
             }

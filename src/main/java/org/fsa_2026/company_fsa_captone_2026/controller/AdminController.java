@@ -57,6 +57,7 @@ public class AdminController {
     private final org.fsa_2026.company_fsa_captone_2026.service.QuizService quizService;
     private final SpeakingAttemptService speakingAttemptService;
     private final org.fsa_2026.company_fsa_captone_2026.service.EntryTestService entryTestService;
+    private final org.fsa_2026.company_fsa_captone_2026.service.SystemConfigService systemConfigService;
 
     /**
      * Create Educator Account - POST /api/v1/admin/educators
@@ -593,6 +594,26 @@ public class AdminController {
         log.info("Admin deleting entry test question ID: {}", id);
         entryTestService.deleteQuestion(id);
         return ResponseEntity.ok(ApiResponse.success("Xóa câu hỏi entry test thành công", null));
+    }
+
+    // ==========================================
+    // 7. System AI Configurations Management
+    // ==========================================
+
+    @GetMapping("/configs")
+    @Operation(summary = "Get All AI and System Configurations", description = "Retrieves all system configuration parameters")
+    public ResponseEntity<ApiResponse<List<org.fsa_2026.company_fsa_captone_2026.entity.SystemConfig>>> getAllConfigs() {
+        log.info("Admin retrieving all system configurations");
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách cấu hình hệ thống thành công",
+                systemConfigService.getAllConfigs()));
+    }
+
+    @PutMapping("/configs")
+    @Operation(summary = "Bulk Update AI and System Configurations", description = "Bulk updates multiple system configurations at once")
+    public ResponseEntity<ApiResponse<Void>> updateConfigs(@RequestBody Map<String, String> configMap) {
+        log.info("Admin updating {} system configurations", configMap.size());
+        systemConfigService.updateConfigs(configMap);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật cấu hình hệ thống thành công", null));
     }
 
 }

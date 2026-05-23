@@ -30,5 +30,15 @@ public class SpeakingAttemptLogResponse {
     private Long processingTimeMs;   // Groq latency
     @com.fasterxml.jackson.annotation.JsonProperty("asrProcessingTimeMs")
     private Long asrProcessingTimeMs; // Parakeet latency
+    
+    @com.fasterxml.jackson.annotation.JsonProperty("asrScore")
+    private Integer asrScore;
+    
+    @com.fasterxml.jackson.annotation.JsonProperty("wordDetails")
+    private String wordDetails;
+    
+    @com.fasterxml.jackson.annotation.JsonProperty("recordId")
+    private String recordId;
+
     private Instant createdAt;
 }

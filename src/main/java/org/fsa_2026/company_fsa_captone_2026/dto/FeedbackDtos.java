@@ -39,6 +39,9 @@ public class FeedbackDtos {
         private Integer groqScore;
         private String groqFeedback;
         private String asrTranscription;
+        private Integer asrScore;
+        private String wordDetails;
+        private String recordId;
     }
 
     @Data
@@ -53,5 +56,8 @@ public class FeedbackDtos {
         private Integer groqScore;
         private String groqFeedback;
         private Instant createdAt;
+        private Integer asrScore;
+        private String wordDetails;
+        private String recordId;
     }
 }

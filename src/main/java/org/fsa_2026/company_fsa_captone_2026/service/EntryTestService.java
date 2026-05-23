@@ -42,6 +42,7 @@ public class EntryTestService {
     private final AIService aiService;
     private final CustomLearningPathRepository customLearningPathRepository;
     private final RoadmapRuleService roadmapRuleService;
+    private final SystemConfigService systemConfigService;
 
 
     // CRUD Methods
@@ -198,14 +199,31 @@ public class EntryTestService {
                 quizResult.get("errorDetail"));
         if (detectedError != null && !detectedError.isBlank()) {
             String errorLow = detectedError.toLowerCase();
-            // Các lỗi phát âm đặc trưng vùng miền Việt Nam: N/L, S/X, TR/CH, D/R/GI
-            isRegional = errorLow.contains("n/l") || errorLow.contains("l/n")
-                    || errorLow.contains("s/x") || errorLow.contains("x/s")
-                    || errorLow.contains("tr/ch") || errorLow.contains("ch/tr")
-                    || errorLow.contains("d/r") || errorLow.contains("r/d")
-                    || errorLow.contains("d/gi") || errorLow.contains("gi/d")
-                    || errorLow.contains("regional") || errorLow.contains("vùng miền")
-                    || errorLow.contains("đặc trưng");
+            // Lấy toàn bộ danh sách error tag hiện có từ database để đối chiếu động
+            try {
+                List<LearningUnit> errorTags = learningUnitRepository.findByType("ERROR_TAG");
+                for (LearningUnit tag : errorTags) {
+                    String tagNameLow = tag.getName() != null ? tag.getName().toLowerCase() : "";
+                    String tagCodeLow = tag.getErrorTag() != null ? tag.getErrorTag().toLowerCase() : "";
+                    
+                    // Nếu lỗi do AI nhận diện chứa tên hoặc mã của bất kỳ error tag nào trong hệ thống
+                    if ((!tagNameLow.isEmpty() && errorLow.contains(tagNameLow)) || 
+                        (!tagCodeLow.isEmpty() && errorLow.contains(tagCodeLow)) ||
+                        errorLow.contains(tagCodeLow.replace("_", "/")) ||
+                        errorLow.contains(tagCodeLow.replace("_", "-"))) {
+                        isRegional = true;
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to check regional error dynamically, fallback to standard contains: {}", e.getMessage());
+            }
+            
+            // Standard fallback keywords
+            if (!isRegional) {
+                isRegional = errorLow.contains("regional") || errorLow.contains("vùng miền")
+                        || errorLow.contains("đặc trưng") || errorLow.contains("ngọng");
+            }
         }
         // Nếu AI đã trả về isRegional thì ưu tiên dùng giá trị đó
         Object aiIsRegional = quizResult.get("isRegional");
@@ -254,23 +272,19 @@ public class EntryTestService {
             boolean isRegional = Boolean.TRUE.equals(res.get("isRegional"));
             if (isRegional) {
                 Object catObj = res.get("regionCategory");
-                EntryTestRegionCategory category = null;
-                if (catObj instanceof String s && !s.isBlank()) {
-                    try {
-                        category = EntryTestRegionCategory.valueOf(s);
-                    } catch (IllegalArgumentException e) {
-                        log.warn("Invalid region category string: {}", s);
-                    }
-                } else if (catObj instanceof EntryTestRegionCategory) {
-                    category = (EntryTestRegionCategory) catObj;
+                String catStr = null;
+                if (catObj instanceof String s) {
+                    catStr = s.toUpperCase();
+                } else if (catObj instanceof EntryTestRegionCategory catEnum) {
+                    catStr = catEnum.name().toUpperCase();
                 }
 
-                if (category != null) {
-                    if (category == EntryTestRegionCategory.NORTH_NL)
+                if (catStr != null && !catStr.isBlank()) {
+                    if (catStr.contains("NORTH"))
                         regionErrorCount.put(RegionCode.NORTH, regionErrorCount.get(RegionCode.NORTH) + 1);
-                    else if (category == EntryTestRegionCategory.CENTRAL_DGIR)
+                    else if (catStr.contains("CENTRAL"))
                         regionErrorCount.put(RegionCode.CENTRAL, regionErrorCount.get(RegionCode.CENTRAL) + 1);
-                    else if (category == EntryTestRegionCategory.SOUTH_TRCH)
+                    else if (catStr.contains("SOUTH"))
                         regionErrorCount.put(RegionCode.SOUTH, regionErrorCount.get(RegionCode.SOUTH) + 1);
                 }
             }
@@ -351,12 +365,20 @@ public class EntryTestService {
         return result;
     }
 
-    private RegionCode mapCategoryToRegionCode(EntryTestRegionCategory category) {
-        if (category == EntryTestRegionCategory.NORTH_NL)
-            return RegionCode.NORTH;
-        if (category == EntryTestRegionCategory.CENTRAL_DGIR)
-            return RegionCode.CENTRAL;
-        return RegionCode.SOUTH;
+    private RegionCode mapCategoryToRegionCode(Object categoryObj) {
+        if (categoryObj == null) return RegionCode.NORTH;
+        String name = "";
+        if (categoryObj instanceof String s) {
+            name = s.toUpperCase();
+        } else if (categoryObj instanceof EntryTestRegionCategory category) {
+            name = category.name().toUpperCase();
+        }
+
+        if (name.contains("NORTH")) return RegionCode.NORTH;
+        if (name.contains("CENTRAL")) return RegionCode.CENTRAL;
+        if (name.contains("SOUTH")) return RegionCode.SOUTH;
+
+        return RegionCode.NORTH;
     }
 
     private void unlockLevelsBasedOnScore(Account account, RegionCode region, double score) {
@@ -510,20 +532,23 @@ public class EntryTestService {
         customPath = customLearningPathRepository.save(customPath);
 
         // AI Feedback integration
-        StringBuilder promptBuilder = new StringBuilder("Học viên mắc các lỗi sau trong phát âm: ");
+        StringBuilder errorDetailsBuilder = new StringBuilder();
         if (categoryAccuracy.isEmpty()) {
-            promptBuilder.append("Không có lỗi ngọng vùng miền nghiêm trọng. ");
+            errorDetailsBuilder.append("Không có lỗi ngọng vùng miền nghiêm trọng. ");
         } else {
             for (String cat : sortedCategories) {
-                promptBuilder.append("Lỗi ").append(cat).append(" với độ chính xác ")
+                errorDetailsBuilder.append("Lỗi ").append(cat).append(" với độ chính xác ")
                         .append(String.format("%.1f", categoryAccuracy.get(cat))).append("% (có ")
                         .append(totalWrong.getOrDefault(cat, 0)).append(" câu sai hoàn toàn); ");
             }
         }
-        promptBuilder.append("Hãy viết 1 đoạn 3-4 câu nhận xét ngắn gọn, cổ vũ học viên và khuyên học viên nên ưu tiên học lỗi nào trước (dựa trên % độ chính xác thấp nhất). Trả về kết quả dưới dạng JSON có trường 'reply'.");
+
+        String defaultTemplate = "Học viên mắc các lỗi sau trong phát âm: {errorDetails} Hãy viết 1 đoạn 3-4 câu nhận xét ngắn gọn, cổ vũ học viên và khuyên học viên nên ưu tiên học lỗi nào trước (dựa trên % độ chính xác thấp nhất). Trả về kết quả dưới dạng JSON có trường 'reply'.";
+        String template = systemConfigService.getValue("prompt.entry-test-feedback", defaultTemplate);
+        String prompt = template.replace("{errorDetails}", errorDetailsBuilder.toString());
 
         try {
-            Map<String, Object> aiResponse = aiService.chatWithGroq(promptBuilder.toString());
+            Map<String, Object> aiResponse = aiService.chatWithGroq(prompt);
             String aiFeedback = "Bạn cần cố gắng luyện tập thêm!";
             if (aiResponse.containsKey("reply")) aiFeedback = (String) aiResponse.get("reply");
             else if (aiResponse.containsKey("feedback")) aiFeedback = (String) aiResponse.get("feedback");
@@ -563,6 +588,7 @@ public class EntryTestService {
         return learningUnitRepository.findTop1000ByType("ERROR_TAG").stream()
                 .filter(lu -> {
                     // 1. Khớp theo tên unit (sort ký tự để xử lý NL↔LN)
+                    if (lu == null || lu.getName() == null) return false;
                     String unitName = lu.getName().replaceAll("[^A-Za-z]", "").toUpperCase();
                     char[] unitChars = unitName.toCharArray();
                     java.util.Arrays.sort(unitChars);
@@ -603,6 +629,7 @@ public class EntryTestService {
 
         return learningUnitRepository.findByType("ERROR_TAG").stream()
                 .filter(lu -> {
+                    if (lu == null || lu.getName() == null) return false;
                     String unitName = lu.getName().replaceAll("[_\\s-]", "").toUpperCase();
                     
                     return unitName.equals(categorySearch) || 
@@ -617,21 +644,28 @@ public class EntryTestService {
     }
 
     private long countTargetWords(String text, String errorCategory) {
-        if (text == null)
+        if (text == null || errorCategory == null)
             return 0;
         String[] words = text.toLowerCase().replaceAll("[^\\p{L}\\s]", "").split("\\s+");
+        
+        // Trích xuất các chữ cái đại diện từ mã lỗi (ví dụ: "L_N" -> ["l", "n"], "D_GI_R" -> ["d", "gi", "r"])
+        List<String> startingChars = new ArrayList<>();
+        for (String segment : errorCategory.toLowerCase().split("[_/-]")) {
+            if (!segment.isBlank()) {
+                startingChars.add(segment.trim());
+            }
+        }
+        
         long count = 0;
         for (String w : words) {
             if (w.isEmpty())
                 continue;
-            if ("L_N".equals(errorCategory) && (w.startsWith("l") || w.startsWith("n")))
-                count++;
-            else if ("TR_CH".equals(errorCategory) && (w.startsWith("tr") || w.startsWith("ch")))
-                count++;
-            else if ("D_GI_R".equals(errorCategory) && (w.startsWith("d") || w.startsWith("gi") || w.startsWith("r")))
-                count++;
-            else if ("S_X".equals(errorCategory) && (w.startsWith("s") || w.startsWith("x")))
-                count++;
+            for (String ch : startingChars) {
+                if (w.startsWith(ch)) {
+                    count++;
+                    break;
+                }
+            }
         }
         return count;
     }
@@ -658,6 +692,7 @@ public class EntryTestService {
         // Last resort search all dialects and check if they contain the keyword
         return learningUnitRepository.findByType("DIALECT").stream()
                 .filter(lu -> {
+                    if (lu == null || lu.getName() == null) return false;
                     String name = lu.getName().toUpperCase();
                     return name.contains(internalName) || name.contains(vnName.toUpperCase());
                 })
