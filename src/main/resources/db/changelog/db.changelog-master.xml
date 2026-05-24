@@ -5,6 +5,111 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
+    <!-- Phase 1: 01 to 28 -->
+    <include file="db/changelog/01-create-initial-schema.xml"/>
+    <include file="db/changelog/02-update-game-schema.xml"/>
+    <include file="db/changelog/03-add-daily-analytics.xml"/>
+    <include file="db/changelog/04-add-educator-extensions.xml"/>
+    <include file="db/changelog/05-seed-dialect-levels.xml"/>
+    <include file="db/changelog/06-seed-test-accounts.xml"/>
+    <include file="db/changelog/07-add-content-approval-fields.xml"/>
+    <include file="db/changelog/08-database-iso-fixes-and-error-tag.xml"/>
+    <include file="db/changelog/09-add-missing-relationships.xml"/>
+    <include file="db/changelog/10-add-content-approval-history.xml"/>
+    <include file="db/changelog/11-add-draft-live-content.xml"/>
+    <include file="db/changelog/12-add-content-snapshot-to-history.xml"/>
+    <include file="db/changelog/13-seed-error-tag-rules.xml"/>
+    <include file="db/changelog/14-add-achievement-and-leaderboard-tables.xml"/>
+    <include file="db/changelog/15-seed-badges.xml"/>
+    <include file="db/changelog/16-add-quiz-tables.xml"/>
+    <include file="db/changelog/17-standardize-challenge-quiz-centralization.xml"/>
+    <include file="db/changelog/18-consolidate-user-profile.xml"/>
+    <include file="db/changelog/19-add-reward-type-to-achievement.xml"/>
+    <include file="db/changelog/20-add-content-snapshot-to-attempt.xml"/>
+    <include file="db/changelog/21-add-quiz-attempt-to-attempt.xml"/>
+    <include file="db/changelog/22-make-attempt-session-nullable.xml"/>
+    <include file="db/changelog/23-merge-badges-data.xml"/>
+    <include file="db/changelog/24-merge-prediction-and-phoneme-feedback.xml"/>
+    <include file="db/changelog/25-create-and-migrate-content.xml"/>
+    <include file="db/changelog/26-create-and-migrate-activity.xml"/>
+    <include file="db/changelog/27-cleanup-and-rename.xml"/>
+    <include file="db/changelog/28-finalize-merged-schema.xml"/>
+
+    <!-- Phase 2: 29 to 40 including inline changesets -->
+    <changeSet id="29-rename-classroom-max-students" author="antigravity">
+        <renameColumn
+                tableName="classroom"
+                oldColumnName="max_students"
+                newColumnName="current_students"
+                columnDataType="INTEGER"/>
+    </changeSet>
+
+    <include file="db/changelog/30-add-classroom-extended-fields.xml"/>
+
+    <changeSet id="31-add-region-to-challenge-bank" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="challenge_bank" columnName="region"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="challenge_bank">
+            <column name="region" type="VARCHAR(20)" defaultValue="BAC">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <include file="db/changelog/31-drop-classroom-entity.xml"/>
+
+    <include file="db/changelog/32-update-reward-catalog-icons.xml"/>
+
+    <include file="db/changelog/33-seed-new-reward-catalog-badges.xml"/>
+
+    <include file="db/changelog/34-add-last-login-date.xml"/>
+    
+    <changeSet id="32-add-account-learning-unit" author="antigravity">
+        <createTable tableName="account_learning_unit">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+            <column name="account_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_alu_account" referencedTableName="account" referencedColumnNames="id"/>
+            </column>
+            <column name="learning_unit_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_alu_learning_unit" referencedTableName="learning_unit" referencedColumnNames="id"/>
+            </column>
+            <column name="stars_earned" type="INTEGER" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_completed" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="highest_score" type="NUMERIC(5,2)"/>
+        </createTable>
+        <addUniqueConstraint tableName="account_learning_unit" columnNames="account_id, learning_unit_id" constraintName="uniq_alu_account_unit"/>
+    </changeSet>
+
+    <include file="db/changelog/35-add-notification-table.xml"/>
+
+    <include file="db/changelog/36-simplify-reward-catalog.xml"/>
+
+    <include file="db/changelog/37-add-sort-by-to-leaderboard.xml"/>
+
+    <include file="db/changelog/38-data-cleanup.xml"/>
+
+    <include file="db/changelog/39-drop-reward-catalog-data.xml"/>
+    
+    <include file="db/changelog/40-seed-achievements.xml"/>
+
+    <!-- Phase 3: 41 to 63 -->
     <include file="db/changelog/41-create-speaking-attempt.xml"/>
     <include file="db/changelog/42-create-chat-message-table.xml"/>
     <include file="db/changelog/43-index-chat-message.xml"/>
