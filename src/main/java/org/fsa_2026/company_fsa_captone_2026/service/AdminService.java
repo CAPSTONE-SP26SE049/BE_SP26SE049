@@ -712,4 +712,47 @@ public class AdminService {
 
         return response;
     }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getRealEngagementMetrics() {
+        java.time.Instant twentyFourHoursAgo = java.time.Instant.now().minus(24, java.time.temporal.ChronoUnit.HOURS);
+        long dailyActiveUsers = studySessionRepository.countDistinctAccountByStartedAtAfter(twentyFourHoursAgo);
+
+        List<Object[]> finishedSessions = studySessionRepository.findStartedAndEndedAtForFinishedSessions();
+        double totalMinutes = 0.0;
+        int count = 0;
+
+        for (Object[] session : finishedSessions) {
+            if (session.length >= 2 && session[0] != null && session[1] != null) {
+                java.time.Instant startedAt = null;
+                java.time.Instant endedAt = null;
+                if (session[0] instanceof java.time.Instant) {
+                    startedAt = (java.time.Instant) session[0];
+                } else if (session[0] instanceof java.sql.Timestamp) {
+                    startedAt = ((java.sql.Timestamp) session[0]).toInstant();
+                }
+                if (session[1] instanceof java.time.Instant) {
+                    endedAt = (java.time.Instant) session[1];
+                } else if (session[1] instanceof java.sql.Timestamp) {
+                    endedAt = ((java.sql.Timestamp) session[1]).toInstant();
+                }
+
+                if (startedAt != null && endedAt != null) {
+                    long diffMs = java.time.Duration.between(startedAt, endedAt).toMillis();
+                    if (diffMs > 0) {
+                        totalMinutes += (double) diffMs / 60000.0;
+                        count++;
+                    }
+                }
+            }
+        }
+
+        double averageSessionTimeMinutes = count > 0 ? (totalMinutes / count) : 0.0;
+        averageSessionTimeMinutes = Math.round(averageSessionTimeMinutes * 10.0) / 10.0;
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("dailyActiveUsers", dailyActiveUsers);
+        response.put("averageSessionTimeMinutes", averageSessionTimeMinutes);
+        return response;
+    }
 }

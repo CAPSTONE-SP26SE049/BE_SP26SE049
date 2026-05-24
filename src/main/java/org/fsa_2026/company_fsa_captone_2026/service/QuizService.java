@@ -51,6 +51,7 @@ public class QuizService {
     private final ObjectMapper objectMapper;
     private final org.fsa_2026.company_fsa_captone_2026.repository.CustomLearningPathRepository customLearningPathRepository;
     private final org.fsa_2026.company_fsa_captone_2026.repository.CustomPathProgressRepository customPathProgressRepository;
+    private final BadgeUnlockService badgeUnlockService;
 
     // ==========================================
     // CRUD Operations
@@ -697,6 +698,9 @@ public class QuizService {
 
         // --- NEW: Update Custom Path Progress if quiz belongs to an active path ---
         updateCustomPathProgressIfAny(account, quiz, score, passed);
+
+        // --- Badge Auto-Unlock Check ---
+        badgeUnlockService.checkAndUnlockBadges(account);
     }
 
     private void updateCustomPathProgressIfAny(Account account, LearningUnit quiz, int score, boolean passed) {

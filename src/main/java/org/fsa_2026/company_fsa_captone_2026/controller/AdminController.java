@@ -396,10 +396,8 @@ public class AdminController {
     @Operation(summary = "User Engagement", description = "Get engagement metrics")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getAnalyticsEngagement() {
         log.info("Admin requesting engagement metrics");
-        Map<String, Object> mockResponse = new HashMap<>();
-        mockResponse.put("dailyActiveUsers", 120);
-        mockResponse.put("averageSessionTimeMinutes", 15.5);
-        return ResponseEntity.ok(ApiResponse.success("Thành công", mockResponse));
+        Map<String, Object> response = adminService.getRealEngagementMetrics();
+        return ResponseEntity.ok(ApiResponse.success("Thành công", response));
     }
 
     @GetMapping("/analytics/errors/heatmaps")

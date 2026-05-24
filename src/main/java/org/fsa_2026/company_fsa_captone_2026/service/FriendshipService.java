@@ -30,6 +30,7 @@ public class FriendshipService {
     private final FriendshipRepository friendshipRepository;
     private final AccountRepository accountRepository;
     private final NotificationService notificationService;
+    private final BadgeUnlockService badgeUnlockService;
 
     // ─── Send Friend Request ────────────────────────────────────────
 
@@ -133,6 +134,11 @@ public class FriendshipService {
         );
 
         log.info("Friend request accepted: {} accepted {}", email, friendship.getRequester().getEmail());
+
+        // --- Badge Auto-Unlock check for both users ---
+        badgeUnlockService.checkAndUnlockBadges(currentUser);
+        badgeUnlockService.checkAndUnlockBadges(friendship.getRequester());
+
         return toResponse(friendship, currentUser);
     }
 
