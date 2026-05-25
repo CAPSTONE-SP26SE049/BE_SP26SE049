@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- placement_rule: entity exists but table missing on some Azure DBs (truncated liquibase master) -->
+    <changeSet id="35-create-placement-rule-table" author="fsa-qa-fix">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="placement_rule"/>
+            </not>
+        </preConditions>
+        <createTable tableName="placement_rule">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+            <column name="error_tag_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="threshold" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="dialect_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="checkpoint" type="VARCHAR(100)"/>
+            <column name="priority" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint
+                baseTableName="placement_rule"
+                baseColumnNames="error_tag_id"
+                constraintName="fk_placement_rule_error_tag"
+                referencedTableName="learning_unit"
+                referencedColumnNames="id"/>
+        <addForeignKeyConstraint
+                baseTableName="placement_rule"
+                baseColumnNames="dialect_id"
+                constraintName="fk_placement_rule_dialect"
+                referencedTableName="learning_unit"
+                referencedColumnNames="id"/>
+    </changeSet>
+
+</databaseChangeLog>
