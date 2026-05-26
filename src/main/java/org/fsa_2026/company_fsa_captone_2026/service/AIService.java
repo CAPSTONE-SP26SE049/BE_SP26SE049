@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.fsa_2026.company_fsa_captone_2026.common.WebmAudioValidator;
 import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.fsa_2026.company_fsa_captone_2026.repository.LearningUnitRepository;
@@ -53,10 +55,41 @@ public class AIService {
     private final SystemConfigService systemConfigService;
     private final RestTemplate restTemplate = new RestTemplate();
 
+    /**
+     * Chấm phát âm từ multipart — validate {@code .webm} trước khi gọi ASR + Groq.
+     *
+     * @param audio      file âm thanh upload
+     * @param targetText câu mẫu chuẩn tiếng Việt
+     * @return kết quả ASR + AI (accuracy, feedback, azureTranscript, …)
+     * @throws java.io.IOException khi đọc bytes từ multipart
+     *
+     * <p><b>Note:</b> Đã fix BUG-001 — dùng {@link WebmAudioValidator#validateMultipart} đồng bộ với Entry Test
+     * trước khi gửi byte[] vào pipeline Groq.</p>
+     */
+    public Map<String, Object> evaluatePronunciation(MultipartFile audio, String targetText) throws java.io.IOException {
+        WebmAudioValidator.validateMultipart(audio);
+        return evaluatePronunciation(audio.getBytes(), targetText);
+    }
+
+    /**
+     * Chấm phát âm từ byte[] (caller đã validate multipart nếu nguồn là upload).
+     *
+     * @param audioData  nội dung file âm thanh
+     * @param targetText câu mẫu
+     * @return kết quả chấm điểm
+     */
     public Map<String, Object> evaluatePronunciation(byte[] audioData, String targetText) {
         return evaluatePronunciation(audioData, targetText, null);
     }
 
+    /**
+     * Pipeline ASR (local) + Groq feedback, có thể focus theo error tag miền (N/L, …).
+     *
+     * @param audioData      bytes âm thanh
+     * @param targetText     câu mẫu
+     * @param focusErrorTag  mã tag lỗi (nullable) từ dialect / region category
+     * @return map kết quả chấm điểm
+     */
     public Map<String, Object> evaluatePronunciation(byte[] audioData, String targetText, String focusErrorTag) {
         long asrStart = System.currentTimeMillis();
         AzureTranscriptionResult transcriptionResult = transcribeWithLocalAsr(audioData, targetText);
@@ -211,6 +244,25 @@ public class AIService {
         return chatWithGroqOrFallback(message);
     }
 
+    /**
+     * Kiểm tra {@code audioUrl} trong body feedback — bắt buộc trỏ tới file {@code .webm} nếu có gửi.
+     *
+     * @param audioUrl URL file sau khi client upload (Firebase, …); null/blank → không kiểm tra
+     *
+     * <p><b>Note:</b> Đã fix BUG-001 — validate URL đồng bộ multipart, dùng trước {@link #provideFeedback}.</p>
+     */
+    public void validateFeedbackAudioUrl(String audioUrl) {
+        WebmAudioValidator.validateAudioUrl(audioUrl);
+    }
+
+    /**
+     * So sánh transcript ASR với câu mẫu, gọi Groq trả feedback sư phạm.
+     *
+     * @param transcribedText nội dung người học đã nói (từ ASR phía client/server)
+     * @param targetText      câu chuẩn
+     * @param focusErrorTag   tag lỗi phát âm ưu tiên (nullable)
+     * @return accuracy, feedback, isCorrect, …
+     */
     public Map<String, Object> provideFeedback(String transcribedText, String targetText, String focusErrorTag) {
         if (transcribedText == null || targetText == null || transcribedText.isBlank() || targetText.isBlank()) {
             return new HashMap<>(Map.of(

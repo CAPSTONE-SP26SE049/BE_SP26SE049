@@ -36,16 +36,24 @@ public class AIController {
 
 
 
+    /**
+     * Chấm phát âm trực tiếp: upload audio + câu mẫu, ASR local rồi Groq feedback.
+     *
+     * @param audio      file multipart — bắt buộc {@code .webm}
+     * @param targetText câu tiếng Việt chuẩn cần đối chiếu
+     * @return map điểm, feedback, {@code audioUrl} (Firebase), transcript, …
+     * @throws IOException khi đọc multipart
+     *
+     * <p><b>Note:</b> Đã fix BUG-001 — validate {@code .webm} qua
+     * {@link org.fsa_2026.company_fsa_captone_2026.service.AIService#evaluatePronunciation(org.springframework.web.multipart.MultipartFile, String)}
+     * trước khi gọi Groq (đồng bộ Entry Test).</p>
+     */
     @PostMapping("/evaluate-pronunciation")
     public Map<String, Object> evaluatePronunciation(
             @RequestParam("audio") MultipartFile audio,
             @RequestParam("targetText") String targetText) throws IOException {
 
-        if (audio.isEmpty()) {
-            throw new ApiException("BAD_REQUEST", "File âm thanh không được để trống");
-        }
-
-        Map<String, Object> result = new java.util.HashMap<>(aiService.evaluatePronunciation(audio.getBytes(), targetText));
+        Map<String, Object> result = new java.util.HashMap<>(aiService.evaluatePronunciation(audio, targetText));
 
         // Upload to Firebase
         try {
@@ -60,9 +68,14 @@ public class AIController {
     }
 
     /**
-     * AI Feedback endpoint for text comparison (ASR based).
-     * Now integrates with SpeakingAttemptService to save data for dataset
-     * collection.
+     * Feedback sau ASR phía client: so sánh transcript với câu mẫu, tùy chọn lưu attempt.
+     *
+     * @param request        JSON: {@code transcribedText}, {@code targetText}, {@code audioUrl}, {@code consentGiven}, …
+     * @param authentication JWT — dùng khi {@code consentGiven=true} để lưu dataset
+     * @return điểm, feedback Groq, metadata thời gian xử lý
+     *
+     * <p><b>Note:</b> Đã fix BUG-001 — nếu gửi {@code audioUrl} thì phải trỏ file {@code .webm}
+     * ({@link org.fsa_2026.company_fsa_captone_2026.service.AIService#validateFeedbackAudioUrl}).</p>
      */
     @PostMapping("/feedback")
     public Map<String, Object> getFeedback(
@@ -74,6 +87,7 @@ public class AIController {
         String challengeId = (String) request.get("challengeId");
         String dialect = (String) request.get("dialect");
         String audioUrl = (String) request.get("audioUrl");
+        aiService.validateFeedbackAudioUrl(audioUrl);
         Boolean consentGivenValue = request.get("consentGiven") instanceof Boolean b ? b : null;
         boolean consentGiven = consentGivenValue != null && consentGivenValue;
         Long asrProcessingTimeMs = extractLong(request.get("asrProcessingTimeMs"));

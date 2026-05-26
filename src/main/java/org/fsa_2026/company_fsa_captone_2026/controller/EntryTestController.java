@@ -35,6 +35,17 @@ public class EntryTestController {
 
     // ─── User endpoints ──────────────────────────────────────────────────
 
+    /**
+     * Lấy bộ câu hỏi kiểm tra đầu vào (placement set) cho học viên đang đăng nhập.
+     *
+     * @param principal thông tin JWT — email user lấy từ {@link Principal#getName()}
+     * @param region    (tùy chọn) miền lọc câu hỏi: {@code NORTH}, {@code CENTRAL}, {@code SOUTH};
+     *                  bỏ trống → lấy {@code region} từ profile user đăng nhập; profile trống mới trộn 3 miền
+     * @return danh sách câu hỏi (khoảng 10 câu) bọc trong {@link ApiResponse}
+     *
+     * <p><b>Note (BUG-004):</b> {@code region=HANG_NGAY} (hoặc bất kỳ giá trị khác NORTH/CENTRAL/SOUTH) → 400 ngay;
+     * chỉ khi bỏ trống {@code region} mới fallback trộn 3 miền và 200 OK. Xem {@link EntryTestService#getPlacementSet}.</p>
+     */
     @GetMapping("/placement-set")
     @PreAuthorize("hasRole('USER')")
     @Operation(summary = "Get Placement Test Set")
@@ -42,25 +53,41 @@ public class EntryTestController {
             Principal principal,
             @RequestParam(required = false) String region) {
         log.info("Fetching placement test set for user: {}, region: {}", principal.getName(), region);
-        List<EntryTestQuestionResponse> placementSet = entryTestService.getPlacementSet(region);
+        List<EntryTestQuestionResponse> placementSet = entryTestService.getPlacementSet(region, principal.getName());
         return ResponseEntity.ok(ApiResponse.success("Lấy bộ câu hỏi kiểm tra đầu vào thành công", placementSet));
     }
 
+    /**
+     * Chẩn đoán phát âm một bước trong bài kiểm tra đầu vào (multipart: audio + questionId).
+     *
+     * @param questionId UUID câu hỏi trong bảng {@code entry_test_question}
+     * @param audio      file âm thanh multipart — bắt buộc định dạng {@code .webm}
+     * @return kết quả chẩn đoán (accuracy, feedback, isRegional, audioUrl, …)
+     * @throws java.io.IOException khi đọc byte stream từ multipart
+     *
+     * <p><b>Note:</b> Đã bỏ {@code catch (Exception)} catch-all để {@link org.fsa_2026.company_fsa_captone_2026.exception.ResourceNotFoundException}
+     * trả 404 khi {@code questionId} không tồn tại (BUG-002). Validate {@code .webm} qua
+     * {@link org.fsa_2026.company_fsa_captone_2026.common.WebmAudioValidator} trong {@link EntryTestService#analyzeEntryTestStep} (BUG-001).</p>
+     */
     @PostMapping(value = "/analyze-step", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('USER')")
     @Operation(summary = "Analyze Step", description = "Analyze one pronunciation attempt with Local ASR and AI")
     public ResponseEntity<ApiResponse<Map<String, Object>>> analyzeStep(
             @RequestParam("questionId") UUID questionId,
-            @RequestParam("file") MultipartFile audio) {
-        try {
-            Map<String, Object> result = entryTestService.analyzeEntryTestStep(questionId, audio);
-            return ResponseEntity.ok(ApiResponse.success("Chẩn đoán bước này thành công", result));
-        } catch (Exception e) {
-            log.error("Analysis step failed", e);
-            return ResponseEntity.internalServerError().body(ApiResponse.error("Phát sinh lỗi khi chẩn đoán"));
-        }
+            @RequestParam("file") MultipartFile audio) throws java.io.IOException {
+        Map<String, Object> result = entryTestService.analyzeEntryTestStep(questionId, audio);
+        return ResponseEntity.ok(ApiResponse.success("Chẩn đoán bước này thành công", result));
     }
 
+    /**
+     * Hoàn tất bài kiểm tra đầu vào: lưu kết quả tổng, mở khóa level và gán lộ trình cá nhân hóa.
+     *
+     * @param principal   JWT — email học viên
+     * @param stepResults danh sách kết quả từng bước (thường lấy từ response {@code /analyze-step})
+     * @return {@link EntryTestResult} đã lưu
+     *
+     * <p><b>Note:</b> Service từ chối {@code stepResults} rỗng bằng 400 để tránh chia cho 0 / 500 (BUG-003).</p>
+     */
     @PostMapping("/finish")
     @PreAuthorize("hasRole('USER')")
     @Operation(summary = "Finish Test", description = "Finalize the entry test, unlock levels, and assign learning path")

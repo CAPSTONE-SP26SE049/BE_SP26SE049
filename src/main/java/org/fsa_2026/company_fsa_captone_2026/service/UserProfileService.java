@@ -33,12 +33,25 @@ public class UserProfileService {
             account.setPhone(request.getPhone());
         }
         if (request.getRegion() != null) {
-            account.setRegion(request.getRegion());
+            account.setRegion(normalizeRegionForStorage(request.getRegion()));
         }
 
         accountRepository.save(account);
 
         log.info("Profile updated for user: {}", email);
         return authService.getUserProfile(email);
+    }
+
+    private String normalizeRegionForStorage(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return raw;
+        }
+        return switch (raw.trim().toUpperCase()) {
+            case "BAC", "MIEN_BAC", "BẮC" -> "NORTH";
+            case "TRUNG", "MIEN_TRUNG" -> "CENTRAL";
+            case "NAM", "MIEN_NAM" -> "SOUTH";
+            case "NORTH", "CENTRAL", "SOUTH" -> raw.trim().toUpperCase();
+            default -> raw.trim().toUpperCase();
+        };
     }
 }
