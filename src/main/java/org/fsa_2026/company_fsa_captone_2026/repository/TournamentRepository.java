@@ -14,4 +14,8 @@ public interface TournamentRepository extends JpaRepository<Tournament, UUID> {
     Optional<Tournament> findByStatus(String status);
     
     List<Tournament> findByTypeAndStatus(String type, String status);
+    
+    List<Tournament> findByTypeAndStatusOrderByEndsAtDesc(String type, String status);
+    
+    List<Tournament> findByTypeAndStatusOrderByStartsAtAsc(String type, String status);
 }

@@ -28,9 +28,10 @@ public class DailyChallengeController {
 
     @GetMapping
     @Operation(summary = "Lấy thử thách hàng ngày", description = "Lấy 3 thử thách phát âm của hôm nay")
-    public ResponseEntity<ApiResponse<List<ChallengeBank>>> getDailyChallenges() {
+    public ResponseEntity<ApiResponse<List<ChallengeBank>>> getDailyChallenges(Authentication authentication) {
         log.info("Request daily challenges");
-        List<ChallengeBank> challenges = dailyChallengeService.getDailyChallenges();
+        String email = authentication != null ? authentication.getName() : null;
+        List<ChallengeBank> challenges = dailyChallengeService.getDailyChallenges(email);
         return ResponseEntity.ok(ApiResponse.success("Thành công", challenges));
     }
 
