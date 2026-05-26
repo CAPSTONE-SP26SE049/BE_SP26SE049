@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -22,6 +23,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -100,7 +102,7 @@ class DailyChallengeServiceTest {
     void testSubmitDailyChallenge_Correct() throws IOException {
         String email = "student@test.com";
         UUID cid = UUID.randomUUID();
-        MockMultipartFile audio = new MockMultipartFile("audio", "test.wav", "audio/wav", new byte[]{1, 2, 3});
+        MockMultipartFile audio = new MockMultipartFile("audio", "recording.webm", "audio/webm", new byte[]{1, 2, 3});
 
         Account account = new Account();
         account.setId(UUID.randomUUID());
@@ -120,7 +122,8 @@ class DailyChallengeServiceTest {
         evaluation.put("feedback", "Excellent!");
 
         when(aiService.findErrorTagUnitId("BAC")).thenReturn(null);
-        when(aiService.evaluatePronunciation(any(), eq("Học Tiếng Việt"), any())).thenReturn(evaluation);
+        when(aiService.evaluatePronunciation(any(MultipartFile.class), eq("Học Tiếng Việt"), nullable(String.class)))
+                .thenReturn(evaluation);
         when(firebaseStorageService.uploadFile(any(), eq("daily-challenge-attempts"))).thenReturn("http://firebase/test.wav");
         
         when(studySessionRepository.save(any(StudySession.class))).thenAnswer(invocation -> {

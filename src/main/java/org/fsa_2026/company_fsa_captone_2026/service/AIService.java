@@ -67,8 +67,16 @@ public class AIService {
      * trước khi gửi byte[] vào pipeline Groq.</p>
      */
     public Map<String, Object> evaluatePronunciation(MultipartFile audio, String targetText) throws java.io.IOException {
+        return evaluatePronunciation(audio, targetText, null);
+    }
+
+    /**
+     * Chấm phát âm multipart có focus tag miền — validate .webm trước pipeline ASR (Daily Challenge, Entry Test).
+     */
+    public Map<String, Object> evaluatePronunciation(MultipartFile audio, String targetText, String focusErrorTag)
+            throws java.io.IOException {
         WebmAudioValidator.validateMultipart(audio);
-        return evaluatePronunciation(audio.getBytes(), targetText);
+        return evaluatePronunciation(audio.getBytes(), targetText, focusErrorTag);
     }
 
     /**

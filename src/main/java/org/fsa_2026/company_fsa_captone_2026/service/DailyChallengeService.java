@@ -89,7 +89,7 @@ public class DailyChallengeService {
     }
 
     /**
-     * Nộp ghi âm bài làm của 1 trong 3 câu thử thách, chấm điểm và trao thưởng.
+     * Nộp ghi âm bài làm daily challenge: bắt buộc .webm (giống Entry Test), chấm AI và trao thưởng.
      */
     @Transactional
     public Map<String, Object> submitDailyChallenge(String email, UUID challengeId, MultipartFile audio, String dialect) throws IOException {
@@ -99,12 +99,12 @@ public class DailyChallengeService {
         ChallengeBank challenge = challengeBankRepository.findById(challengeId)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy thử thách"));
 
-        // 1. Đánh giá phát âm qua AI
+        // 1. Đánh giá phát âm qua AI — validate .webm trước khi đọc bytes (fix D-04)
         String focusErrorTag = null;
         if (dialect != null && !dialect.isBlank()) {
             focusErrorTag = aiService.findErrorTagUnitId(dialect);
         }
-        Map<String, Object> evaluation = aiService.evaluatePronunciation(audio.getBytes(), challenge.getContentText(), focusErrorTag);
+        Map<String, Object> evaluation = aiService.evaluatePronunciation(audio, challenge.getContentText(), focusErrorTag);
 
         // 2. Upload file âm thanh lên Firebase
         String audioUrl = "";

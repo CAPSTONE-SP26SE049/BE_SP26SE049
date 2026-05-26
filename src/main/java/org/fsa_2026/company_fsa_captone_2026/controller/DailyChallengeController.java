@@ -1,6 +1,7 @@
 package org.fsa_2026.company_fsa_captone_2026.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,18 +35,17 @@ public class DailyChallengeController {
         return ResponseEntity.ok(ApiResponse.success("Thành công", challenges));
     }
 
-    @PostMapping("/submit")
-    @Operation(summary = "Nộp bài làm thử thách hàng ngày", description = "Chấm điểm phát âm bằng âm thanh ghi âm, upload lên Firebase, lưu vết và tặng bonus XP nếu hoàn thành đủ 3 câu")
+    /**
+     * POST /api/v1/daily-challenges/{challengeId}/submit — Nộp ghi âm .webm (spec Gameplay).
+     * Xác thực 401 do SecurityFilter; không trả 417 thủ công nữa.
+     */
+    @PostMapping("/{challengeId}/submit")
+    @Operation(summary = "Nộp bài làm thử thách hàng ngày", description = "Chấm phát âm từ file .webm, lưu session và tặng bonus XP khi hoàn thành đủ 3 câu", security = @SecurityRequirement(name = "bearer-jwt"))
     public ResponseEntity<ApiResponse<Map<String, Object>>> submitDailyChallenge(
-            @RequestParam("challengeId") UUID challengeId,
+            @PathVariable("challengeId") UUID challengeId,
             @RequestParam("audio") MultipartFile audio,
             @RequestParam(value = "dialect", defaultValue = "BAC") String dialect,
             Authentication authentication) throws IOException {
-        
-        if (authentication == null) {
-            return ResponseEntity.status(417).body(ApiResponse.error("Chưa xác thực người dùng"));
-        }
-        
         log.info("User {} submitting daily challenge {}", authentication.getName(), challengeId);
         Map<String, Object> result = dailyChallengeService.submitDailyChallenge(
                 authentication.getName(), challengeId, audio, dialect);
