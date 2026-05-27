@@ -10,6 +10,10 @@ import org.fsa_2026.company_fsa_captone_2026.entity.enums.SkillType;
 import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.ChallengeBankRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.QuizChallengeItemRepository;
+import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
+import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
+import org.fsa_2026.company_fsa_captone_2026.common.ErrorCode;
+import org.fsa_2026.company_fsa_captone_2026.repository.LearningUnitRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +39,7 @@ public class ChallengeExcelService {
     private final ChallengeBankRepository challengeBankRepository;
     private final AccountRepository accountRepository;
     private final QuizChallengeItemRepository quizChallengeItemRepository;
+    private final LearningUnitRepository learningUnitRepository;
 
     // ════════════════════════════════════════════════════════════════════
     //  COLUMN DEFINITIONS PER SKILL TYPE
@@ -338,13 +343,28 @@ public class ChallengeExcelService {
      */
     @Transactional
     public ImportResult importFromExcelToQuiz(SkillType skillType, MultipartFile file, UUID quizId) {
+        // Validate file
+        if (file == null || file.isEmpty()) {
+            throw new ApiException(ErrorCode.INVALID_INPUT, "File không được để trống");
+        }
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || (!originalFilename.toLowerCase().endsWith(".xlsx") && !originalFilename.toLowerCase().endsWith(".csv"))) {
+            throw new ApiException(ErrorCode.INVALID_INPUT, "Định dạng file không hợp lệ. Chỉ chấp nhận .xlsx hoặc .csv");
+        }
+
+        // Validate quiz existence and type
+        LearningUnit quiz = learningUnitRepository.findById(quizId)
+                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy Quiz với ID: " + quizId));
+        if (!"QUIZ".equalsIgnoreCase(quiz.getType())) {
+            throw new ApiException(ErrorCode.INVALID_INPUT, "Tài nguyên không phải là QUIZ");
+        }
+
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         UUID createdBy = accountRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"))
                 .getId();
 
-        String filename = file.getOriginalFilename();
-        boolean isCsv = filename != null && filename.toLowerCase().endsWith(".csv");
+        boolean isCsv = originalFilename.toLowerCase().endsWith(".csv");
 
         if (isCsv) {
             // CSV vào quiz: dùng skillType truyền vào, nếu null thì mặc định READING

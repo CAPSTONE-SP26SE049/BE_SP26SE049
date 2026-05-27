@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="62-add-asr-fields-to-speaking-attempt" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="speaking_attempt" columnName="asr_score"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="speaking_attempt">
+            <column name="asr_score" type="INTEGER">
+                <constraints nullable="true"/>
+            </column>
+            <column name="word_details" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="record_id" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

@@ -66,7 +66,7 @@ class EducatorServiceExtensionTest {
         sessionDetail.setScoreOverall(BigDecimal.valueOf(85));
 
         when(accountRepository.findByEmail(educatorEmail)).thenReturn(Optional.of(educator));
-        when(accountRepository.findAll()).thenReturn(List.of(educator, student));
+        when(accountRepository.findAllByRoleCodeIn(List.of(RoleCode.USER))).thenReturn(List.of(student));
         when(sessionDetailRepository.findAll()).thenReturn(List.of(sessionDetail));
         when(educatorFeedbackRepository.count()).thenReturn(2L);
 

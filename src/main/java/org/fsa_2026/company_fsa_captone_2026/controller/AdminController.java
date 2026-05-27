@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.fsa_2026.company_fsa_captone_2026.dto.ApiResponse;
+import org.fsa_2026.company_fsa_captone_2026.dto.AdminUserCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.EducatorCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.RegisterResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.ChallengeBankRequest;
@@ -57,6 +58,7 @@ public class AdminController {
     private final org.fsa_2026.company_fsa_captone_2026.service.QuizService quizService;
     private final SpeakingAttemptService speakingAttemptService;
     private final org.fsa_2026.company_fsa_captone_2026.service.EntryTestService entryTestService;
+    private final org.fsa_2026.company_fsa_captone_2026.service.SystemConfigService systemConfigService;
 
     /**
      * Create Educator Account - POST /api/v1/admin/educators
@@ -79,19 +81,21 @@ public class AdminController {
 
     /**
      * Create User Account (with role selection) - POST /api/v1/admin/users
+     * Fix A-01/A-02: @Valid AdminUserCreateRequest — chặn email/fullName rỗng → 400.
      */
     @PostMapping("/users")
     @Operation(summary = "Create User Account", description = "Create a new user or educator account with role selection")
     public ResponseEntity<ApiResponse<RegisterResponse>> createUser(
-            @RequestBody Map<String, String> request) {
+            @Valid @RequestBody AdminUserCreateRequest request) {
 
-        String email = request.get("email");
-        String fullName = request.get("fullName");
-        String role = request.getOrDefault("role", "USER");
+        String role = request.getRole() != null && !request.getRole().isBlank()
+                ? request.getRole().trim()
+                : "USER";
 
-        log.info("Admin creating {} account for email: {}", role, email);
+        log.info("Admin creating {} account for email: {}", role, request.getEmail());
 
-        RegisterResponse response = adminService.createUserWithRole(email, fullName, role);
+        RegisterResponse response = adminService.createUserWithRole(
+                request.getEmail(), request.getFullName(), role);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -395,10 +399,8 @@ public class AdminController {
     @Operation(summary = "User Engagement", description = "Get engagement metrics")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getAnalyticsEngagement() {
         log.info("Admin requesting engagement metrics");
-        Map<String, Object> mockResponse = new HashMap<>();
-        mockResponse.put("dailyActiveUsers", 120);
-        mockResponse.put("averageSessionTimeMinutes", 15.5);
-        return ResponseEntity.ok(ApiResponse.success("Thành công", mockResponse));
+        Map<String, Object> response = adminService.getRealEngagementMetrics();
+        return ResponseEntity.ok(ApiResponse.success("Thành công", response));
     }
 
     @GetMapping("/analytics/errors/heatmaps")
@@ -593,6 +595,26 @@ public class AdminController {
         log.info("Admin deleting entry test question ID: {}", id);
         entryTestService.deleteQuestion(id);
         return ResponseEntity.ok(ApiResponse.success("Xóa câu hỏi entry test thành công", null));
+    }
+
+    // ==========================================
+    // 7. System AI Configurations Management
+    // ==========================================
+
+    @GetMapping("/configs")
+    @Operation(summary = "Get All AI and System Configurations", description = "Retrieves all system configuration parameters")
+    public ResponseEntity<ApiResponse<List<org.fsa_2026.company_fsa_captone_2026.entity.SystemConfig>>> getAllConfigs() {
+        log.info("Admin retrieving all system configurations");
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách cấu hình hệ thống thành công",
+                systemConfigService.getAllConfigs()));
+    }
+
+    @PutMapping("/configs")
+    @Operation(summary = "Bulk Update AI and System Configurations", description = "Bulk updates multiple system configurations at once")
+    public ResponseEntity<ApiResponse<Void>> updateConfigs(@RequestBody Map<String, String> configMap) {
+        log.info("Admin updating {} system configurations", configMap.size());
+        systemConfigService.updateConfigs(configMap);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật cấu hình hệ thống thành công", null));
     }
 
 }

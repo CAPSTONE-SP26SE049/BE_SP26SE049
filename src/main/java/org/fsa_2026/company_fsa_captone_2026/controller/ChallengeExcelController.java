@@ -17,11 +17,9 @@ import java.util.UUID;
 
 /**
  * Controller tái sử dụng cho Import/Export Excel kho câu hỏi.
- * Pattern URL: /api/v1/excel/challenge-bank/{skillType}/...
- * Có thể mở rộng tương tự cho các entity khác: /api/v1/excel/students/...
+ * Hỗ trợ các namespace tuyệt đối cho phân hệ Admin và Educator.
  */
 @RestController
-@RequestMapping("/api/v1/excel/challenge-bank")
 @RequiredArgsConstructor
 @Tag(name = "Challenge Bank Excel", description = "Import/Export Excel cho kho câu hỏi — hỗ trợ 4 kỹ năng")
 @SecurityRequirement(name = "bearer-jwt")
@@ -33,7 +31,7 @@ public class ChallengeExcelController {
     //  1. DOWNLOAD TEMPLATE
     // ═══════════════════════════════════════
 
-    @GetMapping("/{skillType}/template")
+    @GetMapping("/api/v1/excel/challenge-bank/{skillType}/template")
     @Operation(summary = "Tải template Excel mẫu theo kỹ năng",
                description = "skillType: READING, LISTENING, WRITING, SPEAKING. File .xlsx có header + 2 dòng dữ liệu mẫu.")
     public ResponseEntity<byte[]> downloadTemplate(@PathVariable String skillType) {
@@ -53,7 +51,7 @@ public class ChallengeExcelController {
     //  2. IMPORT
     // ═══════════════════════════════════════
 
-    @PostMapping(value = "/{skillType}/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/api/v1/excel/challenge-bank/{skillType}/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Import câu hỏi từ file Excel",
                description = "Upload file .xlsx đã điền theo template. Check trùng bằng contentText + skillType.")
     public ResponseEntity<ApiResponse<ChallengeExcelService.ImportResult>> importExcel(
@@ -70,7 +68,7 @@ public class ChallengeExcelController {
     //  3. EXPORT
     // ═══════════════════════════════════════
 
-    @GetMapping("/export")
+    @GetMapping("/api/v1/excel/challenge-bank/export")
     @Operation(summary = "Export câu hỏi ra file Excel",
                description = "Nếu truyền ?skillType=READING thì chỉ export kỹ năng đó. Không truyền = export tất cả (mỗi kỹ năng 1 sheet).")
     public ResponseEntity<byte[]> exportExcel(
@@ -109,7 +107,7 @@ public class ChallengeExcelController {
     //  4. DOWNLOAD MIXED TEMPLATE (tổng hợp 4 kỹ năng)
     // ═══════════════════════════════════════
 
-    @GetMapping("/mixed/template")
+    @GetMapping("/api/v1/excel/challenge-bank/mixed/template")
     @Operation(summary = "Tải template Excel tổng hợp (4 kỹ năng)",
                description = "File .xlsx có 4 sheet: READING, LISTENING, WRITING, SPEAKING — mỗi sheet có header + 2 dòng dữ liệu mẫu.")
     public ResponseEntity<byte[]> downloadMixedTemplate() {
@@ -126,9 +124,12 @@ public class ChallengeExcelController {
     //  5. IMPORT CÂU HỎI VÀO QUIZ (single skill)
     // ═══════════════════════════════════════
 
-    @PostMapping(value = "/{skillType}/import-to-quiz/{quizId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = {
+        "/api/v1/excel/challenge-bank/{skillType}/import-to-quiz/{quizId}",
+        "/api/v1/educator/quizzes/{quizId}/import-excel/{skillType}"
+    }, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Import câu hỏi từ Excel vào Quiz (1 kỹ năng)",
-               description = "Upload file .xlsx → import câu hỏi vào Challenge Bank → tự động gán vào Quiz.")
+               description = "Upload file .xlsx/csv → import câu hỏi vào Challenge Bank → tự động gán vào Quiz.")
     public ResponseEntity<ApiResponse<ChallengeExcelService.ImportResult>> importToQuiz(
             @PathVariable String skillType,
             @PathVariable UUID quizId,
@@ -144,7 +145,10 @@ public class ChallengeExcelController {
     //  6. IMPORT CÂU HỎI VÀO QUIZ (MIXED — tất cả kỹ năng)
     // ═══════════════════════════════════════
 
-    @PostMapping(value = "/mixed/import-to-quiz/{quizId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = {
+        "/api/v1/excel/challenge-bank/mixed/import-to-quiz/{quizId}",
+        "/api/v1/educator/quizzes/{quizId}/import-excel/mixed"
+    }, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Import câu hỏi tổng hợp vào Quiz (MIXED)",
                description = "Upload file .xlsx có nhiều sheet (mỗi sheet 1 kỹ năng) → import tất cả vào Quiz.")
     public ResponseEntity<ApiResponse<ChallengeExcelService.ImportResult>> importMixedToQuiz(
@@ -154,5 +158,26 @@ public class ChallengeExcelController {
         ChallengeExcelService.ImportResult result = excelService.importFromExcelToQuiz(null, file, quizId);
 
         return ResponseEntity.ok(ApiResponse.success("Import tổng hợp vào quiz hoàn tất", result));
+    }
+
+    // ═══════════════════════════════════════
+    //  7. IMPORT CÂU HỎI VÀO QUIZ (Query Parameter)
+    // ═══════════════════════════════════════
+
+    @PostMapping(value = "/api/v1/educator/quizzes/{quizId}/import-excel", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Import câu hỏi từ Excel vào Quiz (qua query param)",
+               description = "Upload file .xlsx/csv → import câu hỏi vào Challenge Bank → tự động gán vào Quiz.")
+    public ResponseEntity<ApiResponse<ChallengeExcelService.ImportResult>> importToQuizQueryParam(
+            @PathVariable UUID quizId,
+            @RequestParam(value = "skillType", required = false) String skillType,
+            @RequestParam("file") MultipartFile file) {
+
+        SkillType skill = null;
+        if (skillType != null && !skillType.isBlank()) {
+            skill = parseSkillType(skillType);
+        }
+        ChallengeExcelService.ImportResult result = excelService.importFromExcelToQuiz(skill, file, quizId);
+
+        return ResponseEntity.ok(ApiResponse.success("Import vào quiz hoàn tất", result));
     }
 }

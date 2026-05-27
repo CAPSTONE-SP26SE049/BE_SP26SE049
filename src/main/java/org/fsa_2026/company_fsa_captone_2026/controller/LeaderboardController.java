@@ -68,11 +68,14 @@ public class LeaderboardController {
 
     // ─── My Rank ─────────────────────────────────────────────────────────
 
+    /**
+     * GET /api/v1/leaderboards/my-rank — Fix U-03/U-04 tại LeaderboardService (period, sortBy, region bắt buộc).
+     */
     @GetMapping("/my-rank")
     @Operation(
             summary = "Get My Rank",
             description = "Get the authenticated user's rank position in a specific leaderboard. "
-                    + "Requires authentication.",
+                    + "Requires authentication. scope=REGIONAL requires region query param.",
             security = @SecurityRequirement(name = "bearer-jwt"))
     public ResponseEntity<ApiResponse<LeaderboardEntryResponse>> getMyRank(
             @RequestParam(defaultValue = "GLOBAL") LeaderboardScope scope,

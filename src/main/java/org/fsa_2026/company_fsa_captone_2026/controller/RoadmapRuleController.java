@@ -32,8 +32,8 @@ public class RoadmapRuleController {
     @PostMapping
     @Operation(summary = "Save or update a roadmap rule")
     @PreAuthorize("hasAnyRole('EDUCATOR')")
-    public ResponseEntity<ApiResponse<RoadmapRule>> saveRule(@RequestBody RoadmapRule rule) {
-        return ResponseEntity.ok(ApiResponse.success("Lưu quy tắc thành công", roadmapRuleService.saveRule(rule)));
+    public ResponseEntity<ApiResponse<RoadmapRule>> saveRule(@jakarta.validation.Valid @RequestBody org.fsa_2026.company_fsa_captone_2026.dto.RoadmapRuleRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Lưu quy tắc thành công", roadmapRuleService.saveRule(request)));
     }
 
     @DeleteMapping("/{id}")

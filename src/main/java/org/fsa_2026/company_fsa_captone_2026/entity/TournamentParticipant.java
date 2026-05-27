@@ -5,6 +5,8 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /**
  * TournamentParticipant Entity
@@ -68,6 +70,10 @@ public class TournamentParticipant {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "scores_json", columnDefinition = "jsonb")
+    private String scoresJson;
 
     @PrePersist
     protected void onCreate() {

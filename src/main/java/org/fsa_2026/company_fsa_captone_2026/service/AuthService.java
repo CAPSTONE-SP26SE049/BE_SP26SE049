@@ -39,6 +39,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
     private final EmailService emailService;
+    private final BadgeUnlockService badgeUnlockService;
 
     /**
      * Register a new user account
@@ -167,9 +168,10 @@ public class AuthService {
                     "Email chưa được xác thực. Vui lòng kiểm tra hộp thư để xác nhận email");
         }
 
-        // ── Update login streak ──────────────────────────────────────────────
+        // ── Update login streak & check badge ───────────────────────────────
         updateLoginStreak(account);
         accountRepository.save(account);
+        badgeUnlockService.checkAndUnlockBadges(account);
 
         // Generate tokens
         String accessToken = jwtTokenProvider.generateAccessToken(

@@ -74,10 +74,20 @@ public class FeedbackService {
                                 .createdAt(feedback.getCreatedAt())
                                 .attemptId(attempt != null ? attempt.getId() : null)
                                 .targetText(attempt != null ? attempt.getTargetText() : null)
+                                .audioUrl(attempt != null ? attempt.getAudioUrl() : null)
+                                .groqScore(attempt != null ? attempt.getGroqScore() : null)
+                                .groqFeedback(attempt != null ? attempt.getGroqFeedback() : null)
+                                .asrTranscription(attempt != null ? attempt.getAsrTranscription() : null)
+                                .asrScore(attempt != null ? attempt.getAsrScore() : null)
+                                .wordDetails(attempt != null ? attempt.getWordDetails() : null)
+                                .recordId(attempt != null ? attempt.getRecordId() : null)
                                 .build();
         }
 
         public List<FeedbackResponse> getStudentFeedbacks(UUID studentId) {
+                Account student = accountRepository.findById(studentId)
+                                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy học viên"));
+
                 return feedbackRepository.findByStudentIdOrderByCreatedAtDesc(studentId).stream()
                                 .map(this::mapToResponse)
                                 .collect(Collectors.toList());
@@ -107,10 +117,16 @@ public class FeedbackService {
                                 .groqScore(sa != null ? sa.getGroqScore() : null)
                                 .groqFeedback(sa != null ? sa.getGroqFeedback() : null)
                                 .asrTranscription(sa != null ? sa.getAsrTranscription() : null)
+                                .asrScore(sa != null ? sa.getAsrScore() : null)
+                                .wordDetails(sa != null ? sa.getWordDetails() : null)
+                                .recordId(sa != null ? sa.getRecordId() : null)
                                 .build();
         }
 
         public List<SpeakingAttemptResponse> getRecentSpeakingAttempts(UUID studentId) {
+                Account student = accountRepository.findById(studentId)
+                                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy học viên"));
+
                 return attemptRepository.findByAccountId(studentId).stream()
                                 .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
                                 .limit(100)
@@ -127,6 +143,9 @@ public class FeedbackService {
                                 .groqScore(sa.getGroqScore())
                                 .groqFeedback(sa.getGroqFeedback())
                                 .createdAt(sa.getCreatedAt())
+                                .asrScore(sa.getAsrScore())
+                                .wordDetails(sa.getWordDetails())
+                                .recordId(sa.getRecordId())
                                 .build();
         }
 }

@@ -14,6 +14,8 @@ import java.util.UUID;
 @Repository
 public interface RewardCatalogRepository extends JpaRepository<RewardCatalog, UUID> {
 
+    java.util.Optional<RewardCatalog> findByCode(String code);
+
     List<RewardCatalog> findByRewardType(RewardType rewardType);
 
     List<RewardCatalog> findByRewardTypeAndIsActiveTrue(RewardType rewardType);

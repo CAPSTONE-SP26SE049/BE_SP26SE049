@@ -43,7 +43,10 @@ public class SpeakingAttemptService {
             String dialect,
             Long processingTimeMs,
             Long asrProcessingTimeMs,
-            String groqFeedback) {
+            String groqFeedback,
+            Integer asrScore,
+            String wordDetails,
+            String recordId) {
 
         try {
             // 1. Tìm Account
@@ -79,6 +82,9 @@ public class SpeakingAttemptService {
                     .processingTimeMs(processingTimeMs)
                     .asrProcessingTimeMs(asrProcessingTimeMs)
                     .groqFeedback(groqFeedback)
+                    .asrScore(asrScore)
+                    .wordDetails(wordDetails)
+                    .recordId(recordId)
                     .build();
 
             speakingAttemptRepository.save(attempt);

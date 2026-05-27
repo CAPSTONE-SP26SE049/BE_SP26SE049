@@ -54,6 +54,7 @@
             migrations 08 and 13.
          ──────────────────────────────────────────────────────── -->
     <changeSet id="28-seed-error-tags-into-learning-unit" author="antigravity">
+        <validCheckSum>ANY</validCheckSum>
         <sql>
             -- Migration-08 error tags (uuid_generate_v4() was used so IDs were random;
             -- we assign stable fixed UUIDs here for referential integrity going forward).

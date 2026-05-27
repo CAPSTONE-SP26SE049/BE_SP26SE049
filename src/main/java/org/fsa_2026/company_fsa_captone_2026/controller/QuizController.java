@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.fsa_2026.company_fsa_captone_2026.dto.ApiResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.LevelProgressResponse;
 import org.fsa_2026.company_fsa_captone_2026.dto.QuizCompleteRequest;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -53,6 +55,21 @@ public class QuizController {
             @PathVariable("levelId") UUID levelId) {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách quiz theo level thành công",
                 quizService.getQuizzesByLevel(levelId)));
+    }
+
+    /**
+     * POST /api/v1/quizzes/{quizId}/complete — Nộp kết quả quiz (spec Gameplay).
+     * Đã chuyển từ UserController để khớp tài liệu API; xác thực qua JWT.
+     */
+    @PostMapping("/quizzes/{quizId}/complete")
+    @Operation(summary = "Complete Quiz", description = "Submit quiz results. Auto-grants reward when passed (>= 2 stars).", security = @SecurityRequirement(name = "bearer-jwt"))
+    public ResponseEntity<ApiResponse<QuizCompleteResponse>> completeQuiz(
+            @PathVariable("quizId") UUID quizId,
+            @Valid @RequestBody QuizCompleteRequest request,
+            Authentication authentication) {
+        log.info("User {} completing quiz {}", authentication.getName(), quizId);
+        QuizCompleteResponse response = quizService.completeQuiz(quizId, request, authentication.getName());
+        return ResponseEntity.ok(ApiResponse.success("Hoàn thành quiz", response));
     }
 
 }

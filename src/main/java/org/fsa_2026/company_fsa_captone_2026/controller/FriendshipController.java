@@ -50,12 +50,15 @@ public class FriendshipController {
 
     // ─── Accept Request ─────────────────────────────────────────────
 
+    /**
+     * PUT /api/v1/friends/{friendshipId}/accept — Fix U-08: path là friendshipId (PK bảng friendship), không phải userId.
+     */
     @PutMapping("/{friendshipId}/accept")
     @Operation(summary = "Accept friend request",
-            description = "Chấp nhận lời mời kết bạn",
+            description = "Chấp nhận lời mời kết bạn. Path variable friendshipId = ID bản ghi friendship (không phải userId).",
             security = @SecurityRequirement(name = "bearer-jwt"))
     public ResponseEntity<ApiResponse<FriendshipResponse>> acceptRequest(
-            @PathVariable UUID friendshipId,
+            @PathVariable("friendshipId") UUID friendshipId,
             Authentication authentication) {
         log.info("User {} accepting friend request {}", authentication.getName(), friendshipId);
         FriendshipResponse response = friendshipService.acceptRequest(authentication.getName(), friendshipId);

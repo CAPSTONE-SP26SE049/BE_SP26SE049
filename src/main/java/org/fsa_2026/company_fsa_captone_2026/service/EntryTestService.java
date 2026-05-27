@@ -10,7 +10,10 @@ import org.fsa_2026.company_fsa_captone_2026.entity.EntryTestQuestion;
 import org.fsa_2026.company_fsa_captone_2026.entity.EntryTestResult;
 import org.fsa_2026.company_fsa_captone_2026.entity.enums.EntryTestRegionCategory;
 import org.fsa_2026.company_fsa_captone_2026.entity.enums.RegionCode;
+import org.fsa_2026.company_fsa_captone_2026.common.WebmAudioValidator;
+import org.fsa_2026.company_fsa_captone_2026.exception.BadRequestException;
 import org.fsa_2026.company_fsa_captone_2026.exception.ResourceNotFoundException;
+import org.springframework.web.multipart.MultipartFile;
 import org.fsa_2026.company_fsa_captone_2026.repository.AccountLearningUnitRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.EntryTestQuestionRepository;
@@ -42,6 +45,7 @@ public class EntryTestService {
     private final AIService aiService;
     private final CustomLearningPathRepository customLearningPathRepository;
     private final RoadmapRuleService roadmapRuleService;
+    private final SystemConfigService systemConfigService;
 
 
     // CRUD Methods
@@ -100,54 +104,122 @@ public class EntryTestService {
                 .collect(Collectors.toList());
     }
 
-    // Placement Set Logic
-    public List<EntryTestQuestionResponse> getPlacementSet(String region) {
-        List<EntryTestQuestion> questions = new ArrayList<>();
+    private static final String MSG_INVALID_REGION =
+            "Giá trị region không hợp lệ. Chấp nhận: NORTH, CENTRAL, SOUTH";
 
-        if (region != null && !region.trim().isEmpty()) {
-            // Lấy 10 câu ngẫu nhiên của miền được chọn
-            String categoryMap = switch (region.toUpperCase()) {
-                case "NORTH" -> EntryTestRegionCategory.NORTH_NL.name();
-                case "CENTRAL" -> EntryTestRegionCategory.CENTRAL_DGIR.name();
-                case "SOUTH" -> EntryTestRegionCategory.SOUTH_TRCH.name();
-                default -> null;
-            };
+    private static final Set<String> VALID_PLACEMENT_REGIONS =
+            Set.of("NORTH", "CENTRAL", "SOUTH");
 
-            if (categoryMap != null) {
-                questions.addAll(questionRepository.findRandomByRegion(categoryMap, 10));
-            }
+    /**
+     * Xây dựng bộ câu hỏi placement (~10 câu) theo miền hoặc trộn 3 miền khi không chỉ định region.
+     *
+     * @param region    query param tùy chọn; null/blank → đọc {@code region} từ profile user
+     * @param userEmail email từ JWT (Security Context)
+     * @return danh sách {@link EntryTestQuestionResponse} đã shuffle
+     *
+     * <p><b>Note (BUG-004):</b> Query {@code region} sai (vd. HANG_NGAY) → 400. Query trống + profile trống → trộn 3 miền.</p>
+     */
+    public List<EntryTestQuestionResponse> getPlacementSet(String region, String userEmail) {
+        final List<EntryTestQuestion> questions;
+        final String effectiveRegion;
+
+        if (region != null && !region.isBlank()) {
+            effectiveRegion = region.trim();
+        } else {
+            effectiveRegion = resolvePlacementRegionFromAccount(userEmail);
         }
 
-        // Nếu chưa đủ 10 câu (do DB thiếu hoặc truyền region sai/null), lấy trộn như
-        // fallback
-        if (questions.size() < 10) {
-            questions.clear();
-            // Ensure 3 from each region to get 9, then 1 more random for 10
-            questions.addAll(questionRepository.findRandomByRegion(EntryTestRegionCategory.NORTH_NL.name(), 3));
-            questions.addAll(questionRepository.findRandomByRegion(EntryTestRegionCategory.CENTRAL_DGIR.name(), 3));
-            questions.addAll(questionRepository.findRandomByRegion(EntryTestRegionCategory.SOUTH_TRCH.name(), 3));
+        if (effectiveRegion == null || effectiveRegion.isBlank()) {
+            questions = fetchMixedPlacementQuestions();
+        } else {
+            String regionKey = effectiveRegion.toUpperCase(Locale.ROOT);
+            if (!VALID_PLACEMENT_REGIONS.contains(regionKey)) {
+                throw new BadRequestException(MSG_INVALID_REGION);
+            }
 
-            // Get all questions to pick one more random one that is not already in the list
-            List<UUID> existingIds = questions.stream().map(EntryTestQuestion::getId).collect(Collectors.toList());
-            List<EntryTestQuestion> remaining = questionRepository.findAll().stream()
-                    .filter(q -> !existingIds.contains(q.getId()))
-                    .collect(Collectors.toList());
+            String categoryMap = mapPlacementRegionToCategory(regionKey);
+            questions = new ArrayList<>(questionRepository.findRandomByRegion(categoryMap, 10));
 
-            if (!remaining.isEmpty()) {
-                Collections.shuffle(remaining);
-                questions.add(remaining.get(0));
+            if (questions.size() < 10) {
+                questions.clear();
+                questions.addAll(fetchMixedPlacementQuestions());
             }
         }
 
         Collections.shuffle(questions);
-
         return questions.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Lấy mã miền placement (NORTH/CENTRAL/SOUTH) từ profile {@link Account#region} của user đăng nhập.
+     */
+    private String resolvePlacementRegionFromAccount(String userEmail) {
+        if (userEmail == null || userEmail.isBlank()) {
+            return null;
+        }
+        return accountRepository.findByEmail(userEmail)
+                .map(Account::getRegion)
+                .map(this::normalizeAccountRegionToPlacementKey)
+                .orElse(null);
+    }
+
+    /**
+     * Chuẩn hóa giá trị region lưu DB (BAC, north, …) sang NORTH | CENTRAL | SOUTH.
+     */
+    private String normalizeAccountRegionToPlacementKey(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String key = raw.trim().toUpperCase(Locale.ROOT);
+        return switch (key) {
+            case "NORTH", "BAC", "MIEN_BAC", "MIỀN_BẮC", "BẮC" -> "NORTH";
+            case "CENTRAL", "TRUNG", "MIEN_TRUNG", "MIỀN_TRUNG" -> "CENTRAL";
+            case "SOUTH", "NAM", "MIEN_NAM", "MIỀN_NAM" -> "SOUTH";
+            default -> VALID_PLACEMENT_REGIONS.contains(key) ? key : null;
+        };
+    }
+
+    /**
+     * Fallback: 3 câu Bắc + 3 Trung + 3 Nam + 1 câu ngẫu nhiên còn lại (tối đa ~10 câu).
+     * Chỉ được gọi khi {@code region} null/blank hoặc miền hợp lệ nhưng thiếu dữ liệu DB.
+     */
+    private List<EntryTestQuestion> fetchMixedPlacementQuestions() {
+        List<EntryTestQuestion> questions = new ArrayList<>();
+        questions.addAll(questionRepository.findRandomByRegion(EntryTestRegionCategory.NORTH_NL.name(), 3));
+        questions.addAll(questionRepository.findRandomByRegion(EntryTestRegionCategory.CENTRAL_DGIR.name(), 3));
+        questions.addAll(questionRepository.findRandomByRegion(EntryTestRegionCategory.SOUTH_TRCH.name(), 3));
+
+        List<UUID> existingIds = questions.stream().map(EntryTestQuestion::getId).collect(Collectors.toList());
+        List<EntryTestQuestion> remaining = questionRepository.findAll().stream()
+                .filter(q -> !existingIds.contains(q.getId()))
+                .collect(Collectors.toList());
+
+        if (!remaining.isEmpty()) {
+            Collections.shuffle(remaining);
+            questions.add(remaining.get(0));
+        }
+        return questions;
+    }
+
+    /**
+     * Chẩn đoán một lượt phát âm trong entry test: ASR + Groq AI, upload Firebase, gắn metadata miền.
+     *
+     * @param questionId ID câu hỏi placement
+     * @param audioFile  file âm thanh multipart (chỉ chấp nhận {@code .webm})
+     * @return map chẩn đoán (accuracy, rawText, isRegional, regionCategory, audioUrl, …)
+     * @throws java.io.IOException khi đọc bytes từ file
+     * @throws ResourceNotFoundException nếu {@code questionId} không có trong DB → HTTP 404 (BUG-002)
+     * @throws BadRequestException nếu file rỗng hoặc sai định dạng (BUG-001)
+     *
+     * <p><b>Note:</b> Đã bổ sung {@link WebmAudioValidator#validateMultipart} — chặn file rác, chỉ nhận {@code .webm} (BUG-001).
+     * Pipeline AI ({@link AIService#evaluatePronunciation}) giữ nguyên sau bước validate.</p>
+     */
     @Transactional
-    public Map<String, Object> analyzeEntryTestStep(UUID questionId, org.springframework.web.multipart.MultipartFile audioFile) throws java.io.IOException {
+    public Map<String, Object> analyzeEntryTestStep(UUID questionId, MultipartFile audioFile) throws java.io.IOException {
+        WebmAudioValidator.validateMultipart(audioFile);
+
         EntryTestQuestion question = questionRepository.findById(questionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Question not found"));
 
@@ -198,14 +270,31 @@ public class EntryTestService {
                 quizResult.get("errorDetail"));
         if (detectedError != null && !detectedError.isBlank()) {
             String errorLow = detectedError.toLowerCase();
-            // Các lỗi phát âm đặc trưng vùng miền Việt Nam: N/L, S/X, TR/CH, D/R/GI
-            isRegional = errorLow.contains("n/l") || errorLow.contains("l/n")
-                    || errorLow.contains("s/x") || errorLow.contains("x/s")
-                    || errorLow.contains("tr/ch") || errorLow.contains("ch/tr")
-                    || errorLow.contains("d/r") || errorLow.contains("r/d")
-                    || errorLow.contains("d/gi") || errorLow.contains("gi/d")
-                    || errorLow.contains("regional") || errorLow.contains("vùng miền")
-                    || errorLow.contains("đặc trưng");
+            // Lấy toàn bộ danh sách error tag hiện có từ database để đối chiếu động
+            try {
+                List<LearningUnit> errorTags = learningUnitRepository.findByType("ERROR_TAG");
+                for (LearningUnit tag : errorTags) {
+                    String tagNameLow = tag.getName() != null ? tag.getName().toLowerCase() : "";
+                    String tagCodeLow = tag.getErrorTag() != null ? tag.getErrorTag().toLowerCase() : "";
+                    
+                    // Nếu lỗi do AI nhận diện chứa tên hoặc mã của bất kỳ error tag nào trong hệ thống
+                    if ((!tagNameLow.isEmpty() && errorLow.contains(tagNameLow)) || 
+                        (!tagCodeLow.isEmpty() && errorLow.contains(tagCodeLow)) ||
+                        errorLow.contains(tagCodeLow.replace("_", "/")) ||
+                        errorLow.contains(tagCodeLow.replace("_", "-"))) {
+                        isRegional = true;
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to check regional error dynamically, fallback to standard contains: {}", e.getMessage());
+            }
+            
+            // Standard fallback keywords
+            if (!isRegional) {
+                isRegional = errorLow.contains("regional") || errorLow.contains("vùng miền")
+                        || errorLow.contains("đặc trưng") || errorLow.contains("ngọng");
+            }
         }
         // Nếu AI đã trả về isRegional thì ưu tiên dùng giá trị đó
         Object aiIsRegional = quizResult.get("isRegional");
@@ -230,8 +319,24 @@ public class EntryTestService {
         return null;
     }
 
+    /**
+     * Lưu kết quả cuối bài entry test, cập nhật account, unlock level và tạo custom learning path.
+     *
+     * @param email       email học viên (từ JWT)
+     * @param stepResults danh sách kết quả từng bước analyze (accuracy, regionCategory, isRegional, …)
+     * @return {@link EntryTestResult} đã persist
+     * @throws BadRequestException khi {@code stepResults} null hoặc rỗng (BUG-003)
+     * @throws ResourceNotFoundException khi không tìm thấy account
+     *
+     * <p><b>Note:</b> Đã xử lý quăng lỗi 400 khi mảng {@code stepResults} rỗng để tránh chia cho 0
+     * và sập server 500 (BUG-003).</p>
+     */
     @Transactional
     public EntryTestResult saveFinalResult(String email, List<Map<String, Object>> stepResults) {
+        if (stepResults == null || stepResults.isEmpty()) {
+            throw new BadRequestException("Danh sách kết quả bước không được rỗng");
+        }
+
         Account account = accountRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -254,23 +359,19 @@ public class EntryTestService {
             boolean isRegional = Boolean.TRUE.equals(res.get("isRegional"));
             if (isRegional) {
                 Object catObj = res.get("regionCategory");
-                EntryTestRegionCategory category = null;
-                if (catObj instanceof String s && !s.isBlank()) {
-                    try {
-                        category = EntryTestRegionCategory.valueOf(s);
-                    } catch (IllegalArgumentException e) {
-                        log.warn("Invalid region category string: {}", s);
-                    }
-                } else if (catObj instanceof EntryTestRegionCategory) {
-                    category = (EntryTestRegionCategory) catObj;
+                String catStr = null;
+                if (catObj instanceof String s) {
+                    catStr = s.toUpperCase();
+                } else if (catObj instanceof EntryTestRegionCategory catEnum) {
+                    catStr = catEnum.name().toUpperCase();
                 }
 
-                if (category != null) {
-                    if (category == EntryTestRegionCategory.NORTH_NL)
+                if (catStr != null && !catStr.isBlank()) {
+                    if (catStr.contains("NORTH"))
                         regionErrorCount.put(RegionCode.NORTH, regionErrorCount.get(RegionCode.NORTH) + 1);
-                    else if (category == EntryTestRegionCategory.CENTRAL_DGIR)
+                    else if (catStr.contains("CENTRAL"))
                         regionErrorCount.put(RegionCode.CENTRAL, regionErrorCount.get(RegionCode.CENTRAL) + 1);
-                    else if (category == EntryTestRegionCategory.SOUTH_TRCH)
+                    else if (catStr.contains("SOUTH"))
                         regionErrorCount.put(RegionCode.SOUTH, regionErrorCount.get(RegionCode.SOUTH) + 1);
                 }
             }
@@ -351,12 +452,20 @@ public class EntryTestService {
         return result;
     }
 
-    private RegionCode mapCategoryToRegionCode(EntryTestRegionCategory category) {
-        if (category == EntryTestRegionCategory.NORTH_NL)
-            return RegionCode.NORTH;
-        if (category == EntryTestRegionCategory.CENTRAL_DGIR)
-            return RegionCode.CENTRAL;
-        return RegionCode.SOUTH;
+    private RegionCode mapCategoryToRegionCode(Object categoryObj) {
+        if (categoryObj == null) return RegionCode.NORTH;
+        String name = "";
+        if (categoryObj instanceof String s) {
+            name = s.toUpperCase();
+        } else if (categoryObj instanceof EntryTestRegionCategory category) {
+            name = category.name().toUpperCase();
+        }
+
+        if (name.contains("NORTH")) return RegionCode.NORTH;
+        if (name.contains("CENTRAL")) return RegionCode.CENTRAL;
+        if (name.contains("SOUTH")) return RegionCode.SOUTH;
+
+        return RegionCode.NORTH;
     }
 
     private void unlockLevelsBasedOnScore(Account account, RegionCode region, double score) {
@@ -510,20 +619,23 @@ public class EntryTestService {
         customPath = customLearningPathRepository.save(customPath);
 
         // AI Feedback integration
-        StringBuilder promptBuilder = new StringBuilder("Học viên mắc các lỗi sau trong phát âm: ");
+        StringBuilder errorDetailsBuilder = new StringBuilder();
         if (categoryAccuracy.isEmpty()) {
-            promptBuilder.append("Không có lỗi ngọng vùng miền nghiêm trọng. ");
+            errorDetailsBuilder.append("Không có lỗi ngọng vùng miền nghiêm trọng. ");
         } else {
             for (String cat : sortedCategories) {
-                promptBuilder.append("Lỗi ").append(cat).append(" với độ chính xác ")
+                errorDetailsBuilder.append("Lỗi ").append(cat).append(" với độ chính xác ")
                         .append(String.format("%.1f", categoryAccuracy.get(cat))).append("% (có ")
                         .append(totalWrong.getOrDefault(cat, 0)).append(" câu sai hoàn toàn); ");
             }
         }
-        promptBuilder.append("Hãy viết 1 đoạn 3-4 câu nhận xét ngắn gọn, cổ vũ học viên và khuyên học viên nên ưu tiên học lỗi nào trước (dựa trên % độ chính xác thấp nhất). Trả về kết quả dưới dạng JSON có trường 'reply'.");
+
+        String defaultTemplate = "Học viên mắc các lỗi sau trong phát âm: {errorDetails} Hãy viết 1 đoạn 3-4 câu nhận xét ngắn gọn, cổ vũ học viên và khuyên học viên nên ưu tiên học lỗi nào trước (dựa trên % độ chính xác thấp nhất). Trả về kết quả dưới dạng JSON có trường 'reply'.";
+        String template = systemConfigService.getValue("prompt.entry-test-feedback", defaultTemplate);
+        String prompt = template.replace("{errorDetails}", errorDetailsBuilder.toString());
 
         try {
-            Map<String, Object> aiResponse = aiService.chatWithGroq(promptBuilder.toString());
+            Map<String, Object> aiResponse = aiService.chatWithGroq(prompt);
             String aiFeedback = "Bạn cần cố gắng luyện tập thêm!";
             if (aiResponse.containsKey("reply")) aiFeedback = (String) aiResponse.get("reply");
             else if (aiResponse.containsKey("feedback")) aiFeedback = (String) aiResponse.get("feedback");
@@ -563,6 +675,7 @@ public class EntryTestService {
         return learningUnitRepository.findTop1000ByType("ERROR_TAG").stream()
                 .filter(lu -> {
                     // 1. Khớp theo tên unit (sort ký tự để xử lý NL↔LN)
+                    if (lu == null || lu.getName() == null) return false;
                     String unitName = lu.getName().replaceAll("[^A-Za-z]", "").toUpperCase();
                     char[] unitChars = unitName.toCharArray();
                     java.util.Arrays.sort(unitChars);
@@ -603,6 +716,7 @@ public class EntryTestService {
 
         return learningUnitRepository.findByType("ERROR_TAG").stream()
                 .filter(lu -> {
+                    if (lu == null || lu.getName() == null) return false;
                     String unitName = lu.getName().replaceAll("[_\\s-]", "").toUpperCase();
                     
                     return unitName.equals(categorySearch) || 
@@ -617,21 +731,28 @@ public class EntryTestService {
     }
 
     private long countTargetWords(String text, String errorCategory) {
-        if (text == null)
+        if (text == null || errorCategory == null)
             return 0;
         String[] words = text.toLowerCase().replaceAll("[^\\p{L}\\s]", "").split("\\s+");
+        
+        // Trích xuất các chữ cái đại diện từ mã lỗi (ví dụ: "L_N" -> ["l", "n"], "D_GI_R" -> ["d", "gi", "r"])
+        List<String> startingChars = new ArrayList<>();
+        for (String segment : errorCategory.toLowerCase().split("[_/-]")) {
+            if (!segment.isBlank()) {
+                startingChars.add(segment.trim());
+            }
+        }
+        
         long count = 0;
         for (String w : words) {
             if (w.isEmpty())
                 continue;
-            if ("L_N".equals(errorCategory) && (w.startsWith("l") || w.startsWith("n")))
-                count++;
-            else if ("TR_CH".equals(errorCategory) && (w.startsWith("tr") || w.startsWith("ch")))
-                count++;
-            else if ("D_GI_R".equals(errorCategory) && (w.startsWith("d") || w.startsWith("gi") || w.startsWith("r")))
-                count++;
-            else if ("S_X".equals(errorCategory) && (w.startsWith("s") || w.startsWith("x")))
-                count++;
+            for (String ch : startingChars) {
+                if (w.startsWith(ch)) {
+                    count++;
+                    break;
+                }
+            }
         }
         return count;
     }
@@ -658,6 +779,7 @@ public class EntryTestService {
         // Last resort search all dialects and check if they contain the keyword
         return learningUnitRepository.findByType("DIALECT").stream()
                 .filter(lu -> {
+                    if (lu == null || lu.getName() == null) return false;
                     String name = lu.getName().toUpperCase();
                     return name.contains(internalName) || name.contains(vnName.toUpperCase());
                 })
@@ -682,4 +804,20 @@ public class EntryTestService {
                 .regionCategory(question.getRegionCategory())
                 .build();
     }
+
+    /**
+     * Ánh xạ mã miền đã chuẩn hóa (NORTH/CENTRAL/SOUTH) sang category trong DB.
+     *
+     * @param regionKey giá trị đã {@code trim().toUpperCase()} và đã qua {@link #VALID_PLACEMENT_REGIONS}
+     * @return tên category (NORTH_NL, CENTRAL_DGIR, SOUTH_TRCH)
+     */
+    private String mapPlacementRegionToCategory(String regionKey) {
+        return switch (regionKey) {
+            case "NORTH" -> EntryTestRegionCategory.NORTH_NL.name();
+            case "CENTRAL" -> EntryTestRegionCategory.CENTRAL_DGIR.name();
+            case "SOUTH" -> EntryTestRegionCategory.SOUTH_TRCH.name();
+            default -> throw new IllegalStateException("regionKey must be validated before mapping: " + regionKey);
+        };
+    }
+
 }

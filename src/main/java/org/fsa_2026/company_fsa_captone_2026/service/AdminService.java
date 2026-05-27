@@ -149,8 +149,18 @@ public class AdminService {
      * @param roleCode vai trò: USER hoặc EDUCATOR
      * @return thông tin tài khoản sau khi tạo
      */
+    /**
+     * Tạo user/educator theo role — Fix A-01/A-02: guard null/blank phòng khi gọi nội bộ không qua @Valid.
+     */
     @Transactional
     public RegisterResponse createUserWithRole(String email, String fullName, String roleCode) {
+        if (email == null || email.isBlank()) {
+            throw new org.fsa_2026.company_fsa_captone_2026.exception.BadRequestException("Email không được để trống");
+        }
+        if (fullName == null || fullName.isBlank()) {
+            throw new org.fsa_2026.company_fsa_captone_2026.exception.BadRequestException("Họ tên không được để trống");
+        }
+
         if (accountRepository.existsByEmail(email)) {
             throw new ApiException("CONFLICT", "Email đã tồn tại trong hệ thống");
         }
@@ -710,6 +720,49 @@ public class AdminService {
             }
         }
 
+        return response;
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getRealEngagementMetrics() {
+        java.time.Instant twentyFourHoursAgo = java.time.Instant.now().minus(24, java.time.temporal.ChronoUnit.HOURS);
+        long dailyActiveUsers = studySessionRepository.countDistinctAccountByStartedAtAfter(twentyFourHoursAgo);
+
+        List<Object[]> finishedSessions = studySessionRepository.findStartedAndEndedAtForFinishedSessions();
+        double totalMinutes = 0.0;
+        int count = 0;
+
+        for (Object[] session : finishedSessions) {
+            if (session.length >= 2 && session[0] != null && session[1] != null) {
+                java.time.Instant startedAt = null;
+                java.time.Instant endedAt = null;
+                if (session[0] instanceof java.time.Instant) {
+                    startedAt = (java.time.Instant) session[0];
+                } else if (session[0] instanceof java.sql.Timestamp) {
+                    startedAt = ((java.sql.Timestamp) session[0]).toInstant();
+                }
+                if (session[1] instanceof java.time.Instant) {
+                    endedAt = (java.time.Instant) session[1];
+                } else if (session[1] instanceof java.sql.Timestamp) {
+                    endedAt = ((java.sql.Timestamp) session[1]).toInstant();
+                }
+
+                if (startedAt != null && endedAt != null) {
+                    long diffMs = java.time.Duration.between(startedAt, endedAt).toMillis();
+                    if (diffMs > 0) {
+                        totalMinutes += (double) diffMs / 60000.0;
+                        count++;
+                    }
+                }
+            }
+        }
+
+        double averageSessionTimeMinutes = count > 0 ? (totalMinutes / count) : 0.0;
+        averageSessionTimeMinutes = Math.round(averageSessionTimeMinutes * 10.0) / 10.0;
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("dailyActiveUsers", dailyActiveUsers);
+        response.put("averageSessionTimeMinutes", averageSessionTimeMinutes);
         return response;
     }
 }

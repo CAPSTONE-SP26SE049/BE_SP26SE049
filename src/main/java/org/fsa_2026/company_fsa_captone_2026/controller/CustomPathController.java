@@ -3,7 +3,9 @@ package org.fsa_2026.company_fsa_captone_2026.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
 import lombok.extern.slf4j.Slf4j;
 import org.fsa_2026.company_fsa_captone_2026.common.Constants;
 import org.fsa_2026.company_fsa_captone_2026.dto.ApiResponse;
@@ -72,7 +74,7 @@ public class CustomPathController {
     @Operation(summary = "Create Custom Path", description = "Educator creates or updates a custom path for a student")
     public ResponseEntity<ApiResponse<CustomPathResponse>> createPath(
             @PathVariable UUID studentId,
-            @RequestBody CreateCustomPathRequest request,
+            @jakarta.validation.Valid @RequestBody CreateCustomPathRequest request,
             Authentication authentication) {
         log.info("Educator {} creating custom path for student {}", authentication.getName(), studentId);
         CustomPathResponse response = pathService.createCustomPath(authentication.getName(), studentId, request);
@@ -88,11 +90,14 @@ public class CustomPathController {
 
     // ─── LEARNER ENDPOINTS ───────────────────
 
+    /**
+     * GET /api/v1/learner/custom-path — Fix U-05: không dùng orElseThrow() gây 500 khi JWT không khớp account.
+     */
     @GetMapping("/learner/custom-path")
     @PreAuthorize("hasRole('USER')")
     @Operation(summary = "Get My Custom Path", description = "Student retrieves their current personalized learning path", security = @SecurityRequirement(name = "bearer-jwt"))
     public ResponseEntity<ApiResponse<CustomPathResponse>> getMyPath(Authentication authentication) {
-        Account user = accountRepository.findByEmail(authentication.getName()).orElseThrow();
+        Account user = requireLearnerAccount(authentication);
         log.info("[CustomPath] Lấy lộ trình cho user: id={}, email={}", user.getId(), user.getEmail());
         try {
             CustomPathResponse resp = pathService.getActivePathForStudent(user.getId());
@@ -105,16 +110,25 @@ public class CustomPathController {
         }
     }
 
+    /**
+     * POST /api/v1/learner/custom-path/quizzes/{quizId}/complete — Fix U-06/U-07 tại service + @Valid body.
+     */
     @PostMapping("/learner/custom-path/quizzes/{quizId}/complete")
     @PreAuthorize("hasRole('USER')")
     @Operation(summary = "Submit Custom Path Progress", description = "Submit results for a quiz played within the custom path")
     public ResponseEntity<ApiResponse<String>> submitProgress(
             @PathVariable UUID quizId,
-            @RequestBody SubmitCustomProgressRequest request,
+            @Valid @RequestBody SubmitCustomProgressRequest request,
             Authentication authentication) {
-        Account user = accountRepository.findByEmail(authentication.getName()).orElseThrow();
+        Account user = requireLearnerAccount(authentication);
         pathService.submitProgress(user.getId(), quizId, request.getScore());
         return ResponseEntity.ok(ApiResponse.success("Lưu tiến độ thành công", "Progress saved"));
+    }
+
+    // Fix U-05: JWT hợp lệ nhưng email không có trong DB → 404 thay vì NoSuchElementException/500
+    private Account requireLearnerAccount(Authentication authentication) {
+        return accountRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy tài khoản người dùng"));
     }
 
     // ─── DEBUG ENDPOINT (tạm thời) ───────────────────

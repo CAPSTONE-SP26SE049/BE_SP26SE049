@@ -1,5 +1,8 @@
 package org.fsa_2026.company_fsa_captone_2026.dto;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,8 +19,13 @@ public class CustomPathDtos {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class CreateCustomPathRequest {
+        @jakarta.validation.constraints.NotBlank(message = "Tiêu đề không được trống")
         private String title;
+
         private String description;
+
+        @jakarta.validation.constraints.NotNull(message = "levelIds không được null")
+        @jakarta.validation.constraints.NotEmpty(message = "levelIds không được rỗng")
         private List<UUID> levelIds;
     }
 
@@ -66,8 +74,15 @@ public class CustomPathDtos {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class SubmitCustomProgressRequest {
+        /** Tùy chọn — server dùng lộ trình active, không bắt buộc gửi pathId */
         private UUID pathId;
+
+        // Fix U-06: score bắt buộc và trong khoảng 0–100 để tránh NPE/500
+        @NotNull(message = "score is required")
+        @Min(value = 0, message = "score must be between 0 and 100")
+        @Max(value = 100, message = "score must be between 0 and 100")
         private Integer score;
+
         private Boolean isCompleted;
     }
 }

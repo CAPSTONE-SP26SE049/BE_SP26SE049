@@ -129,33 +129,54 @@ public class CustomLearningPathService {
                                 .collect(Collectors.toList());
         }
 
+        /**
+         * Lưu điểm quiz trong lộ trình tùy chỉnh.
+         * Fix U-06: score đã validate 0–100 ở DTO. Fix U-07: quiz phải thuộc level trong path active.
+         */
         @Transactional
         public void submitProgress(UUID studentId, UUID quizId, Integer score) {
                 CustomLearningPath path = pathRepository
                                 .findFirstByStudentIdAndIsActiveTrueOrderByCreatedAtDesc(studentId)
                                 .orElseThrow(() -> new ApiException(NOT_FOUND, "Không tìm thấy lộ trình học của bạn"));
 
+                LearningUnit quiz = learningUnitRepository.findById(quizId)
+                                .orElseThrow(() -> new ApiException(NOT_FOUND, "Không tìm thấy bài Quiz"));
+                if (!"QUIZ".equalsIgnoreCase(quiz.getType())) {
+                        throw new ApiException(NOT_FOUND, "Không tìm thấy bài Quiz");
+                }
+
+                // Fix U-07: chặn nộp quiz ngoài lộ trình (trước đây vẫn tạo progress được)
+                if (!isQuizInActivePath(path, quizId)) {
+                        throw new ApiException("FORBIDDEN", "Bài quiz không thuộc lộ trình tùy chỉnh hiện tại của bạn");
+                }
+
+                int safeScore = score != null ? score : 0;
+
                 CustomPathProgress progress = progressRepository
                                 .findByCustomPathIdAndLearningUnitId(path.getId(), quizId)
                                 .orElseGet(() -> CustomPathProgress.builder()
                                                 .customPath(path)
-                                                .learningUnit(learningUnitRepository.findById(quizId)
-                                                                .orElseThrow(() -> new ApiException(NOT_FOUND,
-                                                                                "Không tìm thấy bài Quiz")))
+                                                .learningUnit(quiz)
                                                 .isCompleted(false)
                                                 .score(0)
                                                 .build());
 
-                if (score > progress.getScore()) {
-                        progress.setScore(score);
+                if (safeScore > progress.getScore()) {
+                        progress.setScore(safeScore);
                 }
 
-                // Assume score >= 80 is pass/complete
-                if (score >= 80) {
+                if (safeScore >= 80) {
                         progress.setIsCompleted(true);
                 }
 
                 progressRepository.save(progress);
+        }
+
+        /** Fix U-07: quizId phải là con QUIZ của một level thuộc custom path đang active */
+        private boolean isQuizInActivePath(CustomLearningPath path, UUID quizId) {
+                return path.getLevels().stream().anyMatch(pl -> learningUnitRepository
+                                .findByParentIdAndType(pl.getLevel().getId(), "QUIZ").stream()
+                                .anyMatch(q -> quizId.equals(q.getId())));
         }
 
         @Transactional
