@@ -77,6 +77,9 @@ public class AdminExcelController {
         return asAttachment(file, "template_levels.xlsx");
     }
 
+    /**
+     * POST /api/v1/admin/excel/levels/import — Fix A-03→A-06 validate tại AdminLevelExcelService.
+     */
     @PostMapping(value = "/levels/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Import chương học từ Excel",
             description = "Map từng dòng → LevelCreateRequest (metadata_json) → gọi adminService.createLevel()")

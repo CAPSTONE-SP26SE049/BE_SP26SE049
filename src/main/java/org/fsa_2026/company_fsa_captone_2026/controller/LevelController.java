@@ -35,6 +35,9 @@ public class LevelController {
     private final QuizService quizService;
     private final AccountRepository accountRepository;
 
+    /**
+     * GET /api/v1/levels?dialectId= — Fix U-01/U-02 xử lý tại LevelService (404 Dialect, 400 UUID).
+     */
     @GetMapping
     @Operation(summary = "Get Levels by Dialect with Progress")
     public ResponseEntity<ApiResponse<List<LevelResponse>>> getLevelsByDialect(

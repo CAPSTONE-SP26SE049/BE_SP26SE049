@@ -100,6 +100,9 @@ public class FriendshipService {
 
     // ─── Accept Request ─────────────────────────────────────────────
 
+    /**
+     * Chấp nhận lời mời — path variable là friendshipId (không phải userId). Fix U-08: message rõ khi nhầm ID.
+     */
     @Transactional
     public FriendshipResponse acceptRequest(String email, UUID friendshipId) {
         Account currentUser = findAccountByEmail(email);
@@ -343,9 +346,16 @@ public class FriendshipService {
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy người dùng"));
     }
 
+    // Fix U-08: phân biệt friendshipId vs userId khi client gọi PUT /friends/{friendshipId}/accept sai tham số
     private Friendship findFriendshipById(UUID friendshipId) {
-        return friendshipRepository.findById(friendshipId)
-                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy quan hệ bạn bè"));
+        return friendshipRepository.findById(friendshipId).orElseThrow(() -> {
+            if (accountRepository.findById(friendshipId).isPresent()) {
+                return new ApiException("BAD_REQUEST",
+                        "Tham số phải là friendshipId (ID bản ghi lời mời), không phải userId. "
+                                + "Lấy friendshipId từ POST /friends/request hoặc GET /friends/requests/pending");
+            }
+            return new ApiException("NOT_FOUND", "Không tìm thấy quan hệ bạn bè");
+        });
     }
 
     /**
