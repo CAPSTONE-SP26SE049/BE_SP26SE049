@@ -71,4 +71,8 @@ public class Tournament extends BaseEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "prize_config_json", columnDefinition = "jsonb")
     private String prizeConfigJson;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "questions_json", columnDefinition = "jsonb")
+    private String questionsJson;
 }

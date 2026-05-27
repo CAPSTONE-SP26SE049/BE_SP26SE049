@@ -137,10 +137,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<ErrorResponse> handleApiException(ApiException ex) {
         HttpStatus status = switch (ex.getCode().toUpperCase()) {
-            case "UNAUTHORIZED" -> HttpStatus.UNAUTHORIZED;
-            case "NOT_FOUND" -> HttpStatus.NOT_FOUND;
+            case "UNAUTHORIZED", "1004", "2001", "2002", "2003", "2004", "2005" -> HttpStatus.UNAUTHORIZED;
+            case "NOT_FOUND", "1002", "3001" -> HttpStatus.NOT_FOUND;
             case "CONFLICT" -> HttpStatus.CONFLICT;
-            case "FORBIDDEN" -> HttpStatus.FORBIDDEN;
+            case "FORBIDDEN", "1005", "2006" -> HttpStatus.FORBIDDEN;
             default -> HttpStatus.BAD_REQUEST;
         };
         log.warn("[{}] ApiException: code={}, message={}", status.value(), ex.getCode(), ex.getMessage());

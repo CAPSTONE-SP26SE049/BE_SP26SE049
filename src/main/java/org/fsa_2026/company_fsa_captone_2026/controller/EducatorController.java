@@ -9,6 +9,7 @@ import org.fsa_2026.company_fsa_captone_2026.service.EducatorService;
 import org.fsa_2026.company_fsa_captone_2026.service.FeedbackService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.Map;
@@ -60,21 +62,13 @@ public class EducatorController {
 
         @PostMapping("/students/learning-paths")
         public ResponseEntity<ApiResponse<Map<String, Object>>> createLearningPath(
-                        @RequestBody Map<String, Object> request,
+                        @Valid @RequestBody org.fsa_2026.company_fsa_captone_2026.dto.EducatorJourneyDtos.CustomLearningPathRequest request,
                         Authentication authentication) {
-                UUID studentId = UUID.fromString(String.valueOf(request.get("studentId")));
-                String title = String.valueOf(request.get("title"));
-                String focusArea = String.valueOf(request.get("focusArea"));
-                @SuppressWarnings("unchecked")
-                List<String> milestones = (List<String>) request.getOrDefault("milestones", List.of());
-                String description = request.get("description") != null ? String.valueOf(request.get("description"))
-                                : null;
-
                 return ResponseEntity.status(HttpStatus.CREATED)
                                 .body(ApiResponse.success(MSG_SUCCESS,
                                                 educatorService.createCustomLearningPath(authentication.getName(),
-                                                                studentId, title, focusArea,
-                                                                milestones, description)));
+                                                                request.getStudentId(), request.getTitle(), request.getFocusArea(),
+                                                                request.getMilestones(), request.getDescription())));
         }
 
         @GetMapping("/progress/overview")
@@ -101,19 +95,13 @@ public class EducatorController {
 
         @PostMapping("/lessons")
         public ResponseEntity<ApiResponse<Map<String, Object>>> createLessonPlan(
-                        @RequestBody Map<String, Object> request,
+                        @Valid @RequestBody org.fsa_2026.company_fsa_captone_2026.dto.EducatorJourneyDtos.LessonPlanRequest request,
                         Authentication authentication) {
-                String title = String.valueOf(request.get("title"));
-                String objective = String.valueOf(request.get("objective"));
-                @SuppressWarnings("unchecked")
-                List<String> targetStudents = (List<String>) request.getOrDefault("targetStudents", List.of());
-                @SuppressWarnings("unchecked")
-                List<String> achievementGoals = (List<String>) request.getOrDefault("achievementGoals", List.of());
                 return ResponseEntity.status(HttpStatus.CREATED)
                                 .body(ApiResponse.success(MSG_SUCCESS,
-                                                educatorService.createLessonPlan(authentication.getName(), title,
-                                                                objective, targetStudents,
-                                                                achievementGoals)));
+                                                educatorService.createLessonPlan(authentication.getName(), request.getTitle(),
+                                                                request.getObjective(), request.getTargetStudents(),
+                                                                request.getAchievementGoals())));
         }
 
         @PatchMapping("/lessons/{id}")
@@ -121,12 +109,12 @@ public class EducatorController {
                         @PathVariable("id") UUID id,
                         @RequestBody Map<String, Object> request,
                         Authentication authentication) {
-                String title = String.valueOf(request.getOrDefault("title", ""));
-                String objective = String.valueOf(request.getOrDefault("objective", ""));
+                String title = request.get("title") != null ? String.valueOf(request.get("title")) : null;
+                String objective = request.get("objective") != null ? String.valueOf(request.get("objective")) : null;
                 @SuppressWarnings("unchecked")
-                List<String> targetStudents = (List<String>) request.getOrDefault("targetStudents", List.of());
+                List<String> targetStudents = request.get("targetStudents") != null ? (List<String>) request.get("targetStudents") : null;
                 @SuppressWarnings("unchecked")
-                List<String> achievementGoals = (List<String>) request.getOrDefault("achievementGoals", List.of());
+                List<String> achievementGoals = request.get("achievementGoals") != null ? (List<String>) request.get("achievementGoals") : null;
                 return ResponseEntity.ok(ApiResponse.success(MSG_SUCCESS,
                                 educatorService.updateLessonPlan(authentication.getName(), id, title, objective,
                                                 targetStudents,
@@ -191,19 +179,22 @@ public class EducatorController {
         // Feedback & Interaction Endpoints
         @PostMapping("/feedback")
         public ResponseEntity<ApiResponse<FeedbackResponse>> sendFeedback(
-                        @RequestBody CreateFeedbackRequest request,
+                        @Valid @RequestBody CreateFeedbackRequest request,
                         Authentication authentication) {
                 return ResponseEntity.ok(ApiResponse.success("Gửi phản hồi thành công",
                                 feedbackService.sendFeedback(request, authentication.getName())));
         }
 
         @GetMapping("/interactions/attempts/{studentId}")
+        @PreAuthorize("hasAnyRole('EDUCATOR', 'ADMIN')")
         public ResponseEntity<ApiResponse<List<SpeakingAttemptResponse>>> getStudentSpeakingAttempts(
-                        @PathVariable("studentId") UUID studentId) {
+                        @PathVariable("studentId") UUID studentId,
+                        Authentication authentication) {
                 return ResponseEntity.ok(ApiResponse.success(feedbackService.getRecentSpeakingAttempts(studentId)));
         }
 
         @GetMapping("/feedback/student/{studentId}")
+        @PreAuthorize("hasAnyRole('EDUCATOR', 'ADMIN')")
         public ResponseEntity<ApiResponse<List<FeedbackResponse>>> getStudentFeedbacks(
                         @PathVariable("studentId") UUID studentId) {
                 return ResponseEntity.ok(ApiResponse.success(feedbackService.getStudentFeedbacks(studentId)));

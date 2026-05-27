@@ -51,6 +51,18 @@ class DailyChallengeServiceTest {
     @Mock
     private BadgeUnlockService badgeUnlockService;
 
+    @Mock
+    private org.fsa_2026.company_fsa_captone_2026.repository.LearningUnitRepository learningUnitRepository;
+
+    @Mock
+    private org.fsa_2026.company_fsa_captone_2026.repository.AccountLearningUnitRepository accountLearningUnitRepository;
+
+    @Mock
+    private org.fsa_2026.company_fsa_captone_2026.repository.QuizChallengeItemRepository quizChallengeItemRepository;
+
+    @Mock
+    private org.fsa_2026.company_fsa_captone_2026.repository.CustomLearningPathRepository customLearningPathRepository;
+
     @InjectMocks
     private DailyChallengeService dailyChallengeService;
 
@@ -137,6 +149,11 @@ class DailyChallengeServiceTest {
         // Stub findByAccountIdAndSessionType to return the saved session so we count it
         when(studySessionRepository.findByAccountIdAndSessionType(eq(account.getId()), eq("DAILY")))
                 .thenReturn(new ArrayList<>()); // return empty so the set is filled dynamically
+
+        // Stub new repositories for fallback to global rotation during submit
+        when(learningUnitRepository.findByType("DIALECT")).thenReturn(new ArrayList<>());
+        when(accountLearningUnitRepository.findByAccountId(any())).thenReturn(new ArrayList<>());
+        when(customLearningPathRepository.findFirstByStudentIdAndIsActiveTrueOrderByCreatedAtDesc(any())).thenReturn(Optional.empty());
 
         ObjectMapper realMapper = new ObjectMapper();
         realMapper.findAndRegisterModules(); RealObjectMapperMockStub(realMapper);

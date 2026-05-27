@@ -72,7 +72,7 @@ public class CustomPathController {
     @Operation(summary = "Create Custom Path", description = "Educator creates or updates a custom path for a student")
     public ResponseEntity<ApiResponse<CustomPathResponse>> createPath(
             @PathVariable UUID studentId,
-            @RequestBody CreateCustomPathRequest request,
+            @jakarta.validation.Valid @RequestBody CreateCustomPathRequest request,
             Authentication authentication) {
         log.info("Educator {} creating custom path for student {}", authentication.getName(), studentId);
         CustomPathResponse response = pathService.createCustomPath(authentication.getName(), studentId, request);

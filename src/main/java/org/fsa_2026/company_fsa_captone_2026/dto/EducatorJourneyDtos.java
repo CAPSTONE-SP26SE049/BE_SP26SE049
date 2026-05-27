@@ -141,9 +141,15 @@ public class EducatorJourneyDtos {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class CustomLearningPathRequest {
+        @jakarta.validation.constraints.NotNull(message = "studentId không được null")
         private UUID studentId;
+
+        @jakarta.validation.constraints.NotBlank(message = "title không được trống")
         private String title;
+
+        @jakarta.validation.constraints.NotBlank(message = "focusArea không được trống")
         private String focusArea;
+
         private List<String> milestones;
         private String description;
     }
@@ -153,8 +159,12 @@ public class EducatorJourneyDtos {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class LessonPlanRequest {
+        @jakarta.validation.constraints.NotBlank(message = "title không được trống")
         private String title;
+
+        @jakarta.validation.constraints.NotBlank(message = "objective không được trống")
         private String objective;
+
         private List<String> targetStudents;
         private List<String> achievementGoals;
     }

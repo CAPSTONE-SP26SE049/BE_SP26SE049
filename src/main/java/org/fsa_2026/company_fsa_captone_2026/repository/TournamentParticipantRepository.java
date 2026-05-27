@@ -13,4 +13,6 @@ public interface TournamentParticipantRepository extends JpaRepository<Tournamen
     List<TournamentParticipant> findByTournamentIdOrderByTotalXpDesc(UUID tournamentId);
     
     List<TournamentParticipant> findByTournamentId(UUID tournamentId);
+
+    java.util.Optional<TournamentParticipant> findByTournamentIdAndAccountId(UUID tournamentId, UUID accountId);
 }

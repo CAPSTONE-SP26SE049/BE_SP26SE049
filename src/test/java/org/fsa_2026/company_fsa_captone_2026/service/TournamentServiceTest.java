@@ -9,6 +9,7 @@ import org.fsa_2026.company_fsa_captone_2026.repository.AccountRewardRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.RewardCatalogRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.TournamentParticipantRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.TournamentRepository;
+import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -43,6 +44,12 @@ class TournamentServiceTest {
     @Mock
     private BadgeUnlockService badgeUnlockService;
 
+    @Mock
+    private org.fsa_2026.company_fsa_captone_2026.repository.ChallengeBankRepository challengeBankRepository;
+
+    @Mock
+    private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+
     @InjectMocks
     private TournamentService tournamentService;
 
@@ -53,8 +60,8 @@ class TournamentServiceTest {
                 .name("Weekly Tour #1")
                 .type("WEEKLY")
                 .status("ACTIVE")
-                .startsAt(Instant.now())
-                .endsAt(Instant.now())
+                .startsAt(Instant.now().minusSeconds(120))
+                .endsAt(Instant.now().minusSeconds(60))
                 .build();
         activeTournament.setId(tournamentId);
 
@@ -88,6 +95,8 @@ class TournamentServiceTest {
 
         when(tournamentRepository.save(any(Tournament.class))).thenAnswer(inv -> inv.getArgument(0));
 
+        when(challengeBankRepository.findBySkillType(any())).thenReturn(List.of());
+
         // Run finalization
         Map<String, Object> result = tournamentService.finalizeWeeklyTournament(tournamentId);
 
@@ -108,4 +117,165 @@ class TournamentServiceTest {
         verify(accountRepository, atLeastOnce()).save(p3);
         verify(accountRewardRepository, times(4)).save(any()); // 1 for winner badge + 3 for participant badges
     }
+
+    @Test
+    void testUpdateActiveTournament_ThrowsException_WhenActive() {
+        Tournament activeTournament = Tournament.builder()
+                .name("Weekly Tour #1")
+                .type("WEEKLY")
+                .status("ACTIVE")
+                .questionsJson("[]")
+                .build();
+        activeTournament.setId(UUID.randomUUID());
+
+        when(tournamentRepository.findByTypeAndStatus("WEEKLY", "ACTIVE")).thenReturn(List.of(activeTournament));
+
+        Instant newEndsAt = Instant.now().plusSeconds(3600);
+        ApiException exception = assertThrows(ApiException.class, () -> {
+            tournamentService.updateActiveTournament("New Name", "New Desc", newEndsAt);
+        });
+
+        assertEquals("Giải đấu đang diễn ra (ACTIVE). Không thể chỉnh sửa thông tin để bảo vệ quyền lợi của các học viên đang thi đấu.", exception.getMessage());
+    }
+
+    @Test
+    void testAssignActiveTournamentQuestions_ThrowsException_WhenActive() {
+        Tournament activeTournament = Tournament.builder()
+                .name("Weekly Tour #1")
+                .type("WEEKLY")
+                .status("ACTIVE")
+                .questionsJson("[\"existing-uuid\"]")
+                .build();
+        activeTournament.setId(UUID.randomUUID());
+
+        when(tournamentRepository.findByTypeAndStatus("WEEKLY", "ACTIVE")).thenReturn(List.of(activeTournament));
+
+        UUID q1 = UUID.randomUUID();
+        List<UUID> qids = List.of(q1);
+
+        ApiException exception = assertThrows(ApiException.class, () -> {
+            tournamentService.assignActiveTournamentQuestions(qids);
+        });
+
+        assertEquals("Giải đấu đang diễn ra (ACTIVE). Không thể thay đổi bộ câu hỏi thi đấu để bảo vệ quyền lợi của các học viên.", exception.getMessage());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testGetFinishedTournamentsHistory_Success() {
+        Tournament finishedTournament = Tournament.builder()
+                .name("Weekly Tour #0 (Finished)")
+                .type("WEEKLY")
+                .status("FINISHED")
+                .startsAt(Instant.now().minusSeconds(86400 * 7))
+                .endsAt(Instant.now().minusSeconds(86400 * 6))
+                .build();
+        UUID tId = UUID.randomUUID();
+        finishedTournament.setId(tId);
+
+        when(tournamentRepository.findByTypeAndStatusOrderByEndsAtDesc("WEEKLY", "FINISHED"))
+                .thenReturn(List.of(finishedTournament));
+
+        Account championUser = Account.builder()
+                .email("champ@test.com")
+                .fullName("The Champion")
+                .avatarUrl("avatar.png")
+                .build();
+        championUser.setId(UUID.randomUUID());
+
+        TournamentParticipant participant = TournamentParticipant.builder()
+                .tournament(finishedTournament)
+                .account(championUser)
+                .totalXp(600)
+                .challengesCompleted(5)
+                .averageScore(java.math.BigDecimal.valueOf(98.5))
+                .build();
+
+        when(tournamentParticipantRepository.findByTournamentIdOrderByTotalXpDesc(tId))
+                .thenReturn(List.of(participant));
+
+        List<Map<String, Object>> history = tournamentService.getFinishedTournamentsHistory();
+
+        assertNotNull(history);
+        assertEquals(1, history.size());
+        Map<String, Object> hEntry = history.get(0);
+        assertEquals("Weekly Tour #0 (Finished)", hEntry.get("name"));
+        assertEquals("FINISHED", hEntry.get("status"));
+
+        List<Map<String, Object>> winners = (List<Map<String, Object>>) hEntry.get("winners");
+        assertNotNull(winners);
+        assertEquals(1, winners.size());
+        Map<String, Object> champEntry = winners.get(0);
+        assertEquals(1, champEntry.get("rankPosition"));
+        assertEquals("The Champion", champEntry.get("fullName"));
+        assertEquals("champ@test.com", champEntry.get("email"));
+        assertEquals(600, champEntry.get("totalXp"));
+    }
+
+    @Test
+    void testCreateUpcomingTournament_Success() {
+        Instant startsAt = Instant.now().plusSeconds(3600);
+        Instant endsAt = Instant.now().plusSeconds(7200);
+
+        when(tournamentRepository.save(any(Tournament.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Tournament created = tournamentService.createUpcomingTournament(
+                "Upcoming Season #2",
+                "Description test",
+                startsAt,
+                endsAt,
+                List.of()
+        );
+
+        assertNotNull(created);
+        assertEquals("Upcoming Season #2", created.getName());
+        assertEquals("Description test", created.getDescription());
+        assertEquals("UPCOMING", created.getStatus());
+        assertEquals("WEEKLY", created.getType());
+        assertEquals(startsAt, created.getStartsAt());
+        assertEquals(endsAt, created.getEndsAt());
+    }
+
+    @Test
+    void testFinalizeWeeklyTournament_WithUpcoming_Success() {
+        UUID tournamentId = UUID.randomUUID();
+        Tournament activeTournament = Tournament.builder()
+                .name("Weekly Tour #1")
+                .type("WEEKLY")
+                .status("ACTIVE")
+                .startsAt(Instant.now().minusSeconds(120))
+                .endsAt(Instant.now().minusSeconds(60))
+                .build();
+        activeTournament.setId(tournamentId);
+
+        when(tournamentRepository.findById(tournamentId)).thenReturn(Optional.of(activeTournament));
+
+        // Upcoming tournament exists
+        Tournament upcomingTournament = Tournament.builder()
+                .name("Upcoming Weekly Season #2")
+                .type("WEEKLY")
+                .status("UPCOMING")
+                .startsAt(Instant.now().plusSeconds(3600))
+                .endsAt(Instant.now().plusSeconds(7200))
+                .build();
+
+        when(tournamentRepository.findByTypeAndStatusOrderByStartsAtAsc("WEEKLY", "UPCOMING"))
+                .thenReturn(new ArrayList<>(List.of(upcomingTournament)));
+
+        when(tournamentRepository.save(any(Tournament.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // Empty winners / participants mock to trigger fallback without crash
+        when(tournamentParticipantRepository.findByTournamentIdOrderByTotalXpDesc(tournamentId))
+                .thenReturn(List.of());
+        when(accountRepository.findTop50ByIsActiveTrueOrderByTotalStarsDescBadgeCountDescCurrentStreakDaysDesc())
+                .thenReturn(List.of());
+
+        Map<String, Object> result = tournamentService.finalizeWeeklyTournament(tournamentId);
+
+        assertNotNull(result);
+        assertEquals("Weekly Tour #1", result.get("finalizedTournament"));
+        assertEquals("Upcoming Weekly Season #2", result.get("newTournament"));
+        assertEquals("ACTIVE", upcomingTournament.getStatus());
+    }
 }
+

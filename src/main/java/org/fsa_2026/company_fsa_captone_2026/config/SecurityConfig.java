@@ -153,6 +153,9 @@ public class SecurityConfig {
                             // Educator endpoints
                             .requestMatchers("/api/v1/educator/**").hasAnyAuthority("ROLE_EDUCATOR", "ROLE_ADMIN")
 
+                            // Excel Challenge Bank – protect from USER role
+                            .requestMatchers("/api/v1/excel/challenge-bank/**").hasAnyAuthority("ROLE_EDUCATOR", "ROLE_ADMIN")
+
                             // Learner endpoints
                             .requestMatchers("/api/v1/learner/**").hasRole("USER")
 

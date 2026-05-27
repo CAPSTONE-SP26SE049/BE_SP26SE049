@@ -85,6 +85,9 @@ public class FeedbackService {
         }
 
         public List<FeedbackResponse> getStudentFeedbacks(UUID studentId) {
+                Account student = accountRepository.findById(studentId)
+                                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy học viên"));
+
                 return feedbackRepository.findByStudentIdOrderByCreatedAtDesc(studentId).stream()
                                 .map(this::mapToResponse)
                                 .collect(Collectors.toList());
@@ -121,6 +124,9 @@ public class FeedbackService {
         }
 
         public List<SpeakingAttemptResponse> getRecentSpeakingAttempts(UUID studentId) {
+                Account student = accountRepository.findById(studentId)
+                                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy học viên"));
+
                 return attemptRepository.findByAccountId(studentId).stream()
                                 .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
                                 .limit(100)
