@@ -44,6 +44,7 @@ public class EducatorService {
     private final ChatMessageRepository chatMessageRepository;
     private final EducatorFeedbackRepository educatorFeedbackRepository;
     private final CustomLearningPathRepository customPathRepository;
+    private final org.fsa_2026.company_fsa_captone_2026.repository.LessonPlanRepository lessonPlanRepository;
     private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
@@ -122,17 +123,42 @@ public class EducatorService {
     @Transactional
     public Map<String, Object> createCustomLearningPath(String educatorEmail, UUID studentId, String title,
             String focusArea, List<String> milestones, String description) {
-        resolveEducator(educatorEmail);
-        accountRepository.findById(studentId).orElseThrow(() -> new ApiException(NOT_FOUND, "Không tìm thấy học viên"));
+        Account educator = resolveEducator(educatorEmail);
+        Account student = accountRepository.findById(studentId)
+                .orElseThrow(() -> new ApiException(NOT_FOUND, "Không tìm thấy học viên"));
+
+        // Deactivate existing paths for this student
+        List<CustomLearningPath> existingPaths = customPathRepository.findByStudentIdAndIsActiveTrue(studentId);
+        existingPaths.forEach(p -> p.setIsActive(false));
+        customPathRepository.saveAll(existingPaths);
+
+        String serializedMilestones = "";
+        try {
+            serializedMilestones = objectMapper.writeValueAsString(milestones != null ? milestones : List.of());
+        } catch (Exception ignored) {}
+
+        CustomLearningPath path = CustomLearningPath.builder()
+                .student(student)
+                .educator(educator)
+                .title(title)
+                .description(description)
+                .aiFeedback(serializedMilestones)
+                .targetLevel(focusArea)
+                .isAiGenerated(false)
+                .isActive(true)
+                .build();
+
+        CustomLearningPath saved = customPathRepository.save(path);
+
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("id", UUID.randomUUID());
+        result.put("id", saved.getId());
         result.put("studentId", studentId);
         result.put("title", title);
         result.put("focusArea", focusArea);
         result.put("milestones", milestones != null ? milestones : List.of());
         result.put("description", description);
         result.put("status", "ACTIVE");
-        result.put("updatedAt", LocalDateTime.now());
+        result.put("updatedAt", saved.getCreatedAt() != null ? LocalDateTime.ofInstant(saved.getCreatedAt(), java.time.ZoneId.systemDefault()) : LocalDateTime.now());
         return result;
     }
 
@@ -159,6 +185,10 @@ public class EducatorService {
     @Transactional(readOnly = true)
     public Map<String, Object> getPronunciationAnalytics(String educatorEmail, UUID studentId) {
         resolveEducator(educatorEmail);
+        if (studentId != null) {
+            accountRepository.findById(studentId)
+                    .orElseThrow(() -> new ApiException(NOT_FOUND, "Không tìm thấy học viên"));
+        }
         List<SessionDetail> details = studentId == null
                 ? sessionDetailRepository.findAll()
                 : sessionDetailRepository.findByAccountIdOrderByCreatedAtDesc(studentId);
@@ -204,28 +234,98 @@ public class EducatorService {
         return response;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<Map<String, Object>> getLessonPlans(String educatorEmail) {
-        resolveEducator(educatorEmail);
-        return List.of(
-                lessonPlan("LP-001", "Luyện âm đầu L/N", "Cải thiện phân biệt phụ âm đầu",
-                        List.of("Nguyễn Văn A", "Trần Thị B"), List.of("Đạt 80% chính xác", "Giảm lỗi đầu âm")),
-                lessonPlan("LP-002", "Nhịp điệu câu", "Tăng độ tự nhiên khi nói câu dài", List.of("Lê Văn C"),
-                        List.of("Đọc trôi chảy", "Giữ tốc độ ổn định")));
+        Account educator = resolveEducator(educatorEmail);
+        List<org.fsa_2026.company_fsa_captone_2026.entity.LessonPlan> plans = lessonPlanRepository.findByEducatorId(educator.getId());
+        
+        if (plans.isEmpty()) {
+            createLessonPlan(educatorEmail, "Luyện âm đầu L/N", "Cải thiện phân biệt phụ âm đầu",
+                    List.of("Nguyễn Văn A", "Trần Thị B"), List.of("Đạt 80% chính xác", "Giảm lỗi đầu âm"));
+            createLessonPlan(educatorEmail, "Nhịp điệu câu", "Tăng độ tự nhiên khi nói câu dài", 
+                    List.of("Lê Văn C"), List.of("Đọc trôi chảy", "Giữ tốc độ ổn định"));
+            plans = lessonPlanRepository.findByEducatorId(educator.getId());
+        }
+
+        return plans.stream().map(this::toLessonPlanMap).collect(Collectors.toList());
     }
 
     @Transactional
     public Map<String, Object> createLessonPlan(String educatorEmail, String title, String objective,
             List<String> targetStudents, List<String> achievementGoals) {
-        resolveEducator(educatorEmail);
-        return lessonPlan(UUID.randomUUID().toString(), title, objective, targetStudents, achievementGoals);
+        Account educator = resolveEducator(educatorEmail);
+        
+        String targetStudentsJson = "";
+        String achievementGoalsJson = "";
+        try {
+            targetStudentsJson = objectMapper.writeValueAsString(targetStudents != null ? targetStudents : List.of());
+            achievementGoalsJson = objectMapper.writeValueAsString(achievementGoals != null ? achievementGoals : List.of());
+        } catch (Exception ignored) {}
+
+        org.fsa_2026.company_fsa_captone_2026.entity.LessonPlan plan = org.fsa_2026.company_fsa_captone_2026.entity.LessonPlan.builder()
+                .educator(educator)
+                .title(title)
+                .objective(objective)
+                .targetStudentsJson(targetStudentsJson)
+                .achievementGoalsJson(achievementGoalsJson)
+                .status("PUBLISHED")
+                .build();
+
+        org.fsa_2026.company_fsa_captone_2026.entity.LessonPlan saved = lessonPlanRepository.save(plan);
+        return toLessonPlanMap(saved);
     }
 
     @Transactional
     public Map<String, Object> updateLessonPlan(String educatorEmail, UUID id, String title, String objective,
             List<String> targetStudents, List<String> achievementGoals) {
         resolveEducator(educatorEmail);
-        return lessonPlan(id.toString(), title, objective, targetStudents, achievementGoals);
+        org.fsa_2026.company_fsa_captone_2026.entity.LessonPlan plan = lessonPlanRepository.findById(id)
+                .orElseThrow(() -> new ApiException(NOT_FOUND, "Không tìm thấy giáo án với ID: " + id));
+
+        if (title != null && !title.isBlank()) {
+            plan.setTitle(title);
+        }
+        if (objective != null && !objective.isBlank()) {
+            plan.setObjective(objective);
+        }
+        try {
+            if (targetStudents != null) {
+                plan.setTargetStudentsJson(objectMapper.writeValueAsString(targetStudents));
+            }
+            if (achievementGoals != null) {
+                plan.setAchievementGoalsJson(objectMapper.writeValueAsString(achievementGoals));
+            }
+        } catch (Exception ignored) {}
+
+        org.fsa_2026.company_fsa_captone_2026.entity.LessonPlan saved = lessonPlanRepository.save(plan);
+        return toLessonPlanMap(saved);
+    }
+
+    private Map<String, Object> toLessonPlanMap(org.fsa_2026.company_fsa_captone_2026.entity.LessonPlan plan) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", plan.getId().toString());
+        map.put("title", plan.getTitle());
+        map.put("objective", plan.getObjective());
+        
+        List<String> targetStudents = List.of();
+        try {
+            if (plan.getTargetStudentsJson() != null) {
+                targetStudents = objectMapper.readValue(plan.getTargetStudentsJson(), new TypeReference<List<String>>() {});
+            }
+        } catch (Exception ignored) {}
+        map.put("targetStudents", targetStudents);
+
+        List<String> achievementGoals = List.of();
+        try {
+            if (plan.getAchievementGoalsJson() != null) {
+                achievementGoals = objectMapper.readValue(plan.getAchievementGoalsJson(), new TypeReference<List<String>>() {});
+            }
+        } catch (Exception ignored) {}
+        map.put("achievementGoals", achievementGoals);
+
+        map.put("status", plan.getStatus());
+        map.put("updatedAt", plan.getUpdatedAt() != null ? LocalDateTime.ofInstant(plan.getUpdatedAt(), java.time.ZoneId.systemDefault()) : LocalDateTime.now());
+        return map;
     }
 
     @Transactional(readOnly = true)

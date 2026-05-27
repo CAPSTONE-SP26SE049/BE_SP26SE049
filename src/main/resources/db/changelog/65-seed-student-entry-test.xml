@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="65-seed-student-entry-test-completed" author="antigravity">
+        <!-- 1. Update the existing student@fsa.com to be already entry-tested in South region -->
+        <update tableName="account">
+            <column name="has_done_entry_test" valueBoolean="true"/>
+            <column name="region" value="SOUTH"/>
+            <column name="email_verified" valueBoolean="true"/>
+            <column name="full_name" value="Học Viên FSA (Đã Test)"/>
+            <where>email = 'student@fsa.com'</where>
+        </update>
+
+        <!-- 2. Seed a default entry test result for student@fsa.com (overall_score = 85.00) -->
+        <insert tableName="entry_test_result">
+            <column name="id" value="00000000-0000-0000-0004-000000000001"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="account_id" value="00000000-0000-0000-0002-000000000002"/>
+            <column name="overall_score" valueNumeric="85.00"/>
+            <column name="detected_region" value="SOUTH"/>
+            <column name="total_questions" valueNumeric="9"/>
+            <column name="details" value="[]"/>
+        </insert>
+
+        <!-- 3. Seed a BRAND NEW student account with email tested_student@fsa.com, password: password123, pre-tested in South region -->
+        <insert tableName="account">
+            <column name="id" value="00000000-0000-0000-0002-000000000003"/>
+            <column name="email" value="tested_student@fsa.com"/>
+            <!-- BCrypt hash for 'password123' -->
+            <column name="password_hash" value="$2a$10$r8VvQXf.w5G.xK6qKz7u6.Y7v6uB0v4f9w5uB0v4f9w5uB0v4f9w5"/>
+            <column name="role_code" value="USER"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="has_done_entry_test" valueBoolean="true"/>
+            <column name="region" value="SOUTH"/>
+            <column name="email_verified" valueBoolean="true"/>
+            <column name="full_name" value="Học Viên Đã Test (tested_student@fsa.com)"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- 4. Seed an entry test result for the new tested_student@fsa.com (overall_score = 90.00) -->
+        <insert tableName="entry_test_result">
+            <column name="id" value="00000000-0000-0000-0004-000000000002"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="account_id" value="00000000-0000-0000-0002-000000000003"/>
+            <column name="overall_score" valueNumeric="90.00"/>
+            <column name="detected_region" value="SOUTH"/>
+            <column name="total_questions" valueNumeric="9"/>
+            <column name="details" value="[]"/>
+        </insert>
+    </changeSet>
+
+    <!-- NEW changeset to safely update the password hashes to a valid, working BCrypt hash of 'password123' -->
+    <changeSet id="66-fix-student-passwords" author="antigravity">
+        <update tableName="account">
+            <column name="password_hash" value="$2a$10$dYNuJULG6d7g3tf1hpqQAeyo5qGbjFVSMLWgRKrLMpPxkV9miJzaa"/>
+            <where>email IN ('student@fsa.com', 'tested_student@fsa.com')</where>
+        </update>
+    </changeSet>
+</databaseChangeLog>

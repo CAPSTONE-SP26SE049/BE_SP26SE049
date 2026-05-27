@@ -17,8 +17,16 @@ public class FeedbackDtos {
     public static class CreateFeedbackRequest {
         private UUID studentId;
         private UUID attemptId; // SpeakingAttempt ID
+
+        @jakarta.validation.constraints.NotBlank(message = "Comment không được trống")
         private String comment;
+
         private String priority; // e.g., LOW, MEDIUM, HIGH
+
+        @jakarta.validation.constraints.AssertTrue(message = "Phải cung cấp ít nhất studentId hoặc attemptId")
+        public boolean isValidRequest() {
+            return studentId != null || attemptId != null;
+        }
     }
 
     @Data

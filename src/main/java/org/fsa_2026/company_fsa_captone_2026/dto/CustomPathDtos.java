@@ -16,8 +16,13 @@ public class CustomPathDtos {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class CreateCustomPathRequest {
+        @jakarta.validation.constraints.NotBlank(message = "Tiêu đề không được trống")
         private String title;
+
         private String description;
+
+        @jakarta.validation.constraints.NotNull(message = "levelIds không được null")
+        @jakarta.validation.constraints.NotEmpty(message = "levelIds không được rỗng")
         private List<UUID> levelIds;
     }
 

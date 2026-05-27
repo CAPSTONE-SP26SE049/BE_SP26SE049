@@ -137,4 +137,6 @@
     <include file="db/changelog/62-add-asr-fields-to-speaking-attempt.xml"/>
     <include file="db/changelog/63-create-system-config-table.xml"/>
     <include file="db/changelog/64-add-tournament-weekly-features.xml"/>
+    <include file="db/changelog/65-seed-student-entry-test.xml"/>
+    <include file="db/changelog/66-add-lesson-plans-table.xml"/>
 </databaseChangeLog>

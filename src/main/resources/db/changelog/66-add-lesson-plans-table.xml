@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="66-add-lesson-plans-table" author="antigravity">
+        <createTable tableName="lesson_plans">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+            
+            <column name="educator_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_lp_educator" referencedTableName="account" referencedColumnNames="id"/>
+            </column>
+            <column name="title" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="objective" type="TEXT"/>
+            <column name="target_students_json" type="TEXT"/>
+            <column name="achievement_goals_json" type="TEXT"/>
+            <column name="status" type="VARCHAR(50)" defaultValue="PUBLISHED">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>
