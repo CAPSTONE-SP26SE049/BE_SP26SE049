@@ -12,6 +12,9 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import java.util.UUID;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -120,11 +123,33 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    /**
+     * Fix U-02 (bổ sung): message thân thiện khi Spring bind UUID/path/query lỗi định dạng.
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        String param = ex.getName();
+        String message;
+        if (ex.getRequiredType() != null && UUID.class.isAssignableFrom(ex.getRequiredType())) {
+            message = param + " không hợp lệ. Vui lòng truyền UUID đúng định dạng.";
+        } else {
+            message = "Tham số " + param + " không hợp lệ";
+        }
+        log.warn("[400] TypeMismatch: {}", message);
+        return new ResponseEntity<>(
+                new ErrorResponse(HttpStatus.BAD_REQUEST.value(), message, LocalDateTime.now()),
+                HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
+        String message = ex.getMessage();
+        if (message != null && message.toLowerCase().contains("uuid")) {
+            message = "Tham số UUID không hợp lệ. Vui lòng truyền UUID đúng định dạng.";
+        }
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.BAD_REQUEST.value(),
-                ex.getMessage(),
+                message,
                 LocalDateTime.now());
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }

@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.fsa_2026.company_fsa_captone_2026.dto.LevelResponse;
 import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
+import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
+import org.fsa_2026.company_fsa_captone_2026.exception.BadRequestException;
 import org.fsa_2026.company_fsa_captone_2026.repository.LearningUnitRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,9 +29,14 @@ public class LevelService {
     private final org.fsa_2026.company_fsa_captone_2026.repository.CustomLearningPathRepository customLearningPathRepository;
     private final org.fsa_2026.company_fsa_captone_2026.repository.EntryTestResultRepository resultRepository;
 
+    /**
+     * Lấy danh sách level theo dialect — Fix U-01/U-02: parse UUID an toàn + bắt buộc dialect tồn tại trong DB.
+     */
     @Transactional(readOnly = true)
     public List<LevelResponse> getLevelsByDialect(String dialectId) {
-        UUID parentId = UUID.fromString(dialectId);
+        UUID parentId = parseDialectIdOrThrow(dialectId);
+        requireDialectLearningUnit(parentId);
+
         List<LearningUnit> allLevels = new java.util.ArrayList<>();
         fetchAllDescendantLevels(parentId, allLevels);
 
@@ -67,12 +74,9 @@ public class LevelService {
             }
         }
 
+        // Fix U-01/U-02: không nuốt lỗi dialect — propagate 400/404 từ getLevelsWithProgress
         if (dialectId != null && !dialectId.isEmpty()) {
-            try {
-                return getLevelsWithProgress(dialectId, account);
-            } catch (Exception e) {
-                log.warn("Invalid dialectId provided: {}", dialectId);
-            }
+            return getLevelsWithProgress(dialectId, account);
         }
 
         // Fallback: return all levels if no dialectId specified or invalid
@@ -158,5 +162,26 @@ public class LevelService {
     public List<LevelResponse> getLevelsWithProgress(String dialectId, Account account) {
         List<LevelResponse> levels = getLevelsByDialect(dialectId);
         return populateProgressAndUnlocking(levels, account);
+    }
+
+    // Fix U-02: Chuyển lỗi parse UUID Java thành 400 với message nghiệp vụ
+    private UUID parseDialectIdOrThrow(String dialectId) {
+        if (dialectId == null || dialectId.isBlank()) {
+            throw new BadRequestException("Tham số dialectId là bắt buộc");
+        }
+        try {
+            return UUID.fromString(dialectId.trim());
+        } catch (IllegalArgumentException ex) {
+            throw new BadRequestException("dialectId không hợp lệ. Vui lòng truyền UUID đúng định dạng.");
+        }
+    }
+
+    // Fix U-01: dialectId phải trỏ tới learning_unit type DIALECT, không trả 200 rỗng khi sai ID
+    private void requireDialectLearningUnit(UUID dialectUuid) {
+        LearningUnit dialect = learningUnitRepository.findById(dialectUuid)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy Dialect"));
+        if (!"DIALECT".equalsIgnoreCase(dialect.getType())) {
+            throw new ApiException("NOT_FOUND", "Không tìm thấy Dialect");
+        }
     }
 }

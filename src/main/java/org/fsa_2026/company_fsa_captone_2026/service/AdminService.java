@@ -149,8 +149,18 @@ public class AdminService {
      * @param roleCode vai trò: USER hoặc EDUCATOR
      * @return thông tin tài khoản sau khi tạo
      */
+    /**
+     * Tạo user/educator theo role — Fix A-01/A-02: guard null/blank phòng khi gọi nội bộ không qua @Valid.
+     */
     @Transactional
     public RegisterResponse createUserWithRole(String email, String fullName, String roleCode) {
+        if (email == null || email.isBlank()) {
+            throw new org.fsa_2026.company_fsa_captone_2026.exception.BadRequestException("Email không được để trống");
+        }
+        if (fullName == null || fullName.isBlank()) {
+            throw new org.fsa_2026.company_fsa_captone_2026.exception.BadRequestException("Họ tên không được để trống");
+        }
+
         if (accountRepository.existsByEmail(email)) {
             throw new ApiException("CONFLICT", "Email đã tồn tại trong hệ thống");
         }

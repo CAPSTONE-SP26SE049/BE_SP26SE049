@@ -249,6 +249,9 @@ public class QuizService {
     // Quiz Completion + Auto Reward Granting
     // ==========================================
 
+    /**
+     * Hoàn thành quiz: validate số liệu (chống chia 0, gian lận correctAnswers), tính sao và lưu tiến độ.
+     */
     @Transactional
     public QuizCompleteResponse completeQuiz(UUID quizId, QuizCompleteRequest request, String userEmail) {
         // 1. Tìm quiz
@@ -263,9 +266,11 @@ public class QuizService {
         Account account = accountRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy người dùng"));
 
-        // 4. Tính toán tỷ lệ phần trăm đúng
+        // 3. Guard: totalQuestions > 0, correctAnswers trong [0, total], score khớp phần trăm (fix D-01/D-02)
         int total = request.getTotalQuestions() != null ? request.getTotalQuestions() : 10;
         int correct = request.getCorrectAnswers() != null ? request.getCorrectAnswers() : 0;
+        validateQuizCompletePayload(request, total, correct);
+
         double percentage = (double) correct / total * 100.0;
 
         // 5. Tính số sao dựa trên phần trăm: >=40% (1 sao), >=60% (2 sao), >=80% (3 sao)
@@ -393,7 +398,7 @@ public class QuizService {
     // ==========================================
 
     /**
-     * Lấy tiến trình quiz trong 1 level cho user hiện tại.
+     * Lấy tiến trình quiz trong 1 level cho user hiện tại (GET /api/v1/levels/{levelId}/progress).
      * Trả về danh sách quiz, trạng thái hoàn thành, điểm cao nhất, sao, reward đã nhận chưa.
      */
     @Transactional(readOnly = true)
@@ -565,6 +570,31 @@ public class QuizService {
             log.warn("Cannot parse points_per_question from quiz metadata, using default 10");
         }
         return 10;
+    }
+
+    /**
+     * Kiểm tra payload nộp quiz: chặn total <= 0, correct âm/vượt total, score lệch so với tỷ lệ thực.
+     */
+    private void validateQuizCompletePayload(QuizCompleteRequest request, int total, int correct) {
+        if (total <= 0) {
+            throw new org.fsa_2026.company_fsa_captone_2026.exception.BadRequestException(
+                    "Tổng số câu hỏi phải lớn hơn 0");
+        }
+        if (correct < 0) {
+            throw new org.fsa_2026.company_fsa_captone_2026.exception.BadRequestException(
+                    "Số câu trả lời đúng không được âm");
+        }
+        if (correct > total) {
+            throw new org.fsa_2026.company_fsa_captone_2026.exception.BadRequestException(
+                    "Số câu trả lời đúng không được vượt quá tổng số câu");
+        }
+        if (request.getScore() != null) {
+            int expectedPercent = (int) Math.round((double) correct / total * 100.0);
+            if (Math.abs(request.getScore() - expectedPercent) > 1) {
+                throw new org.fsa_2026.company_fsa_captone_2026.exception.BadRequestException(
+                        "Điểm score không khớp với correctAnswers và totalQuestions");
+            }
+        }
     }
 
     /**

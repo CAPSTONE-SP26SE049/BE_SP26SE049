@@ -11,6 +11,7 @@ import org.fsa_2026.company_fsa_captone_2026.entity.enums.LeaderboardPeriodType;
 import org.fsa_2026.company_fsa_captone_2026.entity.enums.LeaderboardScope;
 import org.fsa_2026.company_fsa_captone_2026.entity.enums.LeaderboardSortBy;
 import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
+import org.fsa_2026.company_fsa_captone_2026.exception.BadRequestException;
 import org.fsa_2026.company_fsa_captone_2026.repository.LeaderboardEntryRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.LeaderboardRepository;
 import org.springframework.stereotype.Service;
@@ -105,6 +106,7 @@ public class LeaderboardService {
 
     /**
      * Get only the current user's rank.
+     * Fix U-03: dùng period/sortBy từ query. Fix U-04: REGIONAL bắt buộc region, không default SOUTH.
      */
     @Transactional(readOnly = true)
     public LeaderboardEntryResponse getMyRank(LeaderboardScope scope,
@@ -112,8 +114,9 @@ public class LeaderboardService {
                                                LeaderboardPeriodType period,
                                                LeaderboardSortBy sortBy,
                                                String userEmail) {
-        period = LeaderboardPeriodType.ALL_TIME;
-        sortBy = LeaderboardSortBy.TOTAL_STARS;
+        if (scope == LeaderboardScope.REGIONAL && (regionCode == null || regionCode.isBlank())) {
+            throw new BadRequestException("Tham số region là bắt buộc khi scope=REGIONAL");
+        }
 
         Optional<Leaderboard> lbOpt;
         if (scope == LeaderboardScope.GLOBAL) {
@@ -216,9 +219,9 @@ public class LeaderboardService {
 
     /**
      * Normalize any region alias to the canonical form: NORTH / CENTRAL / SOUTH.
+     * Fix U-04: chỉ gọi khi region đã được validate non-blank (REGIONAL).
      */
     private String normalizeRegion(String raw) {
-        if (raw == null) return "SOUTH";
         return switch (raw.toUpperCase().trim()) {
             case "NORTH", "MIEN_BAC", "BAC" -> "NORTH";
             case "CENTRAL", "MIEN_TRUNG", "TRUNG" -> "CENTRAL";

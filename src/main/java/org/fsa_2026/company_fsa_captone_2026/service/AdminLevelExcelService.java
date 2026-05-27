@@ -9,8 +9,10 @@ import org.apache.poi.xssf.usermodel.XSSFDataValidation;
 import org.apache.poi.xssf.usermodel.XSSFDataValidationConstraint;
 import org.apache.poi.xssf.usermodel.XSSFDataValidationHelper;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.fsa_2026.company_fsa_captone_2026.common.AdminExcelUploadValidator;
 import org.fsa_2026.company_fsa_captone_2026.dto.LevelCreateRequest;
 import org.fsa_2026.company_fsa_captone_2026.dto.LevelResponse;
+import org.fsa_2026.company_fsa_captone_2026.exception.BadRequestException;
 import org.fsa_2026.company_fsa_captone_2026.repository.LearningUnitRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -117,7 +119,13 @@ public class AdminLevelExcelService {
         xssfSheet.addValidationData(validation);
     }
 
+    /**
+     * Import level từ Excel — Fix A-03/A-04/A-05/A-06: validate file + header trước POI.
+     */
     public ImportResult importFromExcel(MultipartFile file) {
+        // Fix A-03 & A-04 & A-06: Validate file rỗng và sai định dạng .xlsx để tránh sập server 500
+        AdminExcelUploadValidator.validateXlsxUpload(file);
+
         int success = 0;
         int skip = 0;
         int error = 0;
@@ -135,10 +143,14 @@ public class AdminLevelExcelService {
 
         try (InputStream is = file.getInputStream(); Workbook workbook = new XSSFWorkbook(is)) {
             Sheet sheet = workbook.getSheetAt(0);
-            if (sheet == null) throw new RuntimeException("Không tìm thấy sheet dữ liệu");
+            if (sheet == null) {
+                throw new BadRequestException("Không tìm thấy sheet dữ liệu trong file Excel");
+            }
 
             Row header = sheet.getRow(0);
-            if (header == null) throw new RuntimeException("File Excel không có header");
+            if (header == null) {
+                throw new BadRequestException("File Excel không có header");
+            }
 
             // Chỉ 3 cột bắt buộc — khớp với form "Tạo chương học mới"
             int nameCol = findColumnIndex(header, COL_NAME_VN);
@@ -213,8 +225,12 @@ public class AdminLevelExcelService {
                     messages.add("Dòng " + (r + 1) + ": Lỗi — " + (e.getMessage() != null ? e.getMessage() : "Không xác định"));
                 }
             }
+        } catch (BadRequestException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Không thể đọc file Excel chương học: " + e.getMessage(), e);
+            // Lỗi parse POI sau khi đã validate — vẫn trả 400 thay vì RuntimeException/500
+            String detail = e.getMessage() != null ? e.getMessage() : "Định dạng file không hợp lệ";
+            throw new BadRequestException("Không thể đọc file Excel chương học: " + detail);
         }
 
         messages.add(0, String.format("Import hoàn tất: %d thành công, %d bỏ qua, %d lỗi", success, skip, error));
@@ -292,6 +308,7 @@ public class AdminLevelExcelService {
         }
     }
 
+    // Fix A-05: thiếu cột bắt buộc → 400 BadRequest, không RuntimeException/500
     private int findColumnIndex(Row headerRow, String headerName) {
         for (int i = 0; i < headerRow.getLastCellNum(); i++) {
             Cell cell = headerRow.getCell(i);
@@ -299,7 +316,7 @@ public class AdminLevelExcelService {
             String s = cellString(cell);
             if (s.equalsIgnoreCase(headerName)) return i;
         }
-        throw new RuntimeException("Thiếu cột bắt buộc: " + headerName);
+        throw new BadRequestException("Thiếu cột bắt buộc: " + headerName);
     }
 
     /**
