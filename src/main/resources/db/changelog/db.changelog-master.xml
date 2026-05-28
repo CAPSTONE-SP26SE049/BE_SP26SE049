@@ -139,4 +139,5 @@
     <include file="db/changelog/64-add-tournament-weekly-features.xml"/>
     <include file="db/changelog/65-seed-student-entry-test.xml"/>
     <include file="db/changelog/66-add-lesson-plans-table.xml"/>
+    <include file="db/changelog/67-create-daily-challenge-attempt-table.xml"/>
 </databaseChangeLog>

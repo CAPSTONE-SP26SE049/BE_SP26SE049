@@ -65,6 +65,9 @@ class DailyChallengeServiceTest {
     @Mock
     private org.fsa_2026.company_fsa_captone_2026.repository.CustomLearningPathRepository customLearningPathRepository;
 
+    @Mock
+    private org.fsa_2026.company_fsa_captone_2026.repository.DailyChallengeAttemptRepository dailyChallengeAttemptRepository;
+
     @InjectMocks
     private DailyChallengeService dailyChallengeService;
 
@@ -144,14 +147,25 @@ class DailyChallengeServiceTest {
             return ss;
         });
 
+        when(dailyChallengeAttemptRepository.save(any(org.fsa_2026.company_fsa_captone_2026.entity.DailyChallengeAttempt.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        org.fsa_2026.company_fsa_captone_2026.entity.DailyChallengeAttempt completedAttempt =
+                org.fsa_2026.company_fsa_captone_2026.entity.DailyChallengeAttempt.builder()
+                        .account(account)
+                        .challenge(challenge)
+                        .isCorrect(true)
+                        .score(95)
+                        .audioUrl("http://firebase/test.wav")
+                        .build();
+
+        when(dailyChallengeAttemptRepository.findByAccountIdAndIsCorrectTrueAndCreatedAtGreaterThanEqual(any(UUID.class), any(java.time.Instant.class)))
+                .thenReturn(List.of(completedAttempt));
+
         // Config today's challenge ids
         when(systemConfigService.getValue("daily.challenge.date", "")).thenReturn(LocalDate.now().toString());
         when(systemConfigService.getValue("daily.challenge.ids", "")).thenReturn(cid.toString());
         when(challengeBankRepository.findById(cid)).thenReturn(Optional.of(challenge));
-
-        // Stub findByAccountIdAndSessionType to return the saved session so we count it
-        when(studySessionRepository.findByAccountIdAndSessionType(eq(account.getId()), eq("DAILY")))
-                .thenReturn(new ArrayList<>()); // return empty so the set is filled dynamically
 
         // Stub new repositories for fallback to global rotation during submit
         when(learningUnitRepository.findByType("DIALECT")).thenReturn(new ArrayList<>());
@@ -168,6 +182,35 @@ class DailyChallengeServiceTest {
         assertEquals(50, submissionResult.get("xpAwarded"));
         assertEquals(150, account.getTotalExperience());
         verify(badgeUnlockService, times(1)).checkAndUnlockBadges(account);
+    }
+
+    @Test
+    void testGetCompletedChallengeIdsToday() {
+        String email = "student@test.com";
+        Account account = new Account();
+        account.setId(UUID.randomUUID());
+        account.setEmail(email);
+
+        ChallengeBank challenge = new ChallengeBank();
+        challenge.setId(UUID.randomUUID());
+
+        org.fsa_2026.company_fsa_captone_2026.entity.DailyChallengeAttempt completedAttempt =
+                org.fsa_2026.company_fsa_captone_2026.entity.DailyChallengeAttempt.builder()
+                        .account(account)
+                        .challenge(challenge)
+                        .isCorrect(true)
+                        .score(90)
+                        .build();
+
+        when(accountRepository.findByEmail(email)).thenReturn(Optional.of(account));
+        when(dailyChallengeAttemptRepository.findByAccountIdAndIsCorrectTrueAndCreatedAtGreaterThanEqual(any(UUID.class), any(java.time.Instant.class)))
+                .thenReturn(List.of(completedAttempt));
+
+        List<UUID> completedIds = dailyChallengeService.getCompletedChallengeIdsToday(email);
+
+        assertNotNull(completedIds);
+        assertEquals(1, completedIds.size());
+        assertEquals(challenge.getId(), completedIds.get(0));
     }
 
     private void RealObjectMapperMockStub(ObjectMapper realMapper) throws IOException {

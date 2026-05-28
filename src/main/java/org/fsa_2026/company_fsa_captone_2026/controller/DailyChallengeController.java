@@ -52,4 +52,12 @@ public class DailyChallengeController {
                 authentication.getName(), challengeId, audio, dialect);
         return ResponseEntity.ok(ApiResponse.success("Nộp bài và đánh giá thành công", result));
     }
+
+    @GetMapping("/completed")
+    @Operation(summary = "Lấy các thử thách hàng ngày đã hoàn thành hôm nay", description = "Lấy danh sách ID các thử thách phát âm mà người dùng đã làm đúng hôm nay", security = @SecurityRequirement(name = "bearer-jwt"))
+    public ResponseEntity<ApiResponse<List<UUID>>> getCompletedChallengeIdsToday(Authentication authentication) {
+        log.info("User {} requesting completed daily challenge IDs today", authentication.getName());
+        List<UUID> completedIds = dailyChallengeService.getCompletedChallengeIdsToday(authentication.getName());
+        return ResponseEntity.ok(ApiResponse.success("Thành công", completedIds));
+    }
 }
