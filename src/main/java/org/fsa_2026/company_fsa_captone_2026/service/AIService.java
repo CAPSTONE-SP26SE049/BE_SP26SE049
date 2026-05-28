@@ -314,9 +314,43 @@ public class AIService {
             normalized.put("aiProvider", "groq");
             return normalized;
         } catch (Exception e) {
-            log.error("Groq feedback failed", e);
-            throw new ApiException("AI_ERROR", "Không thể gọi Groq AI Feedback: " + e.getMessage());
+            log.error("Groq feedback failed, falling back to local evaluation", e);
+            int fallbackAccuracy = calculateLocalAccuracy(transcribedText, targetText);
+            boolean isCorrect = fallbackAccuracy >= 80;
+            
+            Map<String, Object> fallback = new HashMap<>();
+            fallback.put("isCorrect", isCorrect);
+            fallback.put("accuracy", fallbackAccuracy);
+            fallback.put("errorType", isCorrect ? "minor_error" : "major_error");
+            fallback.put("feedback", "AI Service (Groq) đang bị lỗi kết nối mạng. Điểm số ước lượng tự động: " + fallbackAccuracy + "%.");
+            fallback.put("shapeKey", "fallback");
+            fallback.put("score", fallbackAccuracy);
+            fallback.put("suggestion", "Vui lòng thử lại sau hoặc sử dụng VPN nếu kết nối bị chặn.");
+            fallback.put("errorDetail", "Fallback do lỗi: " + e.getMessage());
+            fallback.put("aiProvider", "local_fallback");
+            fallback.put("groqLatencyMs", System.currentTimeMillis() - start);
+            return fallback;
         }
+    }
+
+    private int calculateLocalAccuracy(String transcribedText, String targetText) {
+        String t = normalizeForComparison(transcribedText);
+        String tgt = normalizeForComparison(targetText);
+        if (t.equals(tgt)) return 100;
+        
+        String[] tWords = t.split("\\s+");
+        String[] tgtWords = tgt.split("\\s+");
+        if (tgtWords.length == 0) return 0;
+        
+        int matches = 0;
+        java.util.List<String> targetList = new java.util.ArrayList<>(java.util.Arrays.asList(tgtWords));
+        for (String word : tWords) {
+            if (targetList.remove(word)) {
+                matches++;
+            }
+        }
+        
+        return Math.min(100, Math.max(0, (int) Math.round((double) matches / tgtWords.length * 100)));
     }
 
     private Map<String, Object> chatWithGroqOrFallback(String message) {
