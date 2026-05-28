@@ -11,6 +11,7 @@ import org.fsa_2026.company_fsa_captone_2026.entity.LearningUnit;
 import org.fsa_2026.company_fsa_captone_2026.entity.AccountLearningUnit;
 import org.fsa_2026.company_fsa_captone_2026.entity.QuizChallengeItem;
 import org.fsa_2026.company_fsa_captone_2026.entity.CustomPathLevel;
+import org.fsa_2026.company_fsa_captone_2026.entity.DailyChallengeAttempt;
 import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
 import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.ChallengeBankRepository;
@@ -19,6 +20,7 @@ import org.fsa_2026.company_fsa_captone_2026.repository.LearningUnitRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.AccountLearningUnitRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.QuizChallengeItemRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.CustomLearningPathRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.DailyChallengeAttemptRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -47,6 +49,7 @@ public class DailyChallengeService {
     private final AccountLearningUnitRepository accountLearningUnitRepository;
     private final QuizChallengeItemRepository quizChallengeItemRepository;
     private final CustomLearningPathRepository customLearningPathRepository;
+    private final DailyChallengeAttemptRepository dailyChallengeAttemptRepository;
 
     /**
      * Lấy 3 câu hỏi thử thách của hôm nay (mặc định toàn cục). Tự động xoay tua nếu sang ngày mới.
@@ -373,45 +376,38 @@ public class DailyChallengeService {
 
         session = studySessionRepository.save(session);
 
+        // 3b. Lưu thông tin vào bảng daily_challenge_attempt chuyên biệt
+        DailyChallengeAttempt attempt = DailyChallengeAttempt.builder()
+                .account(account)
+                .challenge(challenge)
+                .isCorrect(isCorrect)
+                .score(((Number) evaluation.getOrDefault("accuracy", 0)).intValue())
+                .audioUrl(audioUrl)
+                .feedback((String) evaluation.getOrDefault("feedback", ""))
+                .dialect(dialect)
+                .build();
+        dailyChallengeAttemptRepository.save(attempt);
+
         // 4. Kiểm tra hoàn thành tất cả thử thách trong ngày để tặng +50 XP
         List<ChallengeBank> todayChallenges = getDailyChallenges(email);
         Set<UUID> todayChallengeIds = todayChallenges.stream()
                 .map(ChallengeBank::getId)
                 .collect(Collectors.toSet());
 
-        // Lấy tất cả daily sessions hôm nay của account
-        List<StudySession> userDailySessions = studySessionRepository.findByAccountIdAndSessionType(account.getId(), "DAILY");
-        LocalDate today = LocalDate.now();
+        Instant startOfToday = LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
+        List<DailyChallengeAttempt> todayCorrectAttempts = dailyChallengeAttemptRepository
+                .findByAccountIdAndIsCorrectTrueAndCreatedAtGreaterThanEqual(account.getId(), startOfToday);
 
-        Set<UUID> completedChallengeIdsBefore = new HashSet<>();
-        Set<UUID> completedChallengeIdsAfter = new HashSet<>();
+        Set<UUID> completedChallengeIdsAfter = todayCorrectAttempts.stream()
+                .map(a -> a.getChallenge().getId())
+                .filter(todayChallengeIds::contains)
+                .collect(Collectors.toSet());
 
-        for (StudySession s : userDailySessions) {
-            LocalDate sessionDate = LocalDate.ofInstant(s.getStartedAt(), java.time.ZoneId.systemDefault());
-            if (sessionDate.equals(today)) {
-                try {
-                    Map<String, Object> summary = objectMapper.readValue(
-                            s.getSummaryJson(), new TypeReference<Map<String, Object>>() {});
-                    UUID cid = UUID.fromString((String) summary.get("challengeId"));
-                    boolean wasCorrect = Boolean.TRUE.equals(summary.get("isCorrect"));
-                    
-                    if (wasCorrect && todayChallengeIds.contains(cid)) {
-                        if (s.getId() != null && s.getId().equals(session.getId())) {
-                            completedChallengeIdsAfter.add(cid);
-                        } else {
-                            completedChallengeIdsBefore.add(cid);
-                            completedChallengeIdsAfter.add(cid);
-                        }
-                    }
-                } catch (Exception e) {
-                    log.warn("Failed to parse study session summary JSON: {}", e.getMessage());
-                }
-            }
-        }
-
-        if (isCorrect && todayChallengeIds.contains(challengeId)) {
-            completedChallengeIdsAfter.add(challengeId);
-        }
+        Set<UUID> completedChallengeIdsBefore = todayCorrectAttempts.stream()
+                .filter(a -> !a.getChallenge().getId().equals(challengeId))
+                .map(a -> a.getChallenge().getId())
+                .filter(todayChallengeIds::contains)
+                .collect(Collectors.toSet());
 
         boolean completedAllToday = completedChallengeIdsAfter.size() >= todayChallengeIds.size() && todayChallengeIds.size() > 0;
         boolean completedAllTodayBefore = completedChallengeIdsBefore.size() >= todayChallengeIds.size() && todayChallengeIds.size() > 0;
@@ -436,5 +432,27 @@ public class DailyChallengeService {
         result.put("totalChallengesCount", todayChallengeIds.size());
 
         return result;
+    }
+
+    /**
+     * Lấy danh sách ID của các thử thách phát âm mà người dùng đã hoàn thành thành công hôm nay.
+     */
+    @Transactional(readOnly = true)
+    public List<UUID> getCompletedChallengeIdsToday(String email) {
+        if (email == null || email.isBlank()) {
+            return Collections.emptyList();
+        }
+        Optional<Account> accountOpt = accountRepository.findByEmail(email);
+        if (accountOpt.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Account account = accountOpt.get();
+        Instant startOfToday = LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
+        List<DailyChallengeAttempt> todayCorrectAttempts = dailyChallengeAttemptRepository
+                .findByAccountIdAndIsCorrectTrueAndCreatedAtGreaterThanEqual(account.getId(), startOfToday);
+        return todayCorrectAttempts.stream()
+                .map(a -> a.getChallenge().getId())
+                .distinct()
+                .collect(Collectors.toList());
     }
 }
