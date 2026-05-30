@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Fix MATCHING_PAIRS N_L -->
+    <changeSet id="70-fix-matching-pairs-nl" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">SELECT COUNT(*) FROM minigame_challenge WHERE game_type='MATCHING_PAIRS' AND pair_type='N_L' AND question_data::text LIKE '%non%'</sqlCheck>
+        </preConditions>
+        <sql>
+            DELETE FROM minigame_challenge WHERE game_type='MATCHING_PAIRS' AND pair_type='N_L';
+            INSERT INTO minigame_challenge (id, game_type, pair_type, question_data, created_at, updated_at) VALUES
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'N_L', '{"word1":"nón","word2":"lón"}', NOW(), NOW()),
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'N_L', '{"word1":"nước","word2":"lước"}', NOW(), NOW()),
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'N_L', '{"word1":"nấm","word2":"lấm"}', NOW(), NOW()),
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'N_L', '{"word1":"nỗi","word2":"lỗi"}', NOW(), NOW()),
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'N_L', '{"word1":"nắng","word2":"lắng"}', NOW(), NOW()),
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'N_L', '{"word1":"nụ","word2":"lụ"}', NOW(), NOW());
+        </sql>
+    </changeSet>
+
+    <!-- Fix MATCHING_PAIRS S_X -->
+    <changeSet id="70-fix-matching-pairs-sx" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">SELECT COUNT(*) FROM minigame_challenge WHERE game_type='MATCHING_PAIRS' AND pair_type='S_X' AND question_data::text LIKE '%sang%'</sqlCheck>
+        </preConditions>
+        <sql>
+            DELETE FROM minigame_challenge WHERE game_type='MATCHING_PAIRS' AND pair_type='S_X';
+            INSERT INTO minigame_challenge (id, game_type, pair_type, question_data, created_at, updated_at) VALUES
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'S_X', '{"word1":"sáng","word2":"xáng"}', NOW(), NOW()),
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'S_X', '{"word1":"sắc","word2":"xắc"}', NOW(), NOW()),
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'S_X', '{"word1":"sơn","word2":"xơn"}', NOW(), NOW()),
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'S_X', '{"word1":"sung","word2":"xung"}', NOW(), NOW()),
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'S_X', '{"word1":"sấu","word2":"xấu"}', NOW(), NOW()),
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'S_X', '{"word1":"sót","word2":"xót"}', NOW(), NOW());
+        </sql>
+    </changeSet>
+
+    <!-- Fix MATCHING_PAIRS D_GI_R -->
+    <changeSet id="70-fix-matching-pairs-dgir" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">SELECT COUNT(*) FROM minigame_challenge WHERE game_type='MATCHING_PAIRS' AND pair_type='D_GI_R' AND question_data::text LIKE '%day%'</sqlCheck>
+        </preConditions>
+        <sql>
+            DELETE FROM minigame_challenge WHERE game_type='MATCHING_PAIRS' AND pair_type='D_GI_R';
+            INSERT INTO minigame_challenge (id, game_type, pair_type, question_data, created_at, updated_at) VALUES
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'D_GI_R', '{"word1":"da","word2":"gia"}', NOW(), NOW()),
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'D_GI_R', '{"word1":"dạy","word2":"giạy"}', NOW(), NOW()),
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'D_GI_R', '{"word1":"dòng","word2":"ròng"}', NOW(), NOW()),
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'D_GI_R', '{"word1":"dỗ","word2":"giỗ"}', NOW(), NOW()),
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'D_GI_R', '{"word1":"dán","word2":"rán"}', NOW(), NOW()),
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'D_GI_R', '{"word1":"dầu","word2":"giầu"}', NOW(), NOW());
+        </sql>
+    </changeSet>
+
+    <!-- Fix MATCHING_PAIRS TR_CH -->
+    <changeSet id="70-fix-matching-pairs-trch" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">SELECT COUNT(*) FROM minigame_challenge WHERE game_type='MATCHING_PAIRS' AND pair_type='TR_CH' AND question_data::text LIKE '%trang%'</sqlCheck>
+        </preConditions>
+        <sql>
+            DELETE FROM minigame_challenge WHERE game_type='MATCHING_PAIRS' AND pair_type='TR_CH';
+            INSERT INTO minigame_challenge (id, game_type, pair_type, question_data, created_at, updated_at) VALUES
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'TR_CH', '{"word1":"trăng","word2":"chăng"}', NOW(), NOW()),
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'TR_CH', '{"word1":"trời","word2":"chời"}', NOW(), NOW()),
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'TR_CH', '{"word1":"trẻ","word2":"chẻ"}', NOW(), NOW()),
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'TR_CH', '{"word1":"trung","word2":"chung"}', NOW(), NOW()),
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'TR_CH', '{"word1":"trà","word2":"chà"}', NOW(), NOW()),
+            (gen_random_uuid(), 'MATCHING_PAIRS', 'TR_CH', '{"word1":"trắc","word2":"chắc"}', NOW(), NOW());
+        </sql>
+    </changeSet>
+
+    <!-- Fix WORD_GUESS N_L -->
+    <changeSet id="70-fix-word-guess-nl" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">SELECT COUNT(*) FROM minigame_challenge WHERE game_type='WORD_GUESS' AND pair_type='N_L' AND question_data::text LIKE '%Anh mat%'</sqlCheck>
+        </preConditions>
+        <sql>
+            DELETE FROM minigame_challenge WHERE game_type='WORD_GUESS' AND pair_type='N_L';
+            INSERT INTO minigame_challenge (id, game_type, pair_type, question_data, created_at, updated_at) VALUES
+            (gen_random_uuid(), 'WORD_GUESS', 'N_L', '{"word":"nắng","hint":"Ánh mặt trời chiếu xuống","category":"Thời tiết"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'N_L', '{"word":"lạnh","hint":"Cảm giác khi mùa đông đến","category":"Thời tiết"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'N_L', '{"word":"nước","hint":"Chất lỏng uống hàng ngày","category":"Tự nhiên"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'N_L', '{"word":"lửa","hint":"Cháy sáng, tỏa nhiệt","category":"Tự nhiên"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'N_L', '{"word":"nồi","hint":"Dụng cụ nấu ăn","category":"Nhà bếp"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'N_L', '{"word":"lưỡi","hint":"Bộ phận trong miệng giúp nếm","category":"Cơ thể"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'N_L', '{"word":"nấm","hint":"Mọc ở nơi ẩm ướt, có thể ăn được","category":"Thực phẩm"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'N_L', '{"word":"lồng","hint":"Dùng để nhốt chim","category":"Đồ vật"}', NOW(), NOW());
+        </sql>
+    </changeSet>
+
+    <!-- Fix WORD_GUESS S_X -->
+    <changeSet id="70-fix-word-guess-sx" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">SELECT COUNT(*) FROM minigame_challenge WHERE game_type='WORD_GUESS' AND pair_type='S_X' AND question_data::text LIKE '%Buoi%'</sqlCheck>
+        </preConditions>
+        <sql>
+            DELETE FROM minigame_challenge WHERE game_type='WORD_GUESS' AND pair_type='S_X';
+            INSERT INTO minigame_challenge (id, game_type, pair_type, question_data, created_at, updated_at) VALUES
+            (gen_random_uuid(), 'WORD_GUESS', 'S_X', '{"word":"sáng","hint":"Buổi đầu tiên trong ngày","category":"Thời gian"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'S_X', '{"word":"xanh","hint":"Màu của lá cây","category":"Màu sắc"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'S_X', '{"word":"sông","hint":"Dòng nước chảy dài","category":"Tự nhiên"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'S_X', '{"word":"xuân","hint":"Mùa đầu tiên trong năm","category":"Thời gian"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'S_X', '{"word":"sách","hint":"Đọc để học kiến thức","category":"Đồ vật"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'S_X', '{"word":"xóm","hint":"Khu dân cư nhỏ","category":"Địa điểm"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'S_X', '{"word":"sợi","hint":"Dùng để dệt vải","category":"Đồ vật"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'S_X', '{"word":"xương","hint":"Bộ khung bên trong cơ thể","category":"Cơ thể"}', NOW(), NOW());
+        </sql>
+    </changeSet>
+
+    <!-- Fix WORD_GUESS D_GI_R -->
+    <changeSet id="70-fix-word-guess-dgir" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">SELECT COUNT(*) FROM minigame_challenge WHERE game_type='WORD_GUESS' AND pair_type='D_GI_R' AND question_data::text LIKE '%nhiet%'</sqlCheck>
+        </preConditions>
+        <sql>
+            DELETE FROM minigame_challenge WHERE game_type='WORD_GUESS' AND pair_type='D_GI_R';
+            INSERT INTO minigame_challenge (id, game_type, pair_type, question_data, created_at, updated_at) VALUES
+            (gen_random_uuid(), 'WORD_GUESS', 'D_GI_R', '{"word":"dừa","hint":"Cây nhiệt đới có nước ngọt","category":"Thực vật"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'D_GI_R', '{"word":"gió","hint":"Không khí chuyển động","category":"Tự nhiên"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'D_GI_R', '{"word":"rừng","hint":"Nơi có nhiều cây cối","category":"Tự nhiên"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'D_GI_R', '{"word":"dạy","hint":"Giáo viên làm việc này","category":"Hành động"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'D_GI_R', '{"word":"giày","hint":"Đi ở chân khi ra ngoài","category":"Đồ vật"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'D_GI_R', '{"word":"rắn","hint":"Loài bò sát không chân","category":"Động vật"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'D_GI_R', '{"word":"dầu","hint":"Chất lỏng dùng để chiên","category":"Nhà bếp"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'D_GI_R', '{"word":"giấc","hint":"... mơ — khi ngủ","category":"Sinh hoạt"}', NOW(), NOW());
+        </sql>
+    </changeSet>
+
+    <!-- Fix WORD_GUESS TR_CH -->
+    <changeSet id="70-fix-word-guess-trch" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">SELECT COUNT(*) FROM minigame_challenge WHERE game_type='WORD_GUESS' AND pair_type='TR_CH' AND question_data::text LIKE '%Sang tren%'</sqlCheck>
+        </preConditions>
+        <sql>
+            DELETE FROM minigame_challenge WHERE game_type='WORD_GUESS' AND pair_type='TR_CH';
+            INSERT INTO minigame_challenge (id, game_type, pair_type, question_data, created_at, updated_at) VALUES
+            (gen_random_uuid(), 'WORD_GUESS', 'TR_CH', '{"word":"trăng","hint":"Sáng trên bầu trời đêm","category":"Tự nhiên"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'TR_CH', '{"word":"chim","hint":"Loài có cánh, biết bay","category":"Động vật"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'TR_CH', '{"word":"trường","hint":"Nơi học sinh đến học","category":"Địa điểm"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'TR_CH', '{"word":"chợ","hint":"Nơi mua bán hàng hóa","category":"Địa điểm"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'TR_CH', '{"word":"trẻ","hint":"Người còn nhỏ tuổi","category":"Con người"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'TR_CH', '{"word":"chạy","hint":"Di chuyển nhanh bằng chân","category":"Hành động"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'TR_CH', '{"word":"trái","hint":"Quả cây, hoặc hướng ngược phải","category":"Tự nhiên"}', NOW(), NOW()),
+            (gen_random_uuid(), 'WORD_GUESS', 'TR_CH', '{"word":"cháo","hint":"Món ăn nấu từ gạo loãng","category":"Thực phẩm"}', NOW(), NOW());
+        </sql>
+    </changeSet>
+
+    <!-- Fix CONVERSATION_SCENARIO N_L -->
+    <changeSet id="70-fix-scenario-nl" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">SELECT COUNT(*) FROM minigame_challenge WHERE game_type='CONVERSATION_SCENARIO' AND pair_type='N_L' AND question_data::text LIKE '%nuoc mam%'</sqlCheck>
+        </preConditions>
+        <sql>
+            DELETE FROM minigame_challenge WHERE game_type='CONVERSATION_SCENARIO' AND pair_type='N_L';
+            INSERT INTO minigame_challenge (id, game_type, pair_type, question_data, created_at, updated_at) VALUES
+            (gen_random_uuid(), 'CONVERSATION_SCENARIO', 'N_L', '{"scenario":"Bạn đang mua nước mắm ở chợ"}', NOW(), NOW()),
+            (gen_random_uuid(), 'CONVERSATION_SCENARIO', 'N_L', '{"scenario":"Bạn hỏi đường đến nhà sách"}', NOW(), NOW()),
+            (gen_random_uuid(), 'CONVERSATION_SCENARIO', 'N_L', '{"scenario":"Bạn gọi món ăn có nhiều từ N và L"}', NOW(), NOW());
+        </sql>
+    </changeSet>
+
+    <!-- Fix CONVERSATION_SCENARIO S_X -->
+    <changeSet id="70-fix-scenario-sx" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">SELECT COUNT(*) FROM minigame_challenge WHERE game_type='CONVERSATION_SCENARIO' AND pair_type='S_X' AND question_data::text LIKE '%xe dap%'</sqlCheck>
+        </preConditions>
+        <sql>
+            DELETE FROM minigame_challenge WHERE game_type='CONVERSATION_SCENARIO' AND pair_type='S_X';
+            INSERT INTO minigame_challenge (id, game_type, pair_type, question_data, created_at, updated_at) VALUES
+            (gen_random_uuid(), 'CONVERSATION_SCENARIO', 'S_X', '{"scenario":"Bạn đang hỏi mua xe đạp"}', NOW(), NOW()),
+            (gen_random_uuid(), 'CONVERSATION_SCENARIO', 'S_X', '{"scenario":"Bạn xin phép thầy giáo"}', NOW(), NOW()),
+            (gen_random_uuid(), 'CONVERSATION_SCENARIO', 'S_X', '{"scenario":"Bạn mô tả buổi sáng của mình"}', NOW(), NOW());
+        </sql>
+    </changeSet>
+
+    <!-- Fix CONVERSATION_SCENARIO D_GI_R -->
+    <changeSet id="70-fix-scenario-dgir" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">SELECT COUNT(*) FROM minigame_challenge WHERE game_type='CONVERSATION_SCENARIO' AND pair_type='D_GI_R' AND question_data::text LIKE '%gia dinh%'</sqlCheck>
+        </preConditions>
+        <sql>
+            DELETE FROM minigame_challenge WHERE game_type='CONVERSATION_SCENARIO' AND pair_type='D_GI_R';
+            INSERT INTO minigame_challenge (id, game_type, pair_type, question_data, created_at, updated_at) VALUES
+            (gen_random_uuid(), 'CONVERSATION_SCENARIO', 'D_GI_R', '{"scenario":"Bạn giới thiệu gia đình"}', NOW(), NOW()),
+            (gen_random_uuid(), 'CONVERSATION_SCENARIO', 'D_GI_R', '{"scenario":"Bạn hỏi đường đến rừng"}', NOW(), NOW()),
+            (gen_random_uuid(), 'CONVERSATION_SCENARIO', 'D_GI_R', '{"scenario":"Bạn kể về giáo viên yêu thích"}', NOW(), NOW());
+        </sql>
+    </changeSet>
+
+    <!-- Fix CONVERSATION_SCENARIO TR_CH -->
+    <changeSet id="70-fix-scenario-trch" author="antigravity">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">SELECT COUNT(*) FROM minigame_challenge WHERE game_type='CONVERSATION_SCENARIO' AND pair_type='TR_CH' AND question_data::text LIKE '%truong hoc%'</sqlCheck>
+        </preConditions>
+        <sql>
+            DELETE FROM minigame_challenge WHERE game_type='CONVERSATION_SCENARIO' AND pair_type='TR_CH';
+            INSERT INTO minigame_challenge (id, game_type, pair_type, question_data, created_at, updated_at) VALUES
+            (gen_random_uuid(), 'CONVERSATION_SCENARIO', 'TR_CH', '{"scenario":"Bạn kể về trường học"}', NOW(), NOW()),
+            (gen_random_uuid(), 'CONVERSATION_SCENARIO', 'TR_CH', '{"scenario":"Bạn mua trái cây ở chợ"}', NOW(), NOW()),
+            (gen_random_uuid(), 'CONVERSATION_SCENARIO', 'TR_CH', '{"scenario":"Bạn mô tả trẻ em chơi đùa"}', NOW(), NOW());
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

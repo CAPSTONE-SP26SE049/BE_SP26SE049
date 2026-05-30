@@ -140,4 +140,14 @@
     <include file="db/changelog/65-seed-student-entry-test.xml"/>
     <include file="db/changelog/66-add-lesson-plans-table.xml"/>
     <include file="db/changelog/67-create-daily-challenge-attempt-table.xml"/>
+    <include file="db/changelog/68-create-user-feedback-table.xml"/>
+    <include file="db/changelog/69-seed-minigame-challenges.xml"/>
+    <include file="db/changelog/70-fix-minigame-vietnamese.xml"/>
+    <include file="db/changelog/71-fix-achievement-icons.xml"/>
+    <include file="db/changelog/72-fix-all-badge-icons.xml"/>
+    <include file="db/changelog/73-reset-curriculum-and-quizzes.xml"/>
+    <include file="db/changelog/74-seed-curriculum-levels.xml"/>
+    <include file="db/changelog/75-seed-quizzes-north.xml"/>
+    <include file="db/changelog/76-seed-quizzes-central.xml"/>
+    <include file="db/changelog/77-seed-quizzes-south.xml"/>
 </databaseChangeLog>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        Schema note: bảng quiz/quiz_question/level/dialect đã bị drop ở migration 27.
+        Hệ thống hiện tại lưu mọi thứ trong bảng learning_unit:
+          - DIALECT  : 3 row (NORTH/CENTRAL/SOUTH) — đã có sẵn từ changeset 25
+          - LEVEL    : parent_id = DIALECT.id
+          - QUIZ     : parent_id = LEVEL.id, questions lưu JSON trong metadata_json.questions[]
+    -->
+
+    <changeSet id="73-reset-curriculum-and-quizzes" author="claude">
+        <comment>Wipe LEVEL + QUIZ learning_unit rows (keep DIALECT) and clean up referencing progress data.</comment>
+        <sql splitStatements="false">
+            <![CDATA[
+DO $$
+DECLARE
+    v_unit_ids UUID[];
+BEGIN
+    SELECT array_agg(id) INTO v_unit_ids
+    FROM learning_unit WHERE type IN ('LEVEL','QUIZ');
+
+    IF v_unit_ids IS NULL OR array_length(v_unit_ids, 1) IS NULL THEN
+        RETURN;
+    END IF;
+
+    -- 1) progress / activity / paths referencing these units
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name='session_detail') THEN
+        DELETE FROM session_detail
+        WHERE content_item_id IN (
+            SELECT id FROM content_item WHERE learning_unit_id = ANY(v_unit_ids)
+        );
+    END IF;
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name='study_session') THEN
+        DELETE FROM study_session WHERE session_type IN ('QUIZ','LEVEL','LESSON');
+    END IF;
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name='account_learning_unit') THEN
+        DELETE FROM account_learning_unit WHERE learning_unit_id = ANY(v_unit_ids);
+    END IF;
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name='custom_path_progress') THEN
+        DELETE FROM custom_path_progress WHERE learning_unit_id = ANY(v_unit_ids);
+    END IF;
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name='custom_path_levels') THEN
+        DELETE FROM custom_path_levels WHERE level_id = ANY(v_unit_ids);
+    END IF;
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name='quiz_challenge_item') THEN
+        DELETE FROM quiz_challenge_item WHERE quiz_id = ANY(v_unit_ids);
+    END IF;
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name='assignment') THEN
+        DELETE FROM assignment WHERE learning_unit_id = ANY(v_unit_ids);
+    END IF;
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name='content_item') THEN
+        DELETE FROM content_item WHERE learning_unit_id = ANY(v_unit_ids);
+    END IF;
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name='lesson_plan_item') THEN
+        DELETE FROM lesson_plan_item WHERE learning_unit_id = ANY(v_unit_ids);
+    END IF;
+
+    -- 2) wipe QUIZ first (children), then LEVEL (parents)
+    DELETE FROM learning_unit WHERE type = 'QUIZ';
+    DELETE FROM learning_unit WHERE type = 'LEVEL';
+END $$;
+            ]]>
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

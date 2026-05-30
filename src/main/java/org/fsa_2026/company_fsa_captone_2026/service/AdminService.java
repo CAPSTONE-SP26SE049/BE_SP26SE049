@@ -606,9 +606,21 @@ public class AdminService {
 
     @Transactional(readOnly = true)
     public List<RewardResponse> getAllRewards() {
-        return rewardCatalogRepository.findAll()
+        List<RewardCatalog> rewards = rewardCatalogRepository.findAll();
+
+        // Batch load all linked quizzes in 1 query instead of N queries
+        List<UUID> rewardIds = rewards.stream().map(RewardCatalog::getId).collect(Collectors.toList());
+        Map<UUID, LearningUnit> linkedQuizMap = learningUnitRepository
+                .findByRewardCatalogIdIn(rewardIds)
                 .stream()
-                .map(this::enrichRewardResponse)
+                .collect(Collectors.toMap(
+                        lu -> lu.getRewardCatalog().getId(),
+                        lu -> lu,
+                        (a, b) -> a
+                ));
+
+        return rewards.stream()
+                .map(reward -> enrichRewardResponseFast(reward, linkedQuizMap.get(reward.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -705,24 +717,21 @@ public class AdminService {
      * Enrich RewardResponse with linked quiz/level information.
      */
     private RewardResponse enrichRewardResponse(RewardCatalog reward) {
-        RewardResponse response = RewardResponse.fromEntity(reward);
-
-        // Find the quiz that this reward is linked to
         Optional<LearningUnit> linkedQuiz = learningUnitRepository.findByRewardCatalogId(reward.getId());
-        if (linkedQuiz.isPresent()) {
-            LearningUnit quiz = linkedQuiz.get();
-            response.setLinkedQuizId(quiz.getId());
-            response.setLinkedQuizName(quiz.getName());
-
-            // Get the parent level name
-            if (quiz.getParent() != null) {
-                response.setLinkedLevelName(quiz.getParent().getName());
-            }
-        }
-
-        return response;
+        return enrichRewardResponseFast(reward, linkedQuiz.orElse(null));
     }
 
+    private RewardResponse enrichRewardResponseFast(RewardCatalog reward, LearningUnit linkedQuiz) {
+        RewardResponse response = RewardResponse.fromEntity(reward);
+        if (linkedQuiz != null) {
+            response.setLinkedQuizId(linkedQuiz.getId());
+            response.setLinkedQuizName(linkedQuiz.getName());
+            if (linkedQuiz.getParent() != null) {
+                response.setLinkedLevelName(linkedQuiz.getParent().getName());
+            }
+        }
+        return response;
+    }
     @Transactional(readOnly = true)
     public Map<String, Object> getRealEngagementMetrics() {
         java.time.Instant twentyFourHoursAgo = java.time.Instant.now().minus(24, java.time.temporal.ChronoUnit.HOURS);
