@@ -51,9 +51,15 @@ public class AIController {
     @PostMapping("/evaluate-pronunciation")
     public Map<String, Object> evaluatePronunciation(
             @RequestParam("audio") MultipartFile audio,
-            @RequestParam("targetText") String targetText) throws IOException {
+            @RequestParam("targetText") String targetText,
+            @RequestParam(value = "dialect", required = false) String dialect) throws IOException {
 
-        Map<String, Object> result = new java.util.HashMap<>(aiService.evaluatePronunciation(audio, targetText));
+        String focusErrorTag = null;
+        if (dialect != null && !dialect.isBlank()) {
+            focusErrorTag = aiService.findErrorTagUnitId(dialect);
+        }
+
+        Map<String, Object> result = new java.util.HashMap<>(aiService.evaluatePronunciation(audio, targetText, focusErrorTag));
 
         // Upload to Firebase
         try {
