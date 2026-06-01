@@ -12,12 +12,16 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+import org.fsa_2026.company_fsa_captone_2026.service.AIService;
+import java.util.Map;
+
 @RestController
 @RequiredArgsConstructor
 @Slf4j
 public class MinigameChallengeController {
 
     private final MinigameService minigameService;
+    private final AIService aiService;
 
     // ── Learner endpoints ──
 
@@ -103,5 +107,33 @@ public class MinigameChallengeController {
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
         minigameService.delete(id);
         return ResponseEntity.ok(ApiResponse.success("Đã xóa câu hỏi", null));
+    }
+
+    @PostMapping("/api/v1/minigames/conversation")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> conversationReply(
+            @RequestBody Map<String, Object> request) {
+        String pairType = (String) request.get("pairType");
+        String message = (String) request.get("message");
+        List<Map<String, Object>> history = (List<Map<String, Object>>) request.get("history");
+
+        StringBuilder promptBuilder = new StringBuilder();
+        promptBuilder.append("Bạn là một đối tác hội thoại AI thân thiện. Hãy trò chuyện với người học tiếng Việt dựa trên kịch bản và cặp âm cần luyện tập.\n");
+        if (pairType != null) {
+            promptBuilder.append("Cặp âm cần luyện tập: ").append(pairType).append("\n");
+            promptBuilder.append("Hãy cố gắng sử dụng nhiều từ chứa cặp âm này trong phản hồi của bạn để người học có thể làm quen.\n");
+        }
+        promptBuilder.append("Hãy đóng vai tự nhiên, trả lời ngắn gọn (1-2 câu), thân thiện và khuyến khích người học trả lời tiếp.\n\n");
+        
+        if (history != null && !history.isEmpty()) {
+            promptBuilder.append("Lịch sử cuộc trò chuyện:\n");
+            for (Map<String, Object> msg : history) {
+                promptBuilder.append("- ").append(msg.get("role")).append(": ").append(msg.get("content")).append("\n");
+            }
+        }
+        promptBuilder.append("Tin nhắn mới nhất từ người học: ").append(message).append("\n");
+        promptBuilder.append("Hãy trả về phản hồi của bạn dưới dạng JSON thuần túy có định dạng: {\"reply\": \"nội dung phản hồi của bạn\"}");
+
+        Map<String, Object> aiResponse = aiService.chatWithGroq(promptBuilder.toString());
+        return ResponseEntity.ok(ApiResponse.success("Thành công", aiResponse));
     }
 }

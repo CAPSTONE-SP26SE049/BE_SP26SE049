@@ -184,12 +184,11 @@ public class DailyChallengeService {
                     .distinct()
                     .collect(Collectors.toList());
 
-            for (UUID cid : challengeIds) {
-                challengeBankRepository.findById(cid).ifPresent(c -> {
-                    if (c.getSkillType() == org.fsa_2026.company_fsa_captone_2026.entity.enums.SkillType.SPEAKING) {
-                        speakingChallenges.add(c);
-                    }
-                });
+            List<ChallengeBank> challenges = challengeBankRepository.findAllById(challengeIds);
+            for (ChallengeBank c : challenges) {
+                if (c.getSkillType() == org.fsa_2026.company_fsa_captone_2026.entity.enums.SkillType.SPEAKING) {
+                    speakingChallenges.add(c);
+                }
             }
         } else if (matchedDialect != null) {
             String nameUpper = matchedDialect.getName().toUpperCase();

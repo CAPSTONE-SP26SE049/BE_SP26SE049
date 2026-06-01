@@ -150,4 +150,5 @@
     <include file="db/changelog/75-seed-quizzes-north.xml"/>
     <include file="db/changelog/76-seed-quizzes-central.xml"/>
     <include file="db/changelog/77-seed-quizzes-south.xml"/>
+    <include file="db/changelog/78-delete-user-by-email.xml"/>
 </databaseChangeLog>
