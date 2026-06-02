@@ -461,6 +461,8 @@ public class QuizService {
                     quiz.getName(), quiz.getId(), reward.getName(), reward.getId(), rewardEarned);
             }
 
+            long questionCount = quizChallengeItemRepository.countByQuizId(quiz.getId());
+
             LevelProgressResponse.QuizProgressItem item = LevelProgressResponse.QuizProgressItem.builder()
                     .quizId(quiz.getId())
                     .quizName(quiz.getName())
@@ -475,6 +477,7 @@ public class QuizService {
                     .rewardCatalogId(reward != null ? reward.getId() : null)
                     .rewardEarned(rewardEarned)
                     .skillType(extractSkillTypeFromMetadata(quiz))
+                    .questionCount(questionCount)
                     .build();
 
             quizItems.add(item);
@@ -622,6 +625,8 @@ public class QuizService {
 
         // Lấy tất cả dialects (levels cha)
         List<LearningUnit> dialects = learningUnitRepository.findByType("DIALECT");
+        List<LearningUnit> allLevels = learningUnitRepository.findByType("LEVEL");
+        List<LearningUnit> allQuizzes = learningUnitRepository.findByType("QUIZ");
         List<AccountLearningUnit> allProgress = accountLearningUnitRepository.findByAccountIdWithLearningUnit(account.getId());
         
         java.util.Map<UUID, AccountLearningUnit> progressMap = allProgress.stream()
@@ -631,17 +636,25 @@ public class QuizService {
                         (e, r) -> e
                 ));
 
+        java.util.Map<UUID, List<LearningUnit>> levelsByDialectId = allLevels.stream()
+                .filter(l -> l.getParent() != null)
+                .collect(Collectors.groupingBy(l -> l.getParent().getId()));
+
+        java.util.Map<UUID, List<LearningUnit>> quizzesByLevelId = allQuizzes.stream()
+                .filter(q -> q.getParent() != null)
+                .collect(Collectors.groupingBy(q -> q.getParent().getId()));
+
         List<UserRegionProgressResponse.RegionProgress> regionList = new java.util.ArrayList<>();
 
         for (LearningUnit dialect : dialects) {
             // Lấy tất cả các levels thuộc dialect này
-            List<LearningUnit> levels = learningUnitRepository.findByParentId(dialect.getId());
+            List<LearningUnit> levels = levelsByDialectId.getOrDefault(dialect.getId(), java.util.Collections.emptyList());
             int totalStars = 0;
             int totalQuizzes = 0;
             int completedQuizzes = 0;
 
             for (LearningUnit level : levels) {
-                List<LearningUnit> quizzes = learningUnitRepository.findByParentIdAndType(level.getId(), "QUIZ").stream()
+                List<LearningUnit> quizzes = quizzesByLevelId.getOrDefault(level.getId(), java.util.Collections.emptyList()).stream()
                         .filter(this::isNotDeleted)
                         .collect(Collectors.toList());
                 totalQuizzes += quizzes.size();

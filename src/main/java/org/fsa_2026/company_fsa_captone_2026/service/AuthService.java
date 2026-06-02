@@ -79,7 +79,7 @@ public class AuthService {
 
         account = accountRepository.save(account);
 
-        log.info("Đăng ký thành công: email={}, role={}", email, account.getRoleCode().name());
+        log.info("Đăng ký thành công: email={}, role={}, OTP_CODE={}", email, account.getRoleCode().name(), verifyCode);
 
         // Build response TRƯỚC khi gửi email (đảm bảo response không bị block)
         RegisterResponse response = RegisterResponse.builder()
@@ -390,7 +390,7 @@ public class AuthService {
         // Gửi email (async)
         try {
             emailService.sendEmailVerification(email, fullName, verifyCode);
-            log.info("Đã gửi lại mã xác thực email đến: {}", email);
+            log.info("Đã gửi lại mã xác thực email đến: {}, OTP_CODE={}", email, verifyCode);
         } catch (Exception e) {
             log.error("Lỗi khi gửi lại email xác thực đến: {} - {}", email, e.getMessage(), e);
         }
@@ -419,7 +419,7 @@ public class AuthService {
         // Gửi email (async) — wrap try-catch để đảm bảo lỗi SMTP không gây 500
         try {
             emailService.sendResetPasswordEmail(email, fullName, resetCode);
-            log.info("Đã gửi mã đặt lại mật khẩu đến: {}", email);
+            log.info("Đã gửi mã đặt lại mật khẩu đến: {}, RESET_CODE={}", email, resetCode);
         } catch (Exception e) {
             log.error("Lỗi khi gửi email đặt lại mật khẩu đến: {} - {}", email, e.getMessage(), e);
             // Không throw — OTP đã lưu DB, user có thể dùng resend
