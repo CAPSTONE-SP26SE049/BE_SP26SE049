@@ -185,14 +185,23 @@ public class AIService {
     private AzureTranscriptionResult transcribeWithLocalAsr(byte[] audioData, String targetText) {
         long start = System.currentTimeMillis();
         try {
+            boolean isWebm = audioData != null && audioData.length >= 4 &&
+                    audioData[0] == 0x1A &&
+                    audioData[1] == 0x45 &&
+                    (audioData[2] & 0xFF) == 0xDF &&
+                    (audioData[3] & 0xFF) == 0xA3;
+
+            String mimeType = isWebm ? "audio/webm" : "audio/wav";
+            final String filename = isWebm ? "recording.webm" : "recording.wav";
+
             org.springframework.util.MultiValueMap<String, Object> body = new org.springframework.util.LinkedMultiValueMap<>();
             HttpHeaders audioHeaders = new HttpHeaders();
-            audioHeaders.setContentType(MediaType.parseMediaType("audio/wav"));
+            audioHeaders.setContentType(MediaType.parseMediaType(mimeType));
             org.springframework.core.io.ByteArrayResource audioResource = new org.springframework.core.io.ByteArrayResource(
                     audioData) {
                 @Override
                 public String getFilename() {
-                    return "recording.wav";
+                    return filename;
                 }
             };
             body.add("audio", new HttpEntity<>(audioResource, audioHeaders));
