@@ -28,7 +28,7 @@ public class LearnerTournamentController {
     @GetMapping("/active")
     @Operation(
             summary = "Lấy giải đấu tuần đang hoạt động",
-            description = "Trả về thông tin chi tiết giải đấu tuần đang kích hoạt, bộ 5 câu hỏi tuần này và tiến trình hiện tại của học viên đăng nhập.",
+            description = "Trả về thông tin chi tiết giải đấu tuần đang kích hoạt, bộ 10 câu hỏi tuần này và tiến trình hiện tại của học viên đăng nhập.",
             security = @SecurityRequirement(name = "bearer-jwt")
     )
     public ResponseEntity<ApiResponse<Map<String, Object>>> getActiveTournament(Authentication authentication) {
@@ -72,7 +72,7 @@ public class LearnerTournamentController {
         }
 
         UUID challengeId = UUID.fromString(challengeIdStr);
-        int score = ((Number) scoreObj).intValue();
+        double score = ((Number) scoreObj).doubleValue();
 
         log.info("User {} submitting score {} for weekly tournament challenge {}", email, score, challengeId);
         Map<String, Object> result = tournamentService.submitTournamentScore(email, challengeId, score);

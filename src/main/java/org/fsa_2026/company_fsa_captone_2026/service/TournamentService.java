@@ -217,6 +217,28 @@ public class TournamentService {
             if (active.getQuestionsJson() == null || active.getQuestionsJson().isBlank()) {
                 generateWeeklyQuestions(active);
                 active = tournamentRepository.save(active);
+            } else {
+                try {
+                    List<UUID> currentIds = objectMapper.readValue(
+                            active.getQuestionsJson(),
+                            new TypeReference<List<UUID>>() {}
+                    );
+                    if (currentIds.size() < 10) {
+                        List<ChallengeBank> allChallenges = challengeBankRepository.findBySkillType(org.fsa_2026.company_fsa_captone_2026.entity.enums.SkillType.SPEAKING);
+                        List<UUID> existingIds = new ArrayList<>(currentIds);
+                        for (ChallengeBank c : allChallenges) {
+                            if (existingIds.size() >= 10) break;
+                            if (!existingIds.contains(c.getId())) {
+                                existingIds.add(c.getId());
+                            }
+                        }
+                        active.setQuestionsJson(objectMapper.writeValueAsString(existingIds));
+                        active = tournamentRepository.save(active);
+                        log.info("Successfully topped up active tournament to 10 questions: {}", active.getName());
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to parse or top up active questions_json", e);
+                }
             }
             return active;
         }
@@ -252,7 +274,7 @@ public class TournamentService {
     }
 
     /**
-     * Sinh bộ câu hỏi ngẫu nhiên 5 câu từ ChallengeBank cho giải đấu tuần (chỉ lấy Speaking).
+     * Sinh bộ câu hỏi ngẫu nhiên 10 câu từ ChallengeBank cho giải đấu tuần (chỉ lấy Speaking).
      */
     private void generateWeeklyQuestions(Tournament tournament) {
         List<ChallengeBank> allChallenges = challengeBankRepository.findBySkillType(org.fsa_2026.company_fsa_captone_2026.entity.enums.SkillType.SPEAKING);
@@ -263,13 +285,13 @@ public class TournamentService {
         List<ChallengeBank> copy = new ArrayList<>(allChallenges);
         Collections.shuffle(copy);
         List<UUID> selectedIds = copy.stream()
-                .limit(5)
+                .limit(10)
                 .map(ChallengeBank::getId)
                 .collect(Collectors.toList());
 
         try {
             tournament.setQuestionsJson(objectMapper.writeValueAsString(selectedIds));
-            log.info("Successfully generated 5 weekly questions for tournament: {}", tournament.getName());
+            log.info("Successfully generated 10 weekly questions for tournament: {}", tournament.getName());
         } catch (Exception e) {
             log.error("Failed to serialize weekly questions to JSON", e);
         }
@@ -305,12 +327,12 @@ public class TournamentService {
                 .findByTournamentIdAndAccountId(tournament.getId(), account.getId())
                 .orElse(null);
 
-        Map<String, Integer> userScores = new HashMap<>();
+        Map<String, Object> rawScores = new HashMap<>();
         if (participant != null && participant.getScoresJson() != null && !participant.getScoresJson().isBlank()) {
             try {
-                userScores = objectMapper.readValue(
+                rawScores = objectMapper.readValue(
                         participant.getScoresJson(),
-                        new TypeReference<Map<String, Integer>>() {}
+                        new TypeReference<Map<String, Object>>() {}
                 );
             } catch (Exception e) {
                 log.error("Failed to parse participant scores_json", e);
@@ -325,7 +347,17 @@ public class TournamentService {
             cMap.put("skillType", c.getSkillType());
             cMap.put("region", c.getRegion());
             cMap.put("metadataJson", c.getMetadataJson());
-            cMap.put("userHighScore", userScores.getOrDefault(c.getId().toString(), 0));
+            
+            Object val = rawScores.get(c.getId().toString());
+            int userHighScore = 0;
+            if (val instanceof Map) {
+                Map<?, ?> map = (Map<?, ?>) val;
+                Number pts = (Number) map.get("points");
+                userHighScore = pts != null ? pts.intValue() : 0;
+            } else if (val instanceof Number) {
+                userHighScore = ((Number) val).intValue();
+            }
+            cMap.put("userHighScore", userHighScore);
             challengeList.add(cMap);
         }
 
@@ -354,7 +386,7 @@ public class TournamentService {
      * Học viên nộp điểm số luyện tập của mình trong giải đấu.
      */
     @Transactional
-    public Map<String, Object> submitTournamentScore(String email, UUID challengeId, int score) {
+    public Map<String, Object> submitTournamentScore(String email, UUID challengeId, double score) {
         Tournament tournament = getOrCreateActiveTournament();
         
         List<UUID> questionIds = new ArrayList<>();
@@ -390,12 +422,12 @@ public class TournamentService {
                     return tournamentParticipantRepository.save(newPart);
                 });
 
-        Map<String, Integer> userScores = new HashMap<>();
+        Map<String, Object> rawScores = new HashMap<>();
         if (participant.getScoresJson() != null && !participant.getScoresJson().isBlank()) {
             try {
-                userScores = objectMapper.readValue(
+                rawScores = objectMapper.readValue(
                         participant.getScoresJson(),
-                        new TypeReference<Map<String, Integer>>() {}
+                        new TypeReference<Map<String, Object>>() {}
                 );
             } catch (Exception e) {
                 log.error("Failed to parse participant scores_json", e);
@@ -403,37 +435,51 @@ public class TournamentService {
         }
 
         String challengeKey = challengeId.toString();
-        int previousScore = userScores.getOrDefault(challengeKey, 0);
-        boolean updated = false;
-
-        if (score > previousScore) {
-            userScores.put(challengeKey, score);
-            updated = true;
-            try {
-                participant.setScoresJson(objectMapper.writeValueAsString(userScores));
-            } catch (Exception e) {
-                log.error("Failed to serialize participant scores_json", e);
-            }
-
-            // Tính toán lại
-            int totalXp = userScores.values().stream().mapToInt(Integer::intValue).sum();
-            participant.setTotalXp(totalXp);
-            participant.setChallengesCompleted(userScores.size());
-            participant.setAverageScore(BigDecimal.valueOf((double) totalXp / userScores.size()));
-            
-            // Tặng điểm kinh nghiệm delta vào tài khoản toàn cục của học viên
-            int xpDelta = score - previousScore;
-            account.setTotalExperience((account.getTotalExperience() != null ? account.getTotalExperience() : 0) + xpDelta);
-            accountRepository.save(account);
-
-            tournamentParticipantRepository.save(participant);
-            badgeUnlockService.checkAndUnlockBadges(account);
+        if (rawScores.containsKey(challengeKey)) {
+            throw new ApiException("CONFLICT", "Câu hỏi này đã được chấm điểm trước đó và không thể làm lại.");
         }
 
+        int points = (int) Math.round(score);
+
+        Map<String, Object> scoreDetail = new HashMap<>();
+        scoreDetail.put("percent", score);
+        scoreDetail.put("points", points);
+        scoreDetail.put("scoredAt", Instant.now().toString());
+
+        rawScores.put(challengeKey, scoreDetail);
+
+        try {
+            participant.setScoresJson(objectMapper.writeValueAsString(rawScores));
+        } catch (Exception e) {
+            log.error("Failed to serialize participant scores_json", e);
+        }
+
+        double totalPoints = 0;
+        double totalPercent = 0;
+        for (Object val : rawScores.values()) {
+            if (val instanceof Map) {
+                Map<?, ?> map = (Map<?, ?>) val;
+                Number pts = (Number) map.get("points");
+                Number pct = (Number) map.get("percent");
+                totalPoints += pts != null ? pts.doubleValue() : 0;
+                totalPercent += pct != null ? pct.doubleValue() : 0;
+            } else if (val instanceof Number) {
+                double v = ((Number) val).doubleValue();
+                totalPoints += Math.round(v);
+                totalPercent += v;
+            }
+        }
+
+        participant.setTotalXp((int) totalPoints);
+        participant.setChallengesCompleted(rawScores.size());
+        participant.setAverageScore(BigDecimal.valueOf(totalPercent / rawScores.size()));
+
+        tournamentParticipantRepository.save(participant);
+
         Map<String, Object> result = new HashMap<>();
-        result.put("updated", updated);
-        result.put("score", score);
-        result.put("previousHighScore", previousScore);
+        result.put("updated", true);
+        result.put("score", points);
+        result.put("previousHighScore", 0);
         result.put("totalXp", participant.getTotalXp());
         result.put("challengesCompleted", participant.getChallengesCompleted());
         result.put("averageScore", participant.getAverageScore());
