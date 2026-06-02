@@ -47,7 +47,7 @@ public class AIService {
     @Value("${asr.local.sampling-rate:16000}")
     private int localAsrSamplingRate;
 
-    public static final String SYSTEM_INSTRUCTION = "Bạn là chuyên gia phân tích phát âm tiếng Việt. So sánh rawText với targetText và trả về nhận xét sư phạm, cụ thể, hữu ích. Hệ thống hiện tại hỗ trợ chẩn đoán và phân tích các lỗi phát âm/vùng miền sau:\n{availableErrorTags}\nHãy ưu tiên đối chiếu phát hiện lỗi xem người học có mắc phải lỗi nào trong danh sách trên hay không. Không được trả lời chung chung, không được lặp lại nguyên văn targetText, và không được dùng câu ngắn kiểu 'Phát âm chưa chính xác' nếu chưa giải thích vì sao.";
+    public static final String SYSTEM_INSTRUCTION = "Bạn là chuyên gia phân tích phát âm tiếng Việt. QUAN TRỌNG: rawText là những gì người học THỰC SỰ ĐÃ NÓI (do ASR nhận diện). targetText là từ/câu CHUẨN mà người học CẦN phát âm đúng. Nhiệm vụ: đánh giá xem người học có phát âm đúng targetText không, dựa trên rawText. Nếu rawText khác targetText, hãy giải thích người học đã nói sai chỗ nào so với targetText, KHÔNG phải ngược lại. Hệ thống hỗ trợ chẩn đoán các lỗi phát âm/vùng miền sau:\n{availableErrorTags}\nHãy ưu tiên đối chiếu phát hiện lỗi xem người học có mắc phải lỗi nào trong danh sách trên hay không. Không được trả lời chung chung, không được lặp lại nguyên văn targetText, và không được dùng câu ngắn kiểu 'Phát âm chưa chính xác' nếu chưa giải thích vì sao.";
     public static final String JSON_SCHEMA_INSTRUCTION = "Trả về JSON thuần túy với các fields: accuracy (0-100), detectedError (mô tả lỗi cụ thể), feedback (ít nhất 2 câu, nêu lỗi và cách sửa), suggestion (gợi ý ngắn gọn), errorDetail (diễn giải chi tiết hơn feedback), isRegional (boolean), isCorrect (boolean), shapeKey (exact_match, near_match, pronunciation_mismatch, regional_error, missing_input).";
 
     private final ObjectMapper objectMapper;
@@ -272,7 +272,7 @@ public class AIService {
      * @return accuracy, feedback, isCorrect, …
      */
     public Map<String, Object> provideFeedback(String transcribedText, String targetText, String focusErrorTag) {
-        if (transcribedText == null || targetText == null || transcribedText.isBlank() || targetText.isBlank()) {
+        if (targetText == null || targetText.isBlank()) {
             return new HashMap<>(Map.of(
                     "isCorrect", false,
                     "accuracy", 0,
@@ -282,6 +282,18 @@ public class AIService {
                     "score", 0,
                     "suggestion", "Vui lòng gửi đầy đủ văn bản nhận diện và văn bản mẫu.",
                     "errorDetail", "Thiếu dữ liệu đầu vào để chấm điểm.",
+                    "aiProvider", "groq"));
+        }
+        if (transcribedText == null || transcribedText.isBlank()) {
+            return new HashMap<>(Map.of(
+                    "isCorrect", false,
+                    "accuracy", 0,
+                    "errorType", "no_speech_detected",
+                    "feedback", "Hệ thống không nhận diện được giọng nói. Hãy thử nói to và rõ hơn, đặt micro gần miệng hơn, và đảm bảo không có tiếng ồn xung quanh.",
+                    "shapeKey", "missing_input",
+                    "score", 0,
+                    "suggestion", "Nói to, rõ ràng và giữ micro gần miệng khoảng 10–15 cm.",
+                    "errorDetail", "ASR không nhận diện được âm thanh từ micro.",
                     "aiProvider", "groq"));
         }
 
@@ -697,9 +709,15 @@ public class AIService {
     }
 
     public Map<String, Object> explainQuizAnswer(String question, String selectedAnswer, String correctAnswer,
-            String skillType, String transcript, String correctSentence) {
+            String skillType, String transcript, String correctSentence, Boolean isCorrect) {
         boolean isTimeout = selectedAnswer.contains("chưa chọn đáp án");
-        String resultStatus = selectedAnswer.equalsIgnoreCase(correctAnswer) ? "CHÍNH XÁC" : "CHƯA ĐÚNG";
+        
+        String resultStatus;
+        if (isCorrect != null) {
+            resultStatus = isCorrect ? "CHÍNH XÁC" : "CHƯA ĐÚNG";
+        } else {
+            resultStatus = selectedAnswer.equalsIgnoreCase(correctAnswer) ? "CHÍNH XÁC" : "CHƯA ĐÚNG";
+        }
 
         String template = systemConfigService.getValue("prompt.quiz-explanation", 
                 "Bạn là giáo viên dạy Tiếng Việt vui nhộn và tận tâm. Hãy giải thích ngắn gọn (1-3 câu) lý do vì sao đáp án là {status}. {timeoutDetail} Câu hỏi: \"{question}\". Người dùng chọn: \"{selectedAnswer}\". Đáp án đúng là: \"{correctAnswer}\". Kỹ năng: {skillType}. {hearingDetail} {correctDetail} Hãy giúp người dùng hiểu rõ kiến thức một cách thân thiện. Trả về JSON có field 'explanation'.");
