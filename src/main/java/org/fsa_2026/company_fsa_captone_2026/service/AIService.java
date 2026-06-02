@@ -243,13 +243,17 @@ public class AIService {
         }
     }
 
-    public Map<String, Object> chatWithGroq(String message) {
+    public Map<String, Object> chatWithGroq(String systemInstruction, String message) {
         String activeKey = systemConfigService.getValue("groq.api-key", groqApiKey);
         if (activeKey == null || activeKey.isBlank()) {
             throw new ApiException("CONFIG_ERROR",
                     "Groq API Key chưa được cấu hình. Vui lòng kiểm tra biến môi trường GROQ_API_KEY hoặc cấu hình trong hệ thống.");
         }
-        return chatWithGroqOrFallback(message);
+        return chatWithGroqOrFallback(systemInstruction, message);
+    }
+
+    public Map<String, Object> chatWithGroq(String message) {
+        return chatWithGroq("Bạn là trợ lý học tập tiếng Việt thân thiện và thông minh.", message);
     }
 
     /**
@@ -365,11 +369,11 @@ public class AIService {
         return Math.min(100, Math.max(0, (int) Math.round((double) matches / tgtWords.length * 100)));
     }
 
-    private Map<String, Object> chatWithGroqOrFallback(String message) {
+    private Map<String, Object> chatWithGroqOrFallback(String systemInstruction, String message) {
         String lastError = "Unknown error";
         for (String modelName : groqModelCandidates()) {
             try {
-                Map<String, Object> raw = callGroqModel(message, modelName);
+                Map<String, Object> raw = callGroqModel(systemInstruction, message, modelName);
                 if (raw != null)
                     return raw;
             } catch (Exception e) {
@@ -377,6 +381,14 @@ public class AIService {
             }
         }
         throw new ApiException("AI_ERROR", "Không thể gọi Groq API: " + lastError);
+    }
+
+    private Map<String, Object> chatWithGroqOrFallback(String message) {
+        String activeSystemInstruction = systemConfigService.getValue("prompt.pronunciation-system-instruction", SYSTEM_INSTRUCTION);
+        if (activeSystemInstruction.contains("{availableErrorTags}")) {
+            activeSystemInstruction = activeSystemInstruction.replace("{availableErrorTags}", getAvailableErrorTagsText());
+        }
+        return chatWithGroqOrFallback(activeSystemInstruction, message);
     }
 
     private List<String> groqModelCandidates() {
@@ -541,16 +553,11 @@ public class AIService {
                 .replace("{focusInstruction}", focusInstruction);
     }
 
-    private Map<String, Object> callGroqModel(String userMessage, String modelName) {
+    private Map<String, Object> callGroqModel(String systemInstruction, String userMessage, String modelName) {
         String activeKey = systemConfigService.getValue("groq.api-key", groqApiKey);
         if (activeKey == null || activeKey.isBlank()) {
             throw new ApiException("CONFIG_ERROR",
                     "Groq API Key chưa được cấu hình. Vui lòng kiểm tra biến môi trường GROQ_API_KEY hoặc cấu hình trong hệ thống.");
-        }
-
-        String activeSystemInstruction = systemConfigService.getValue("prompt.pronunciation-system-instruction", SYSTEM_INSTRUCTION);
-        if (activeSystemInstruction.contains("{availableErrorTags}")) {
-            activeSystemInstruction = activeSystemInstruction.replace("{availableErrorTags}", getAvailableErrorTagsText());
         }
 
         String activeEndpoint = systemConfigService.getValue("groq.endpoint", groqEndpoint);
@@ -558,7 +565,7 @@ public class AIService {
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", modelName);
         requestBody.put("messages", List.of(
-                Map.of("role", "system", "content", activeSystemInstruction),
+                Map.of("role", "system", "content", systemInstruction),
                 Map.of("role", "user", "content", userMessage)));
         requestBody.put("temperature", 0.2);
         requestBody.put("response_format", Map.of("type", "json_object"));
@@ -575,11 +582,19 @@ public class AIService {
         return parseAndNormalizeOpenAiStyleResponse(response.getBody(), null, null, true);
     }
 
-    private Map<String, Object> callGroqModel(String prompt) {
+    private Map<String, Object> callGroqModel(String userMessage, String modelName) {
+        String activeSystemInstruction = systemConfigService.getValue("prompt.pronunciation-system-instruction", SYSTEM_INSTRUCTION);
+        if (activeSystemInstruction.contains("{availableErrorTags}")) {
+            activeSystemInstruction = activeSystemInstruction.replace("{availableErrorTags}", getAvailableErrorTagsText());
+        }
+        return callGroqModel(activeSystemInstruction, userMessage, modelName);
+    }
+
+    private Map<String, Object> callGroqModel(String systemInstruction, String prompt) {
         Exception lastError = null;
         for (String modelName : groqModelCandidates()) {
             try {
-                return callGroqModel(prompt, modelName);
+                return callGroqModel(systemInstruction, prompt, modelName);
             } catch (Exception e) {
                 lastError = e;
             }
@@ -587,6 +602,14 @@ public class AIService {
         if (lastError instanceof RuntimeException runtimeException)
             throw runtimeException;
         throw new ApiException("AI_ERROR", "Không thể gọi Groq API với các model đã cấu hình.");
+    }
+
+    private Map<String, Object> callGroqModel(String prompt) {
+        String activeSystemInstruction = systemConfigService.getValue("prompt.pronunciation-system-instruction", SYSTEM_INSTRUCTION);
+        if (activeSystemInstruction.contains("{availableErrorTags}")) {
+            activeSystemInstruction = activeSystemInstruction.replace("{availableErrorTags}", getAvailableErrorTagsText());
+        }
+        return callGroqModel(activeSystemInstruction, prompt);
     }
 
     private String normalizeForComparison(String text) {
