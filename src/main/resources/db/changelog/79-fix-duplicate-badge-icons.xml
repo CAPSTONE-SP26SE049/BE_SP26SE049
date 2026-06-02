@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet id="79-fix-duplicate-badge-icons" author="antigravity">
+        <comment>Replace duplicate rocket, controller, and voice master icons with unique, beautiful flaticon CDN URLs</comment>
+
+        <!-- 1. Fix former duplicate rocket icons (fallbacked to rocket) -->
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/9333/9333990.png' WHERE code = 'LEARN_15_LEVELS';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/1828/1828884.png' WHERE code = 'SCORE_FIRST_STAR';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/1828/1828961.png' WHERE code = 'SCORE_50_STARS';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/9187/9187462.png' WHERE code = 'SCORE_100_STARS';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/3081/3081648.png' WHERE code = 'SCORE_300_STARS';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/4786/4786016.png' WHERE code = 'SCORE_500_STARS';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/2583/2583344.png' WHERE code = 'SCORE_PERFECT_FIRST';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/2583/2583319.png' WHERE code = 'SCORE_PERFECT_5';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/3112/3112946.png' WHERE code = 'SCORE_PERFECT_10';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/3121/3121544.png' WHERE code = 'SOCIAL_FIRST_FRIEND';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/1256/1256650.png' WHERE code = 'SOCIAL_10_FRIENDS';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/2582/2582683.png' WHERE code = 'SOCIAL_LEADERBOARD_TOP10';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/3062/3062224.png' WHERE code = 'SPECIAL_EARLY_BIRD';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/3070/3070183.png' WHERE code = 'SPECIAL_NIGHT_OWL';</sql>
+
+        <!-- 2. Fix duplicate minigame controller icons -->
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' WHERE code = 'MINI_FIRST_PLAY';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/4201/4201973.png' WHERE code = 'MINI_10_PLAYS';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/5260/5260498.png' WHERE code = 'MINI_50_PLAYS';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/2232/2232688.png' WHERE code = 'MINI_READING_FIRST';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/2702/2702134.png' WHERE code = 'MINI_READING_SAGA';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/588/588395.png'   WHERE code = 'MINI_WRITING_FIRST';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/2970/2970785.png' WHERE code = 'MINI_WRITING_DONE';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/826/826908.png'   WHERE code = 'MINI_MARIO_FIRST';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/748/748073.png'   WHERE code = 'MINI_MARIO_CLEAR';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/3408/3408545.png' WHERE code = 'MINI_ALL_TYPES';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/1420/1420333.png' WHERE code = 'MINI_PERFECT_GAME';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/6840/6840455.png' WHERE code = 'MINI_PERFECT_10';</sql>
+
+        <!-- 3. Fix duplicate phoneme master wave icons -->
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/3588/3588294.png' WHERE code = 'PHONEME_NL_MASTER';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/3588/3588383.png' WHERE code = 'PHONEME_SX_MASTER';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/3588/3588289.png' WHERE code = 'PHONEME_DGIR_MASTER';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/3588/3588267.png' WHERE code = 'PHONEME_TRCH_MASTER';</sql>
+    </changeSet>
+
+</databaseChangeLog>
