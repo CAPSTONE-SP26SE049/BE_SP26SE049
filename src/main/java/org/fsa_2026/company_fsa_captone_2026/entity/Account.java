@@ -98,6 +98,9 @@ public class Account extends BaseEntity {
     @Column(name = "last_login_date")
     private LocalDate lastLoginDate;
 
+    @Column(name = "last_active_at")
+    private Instant lastActiveAt;
+
     @Column(name = "total_experience", nullable = false)
     @Builder.Default
     private Integer totalExperience = 0;

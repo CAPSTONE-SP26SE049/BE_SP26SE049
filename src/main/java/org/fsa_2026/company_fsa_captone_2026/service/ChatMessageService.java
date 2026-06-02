@@ -25,6 +25,7 @@ public class ChatMessageService {
 
     private final ChatMessageRepository chatMessageRepository;
     private final AccountRepository accountRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public ChatMessageDto saveMessage(ChatMessageDto dto) {
@@ -37,6 +38,22 @@ public class ChatMessageService {
                 .build();
 
         ChatMessage saved = chatMessageRepository.save(entity);
+
+        // Create in-app notification for new message
+        try {
+            Account sender = accountRepository.findById(dto.getSenderId()).orElse(null);
+            String senderName = sender != null && sender.getFullName() != null ? sender.getFullName() : "Một học viên";
+            notificationService.createNotification(
+                    dto.getRecipientId(),
+                    "MESSAGE",
+                    "Tin nhắn mới từ " + senderName,
+                    dto.getContent(),
+                    dto.getSenderId()
+            );
+        } catch (Exception ex) {
+            // Log and ignore to prevent blocking chat message if notification fails
+        }
+
         return toDto(saved);
     }
 

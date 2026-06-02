@@ -121,6 +121,8 @@ public class MinigameChallengeController {
                 "1. Trò chuyện tự nhiên với học viên tiếng Việt dựa trên kịch bản và lịch sử cuộc trò chuyện. Trả lời ngắn gọn (1-2 câu).\n" +
                 "2. Phân tích tin nhắn mới nhất của người học để phát hiện các lỗi phát âm/chính tả liên quan đến cặp âm cần luyện tập (phụ âm bắt đầu bằng N hoặc L nếu cặp âm là N_L; S hoặc X nếu là S_X; D, GI, hoặc R nếu là D_GI_R; TR hoặc CH nếu là TR_CH).\n" +
                 "QUAN TRỌNG:\n" +
+                "- Nội dung phản hồi phải có ý nghĩa, bám ngữ cảnh và giúp cuộc trò chuyện tiếp tục tự nhiên. Tuyệt đối tránh phản hồi sáo rỗng.\n" +
+                "- KHÔNG cố tình nhồi hoặc lặp lại hàng loạt từ chứa cặp âm đang luyện nếu không phù hợp ngữ cảnh.\n" +
                 "- Hãy lọc ra danh sách các từ viết ĐÚNG chính tả chứa phụ âm cần luyện tập và xếp vào mảng \"correctWords\" (chỉ các từ bắt đầu bằng phụ âm đang luyện tập viết đúng chính tả, ví dụ: với N_L thì chỉ các từ bắt đầu bằng N hoặc L viết đúng chính tả mới được vào đây; từ \"chi\" không bắt đầu bằng N/L nên KHÔNG được nằm trong correctWords).\n" +
                 "- Hãy tìm ra tất cả các từ viết SAI chính tả hoặc bị NGỌNG, LẪN LỘN giữa các phụ âm đang luyện tập (ví dụ: gõ/nói \"ninh\" thay vì \"linh\" trong cụm \"nấm linh chi\"; gõ \"lem\" thay vì \"nem\" trong \"nem lụi\"; gõ \"lường\" thay vì \"nướng\"...) và xếp vào mảng \"incorrectWords\".\n" +
                 "- Bạn phải phân tích kỹ ngữ cảnh của từ đó trong câu để xác định xem người học có thực sự bị nhầm lẫn âm hay không.\n" +
@@ -136,7 +138,7 @@ public class MinigameChallengeController {
         StringBuilder promptBuilder = new StringBuilder();
         if (pairType != null) {
             promptBuilder.append("Cặp âm cần luyện tập: ").append(pairType).append("\n");
-            promptBuilder.append("Hãy cố gắng sử dụng nhiều từ chứa cặp âm này trong phản hồi của bạn để người học có thể làm quen.\n");
+            promptBuilder.append("Ưu tiên sự tự nhiên của hội thoại. Chỉ dùng từ chứa cặp âm này khi thực sự phù hợp ngữ cảnh.\n");
         }
         promptBuilder.append("Hãy đóng vai tự nhiên, trả lời ngắn gọn (1-2 câu), thân thiện và khuyến khích người học trả lời tiếp.\n\n");
         

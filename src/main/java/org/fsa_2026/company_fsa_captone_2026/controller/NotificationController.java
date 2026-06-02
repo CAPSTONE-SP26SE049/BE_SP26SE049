@@ -53,6 +53,16 @@ public class NotificationController {
         return ResponseEntity.ok(ApiResponse.success("Đánh dấu đã đọc thành công", null));
     }
 
+    @PutMapping("/read-all")
+    @Operation(summary = "Mark all notifications as read",
+            description = "Đánh dấu tất cả thông báo của người dùng hiện tại là đã đọc",
+            security = @SecurityRequirement(name = "bearer-jwt"))
+    public ResponseEntity<ApiResponse<Void>> markAllAsRead(Authentication authentication) {
+        log.info("User {} marking all notifications as read", authentication.getName());
+        notificationService.markAllAsRead(authentication.getName());
+        return ResponseEntity.ok(ApiResponse.success("Đánh dấu tất cả đã đọc thành công", null));
+    }
+
     @GetMapping("/unread-count")
     @Operation(summary = "Get unread notification count",
             description = "Lấy số lượng thông báo chưa đọc",

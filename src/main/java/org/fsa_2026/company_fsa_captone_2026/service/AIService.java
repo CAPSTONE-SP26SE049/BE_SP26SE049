@@ -582,7 +582,7 @@ public class AIService {
         return parseAndNormalizeOpenAiStyleResponse(response.getBody(), null, null, true);
     }
 
-    private Map<String, Object> callGroqModel(String userMessage, String modelName) {
+    private Map<String, Object> callGroqModelSpecificModel(String userMessage, String modelName) {
         String activeSystemInstruction = systemConfigService.getValue("prompt.pronunciation-system-instruction", SYSTEM_INSTRUCTION);
         if (activeSystemInstruction.contains("{availableErrorTags}")) {
             activeSystemInstruction = activeSystemInstruction.replace("{availableErrorTags}", getAvailableErrorTagsText());

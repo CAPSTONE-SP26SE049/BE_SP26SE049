@@ -152,4 +152,5 @@
     <include file="db/changelog/77-seed-quizzes-south.xml"/>
     <include file="db/changelog/78-delete-user-by-email.xml"/>
     <include file="db/changelog/79-fix-duplicate-badge-icons.xml"/>
+    <include file="db/changelog/80-add-last-active-at.xml"/>
 </databaseChangeLog>
