@@ -33,11 +33,10 @@ gcloud run deploy ${SERVICE_NAME} \
   --image ${IMAGE_TAG} \
   --region ${REGION} \
   --platform managed \
-  --allow-unauthenticated \
-  # --add-cloudsql-instances "YOUR_PROJECT_ID:YOUR_REGION:YOUR_INSTANCE_NAME" \
-  # --set-env-vars "SPRING_DATASOURCE_URL=jdbc:postgresql:///speakvn_db?cloudSqlInstance=YOUR_PROJECT_ID:YOUR_REGION:YOUR_INSTANCE_NAME&socketFactory=com.google.cloud.sql.postgres.SocketFactory" \
-  # --set-env-vars "SPRING_DATASOURCE_USERNAME=postgres" \
-  # --set-env-vars "SPRING_DATASOURCE_PASSWORD=yourpassword"
+  --port 8082 \
+  --allow-unauthenticated
+
+
 
 if [ $? -eq 0 ]; then
   echo "Deployment successful!"

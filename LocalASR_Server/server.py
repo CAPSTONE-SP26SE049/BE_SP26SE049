@@ -11,7 +11,7 @@ import re
 # Tên mô hình trên HuggingFace
 MODEL_NAME = "nvidia/parakeet-ctc-0.6b-vi"
 # Cổng server (Port)
-PORT = 8000
+PORT = int(os.environ.get("PORT", 8000))
 # File tạm để lưu âm thanh trước khi xử lý
 TEMP_FILE = "temp_audio_input.wav"
 
@@ -25,6 +25,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/")
+async def root():
+    return {
+        "status": "healthy",
+        "message": "SpeakVN ASR Server (NVIDIA NeMo Parakeet) is running successfully!"
+    }
 
 asr_model = None
 
