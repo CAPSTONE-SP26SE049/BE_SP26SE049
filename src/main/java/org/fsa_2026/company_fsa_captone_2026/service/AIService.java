@@ -624,7 +624,10 @@ public class AIService {
     private String normalizeForComparison(String text) {
         if (text == null)
             return "";
-        return text.trim().toLowerCase(Locale.ROOT).replaceAll("\\s+", " ");
+        return text.trim()
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[.,!?\"'()\\-—;:]", "") // Loại bỏ các dấu câu cơ bản
+                .replaceAll("\\s+", " ");
     }
 
     private Map<String, Object> normalizeFeedbackResponse(Map<String, Object> raw, String transcribedText,

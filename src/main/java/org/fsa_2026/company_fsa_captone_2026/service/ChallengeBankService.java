@@ -60,6 +60,42 @@ public class ChallengeBankService {
                 .build();
         return challengeBankRepository.save(challenge);
     }
+
+    @Transactional
+    public List<ChallengeBank> batchUpsertChallenges(List<ChallengeBankRequest> requests) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        Account account = accountRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản để gán người tạo"));
+
+        List<ChallengeBank> entitiesToSave = new java.util.ArrayList<>();
+        for (ChallengeBankRequest request : requests) {
+            Map<String, Object> metadata = request.getMetadataJson();
+            if (metadata == null) metadata = new LinkedHashMap<>();
+            ensureAudioUrl(request.getSkillType(), request.getRegion(), metadata);
+
+            if (request.getId() != null) {
+                // Update
+                ChallengeBank challenge = challengeBankRepository.findById(request.getId())
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy câu hỏi với ID: " + request.getId()));
+                if (request.getContentText() != null) challenge.setContentText(request.getContentText());
+                if (request.getSkillType() != null) challenge.setSkillType(request.getSkillType());
+                if (request.getRegion() != null) challenge.setRegion(request.getRegion());
+                challenge.setMetadataJson(metadata);
+                entitiesToSave.add(challenge);
+            } else {
+                // Create
+                ChallengeBank challenge = ChallengeBank.builder()
+                        .contentText(request.getContentText())
+                        .skillType(request.getSkillType())
+                        .region(request.getRegion() != null ? request.getRegion() : "BAC")
+                        .metadataJson(metadata)
+                        .createdBy(account.getId())
+                        .build();
+                entitiesToSave.add(challenge);
+            }
+        }
+        return challengeBankRepository.saveAll(entitiesToSave);
+    }
     @Transactional(readOnly = true)
     public List<ChallengeBank> getAllChallenges() {
         return challengeBankRepository.findAll();
@@ -155,6 +191,8 @@ public class ChallengeBankService {
     }
 
     private void ensureAudioUrl(SkillType skillType, String region, Map<String, Object> metadata) {
+        // Disabled per user request: TTS should be generated on-demand at the user side, not blocking the save API.
+        /*
         if (skillType == SkillType.LISTENING || skillType == SkillType.SPEAKING || skillType == SkillType.ENTRY_TEST) {
             String transcript = (String) metadata.get("transcript");
             String audioUrl = (String) metadata.get("audioUrl");
@@ -178,5 +216,6 @@ public class ChallengeBankService {
                 }
             }
         }
+        */
     }
 }
