@@ -9,7 +9,7 @@
 # ==============================================================================
 
 # Variables (Please fill these in or pass them as environment variables)
-PROJECT_ID=${GCP_PROJECT_ID:-"project-be4c108d-da02-4864-a6e"}
+PROJECT_ID=${GCP_PROJECT_ID:-"speakvn-sp26se049-v2"}
 REGION=${GCP_REGION:-"asia-southeast1"}
 SERVICE_NAME="speakvn-backend"
 IMAGE_TAG="gcr.io/${PROJECT_ID}/${SERVICE_NAME}:latest"
