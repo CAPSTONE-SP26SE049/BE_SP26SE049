@@ -5,6 +5,7 @@ import lombok.*;
 import org.fsa_2026.company_fsa_captone_2026.entity.enums.SkillType;
 
 import java.util.Map;
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
@@ -24,6 +25,7 @@ import java.util.Map;
     }
     """)
 public class ChallengeBankRequest {
+    private UUID id;
     private String contentText;
     private SkillType skillType;
     private String region; // BAC, TRUNG, NAM

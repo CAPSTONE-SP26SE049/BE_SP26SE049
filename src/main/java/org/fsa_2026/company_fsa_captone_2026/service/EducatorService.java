@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.fsa_2026.company_fsa_captone_2026.dto.UserManagementResponse;
 import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import org.fsa_2026.company_fsa_captone_2026.entity.Account;
 import org.fsa_2026.company_fsa_captone_2026.entity.ChatMessage;
 import org.fsa_2026.company_fsa_captone_2026.entity.EducatorFeedback;
@@ -20,6 +22,7 @@ import org.fsa_2026.company_fsa_captone_2026.repository.ChatMessageRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.CustomLearningPathRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.EducatorFeedbackRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.SessionDetailRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.SpeakingAttemptRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,6 +48,7 @@ public class EducatorService {
     private final EducatorFeedbackRepository educatorFeedbackRepository;
     private final CustomLearningPathRepository customPathRepository;
     private final org.fsa_2026.company_fsa_captone_2026.repository.LessonPlanRepository lessonPlanRepository;
+    private final SpeakingAttemptRepository speakingAttemptRepository;
     private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
@@ -53,19 +57,40 @@ public class EducatorService {
         List<Account> students = findStudents();
         List<SessionDetail> details = sessionDetailRepository.findAll();
 
-        double avgPronunciationScore = details.stream()
-                .filter(d -> d.getScoreOverall() != null)
-                .mapToDouble(d -> d.getScoreOverall().doubleValue())
-                .average()
-                .orElse(0.0);
+        Double avg = speakingAttemptRepository.averageGroqScoreWithConsentGivenTrue();
+        double avgPronunciationScore = avg != null ? avg : 0.0;
 
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("totalStudents", students.size());
         summary.put("activeStudents", students.stream().filter(a -> Boolean.TRUE.equals(a.getIsActive())).count());
-        summary.put("averagePronunciationScore", avgPronunciationScore);
+        summary.put("averagePronunciationScore", Math.round(avgPronunciationScore * 10.0) / 10.0);
         summary.put("pendingFeedbackCount", educatorFeedbackRepository.count());
         summary.put("weeklyProgressRate", calculateWeeklyProgressRate(details));
-        summary.put("pronunciationMetrics", buildPronunciationMetrics(details));
+        summary.put("pronunciationMetrics", buildPronunciationMetrics());
+        
+        List<Map<String, Object>> recentStudentData = students.stream()
+                .filter(a -> a.getCreatedAt() != null && a.getCreatedAt().isAfter(Instant.now().minus(7, ChronoUnit.DAYS)))
+                .sorted(Comparator.comparing(Account::getCreatedAt).reversed())
+                .limit(5)
+                .map(a -> {
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("id", a.getId());
+                    map.put("fullName", a.getFullName());
+                    map.put("email", a.getEmail());
+                    map.put("avatar", a.getAvatarUrl());
+                    map.put("level", "A1");
+                    return map;
+                }).collect(Collectors.toList());
+        summary.put("recentStudents", recentStudentData);
+        
+        // Cần truyền cả pendingFeedbacks thực sự thay vì empty array bên front-end
+        List<Map<String, Object>> pendingFbs = educatorFeedbackRepository.findAll().stream()
+                .sorted(Comparator.comparing(EducatorFeedback::getCreatedAt).reversed())
+                .limit(3)
+                .map(this::toFeedbackMap)
+                .collect(Collectors.toList());
+        summary.put("pendingFeedbacks", pendingFbs);
+
         return summary;
     }
 
@@ -178,7 +203,7 @@ public class EducatorService {
                 .average().orElse(0.0));
         response.put("pendingFeedbackCount", educatorFeedbackRepository.count());
         response.put("weeklyProgressRate", calculateWeeklyProgressRate(allDetails));
-        response.put("pronunciationMetrics", buildPronunciationMetrics(allDetails));
+        response.put("pronunciationMetrics", buildPronunciationMetrics());
         return response;
     }
 
@@ -426,11 +451,24 @@ public class EducatorService {
         return accountRepository.findAllByRoleCodeIn(List.of(RoleCode.USER));
     }
 
-    private List<Map<String, Object>> buildPronunciationMetrics(List<SessionDetail> details) {
+    private List<Map<String, Object>> buildPronunciationMetrics() {
         List<Map<String, Object>> metrics = new ArrayList<>();
-        metrics.add(metric("Âm đầu", percent(details, 65), "UP"));
-        metrics.add(metric("Nguyên âm", percent(details, 58), "STABLE"));
-        metrics.add(metric("Nhịp câu", percent(details, 71), "UP"));
+        
+        long totalNorth = speakingAttemptRepository.countByDialectAndConsentGivenTrue("NORTH");
+        long errNorth = speakingAttemptRepository.countByDialectAndConsentGivenTrueAndGroqScoreLessThan("NORTH", 80);
+        int amDau = totalNorth > 0 ? (int) Math.round((1.0 - ((double) errNorth / totalNorth)) * 100) : 75;
+
+        long totalSouth = speakingAttemptRepository.countByDialectAndConsentGivenTrue("SOUTH");
+        long errSouth = speakingAttemptRepository.countByDialectAndConsentGivenTrueAndGroqScoreLessThan("SOUTH", 80);
+        int nguyenAm = totalSouth > 0 ? (int) Math.round((1.0 - ((double) errSouth / totalSouth)) * 100) : 82;
+
+        long totalCentral = speakingAttemptRepository.countByDialectAndConsentGivenTrue("CENTRAL");
+        long errCentral = speakingAttemptRepository.countByDialectAndConsentGivenTrueAndGroqScoreLessThan("CENTRAL", 80);
+        int nhipCau = totalCentral > 0 ? (int) Math.round((1.0 - ((double) errCentral / totalCentral)) * 100) : 88;
+        
+        metrics.add(metric("Âm đầu", amDau, amDau >= 70 ? "UP" : "STABLE"));
+        metrics.add(metric("Nguyên âm", nguyenAm, nguyenAm >= 70 ? "UP" : "STABLE"));
+        metrics.add(metric("Nhịp câu", nhipCau, nhipCau >= 70 ? "UP" : "STABLE"));
         return metrics;
     }
 
@@ -447,7 +485,20 @@ public class EducatorService {
     }
 
     private double calculateWeeklyProgressRate(List<SessionDetail> details) {
-        return Math.min(100.0, 40.0 + details.size() * 2.5);
+        Instant oneWeekAgo = Instant.now().minus(7, ChronoUnit.DAYS);
+        Instant twoWeeksAgo = Instant.now().minus(14, ChronoUnit.DAYS);
+        
+        long thisWeekCount = details.stream().filter(d -> d.getCreatedAt() != null && d.getCreatedAt().isAfter(oneWeekAgo)).count();
+        long lastWeekCount = details.stream().filter(d -> d.getCreatedAt() != null && d.getCreatedAt().isAfter(twoWeeksAgo) && d.getCreatedAt().isBefore(oneWeekAgo)).count();
+        
+        if (lastWeekCount == 0 && thisWeekCount == 0) {
+            long totalAttempts = speakingAttemptRepository.count();
+            return totalAttempts > 0 ? 12.5 : 0.0;
+        }
+        
+        if (lastWeekCount == 0) return thisWeekCount > 0 ? 100.0 : 0.0;
+        double rate = ((double)(thisWeekCount - lastWeekCount) / lastWeekCount) * 100.0;
+        return Math.round(rate * 10.0) / 10.0;
     }
 
     private String defaultFocusArea(Account student) {

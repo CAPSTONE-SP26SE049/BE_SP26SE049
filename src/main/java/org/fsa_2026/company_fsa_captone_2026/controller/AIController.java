@@ -168,6 +168,7 @@ public class AIController {
         boolean finalIsCorrect = finalScore >= 80;
         result.put("aiScore", result.get("accuracy"));     // điểm tham khảo từ AI
         result.put("score", finalScore);                       // điểm chính thức từ ASR
+        result.put("isCorrect", finalIsCorrect);               // Cập nhật trạng thái đúng/sai dựa trên điểm thực tế
         result.put("suggestion", aiFeedback);
         result.put("errorDetail", aiFeedback);
         result.put("transcribedText", transcribedText);
