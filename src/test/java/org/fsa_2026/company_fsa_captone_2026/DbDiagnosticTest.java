@@ -204,4 +204,58 @@ public class DbDiagnosticTest {
         if (level.getMetadataJson() == null || level.getMetadataJson().isBlank()) return 0;
         return 0;
     }
+
+    @Autowired
+    private org.fsa_2026.company_fsa_captone_2026.service.EntryTestService entryTestService;
+    @Autowired
+    private EntryTestResultRepository entryTestResultRepository;
+
+    @Test
+    @Transactional
+    public void testRegenerateTuanPath() {
+        System.out.println("=== START REGENERATE TUAN PATH TEST ===");
+
+        String email = "tuanndse173318@fpt.edu.vn";
+        Account account = accountRepository.findByEmail(email).orElse(null);
+        if (account == null) {
+            System.out.println("Account not found: " + email);
+            return;
+        }
+
+        EntryTestResult latestResult = entryTestResultRepository.findFirstByAccountIdOrderByCreatedAtDesc(account.getId()).orElse(null);
+        if (latestResult == null) {
+            System.out.println("No EntryTestResult found for account ID: " + account.getId());
+            return;
+        }
+
+        System.out.println("Found latest EntryTestResult ID=" + latestResult.getId() + ", region=" + latestResult.getDetectedRegion() + ", score=" + latestResult.getOverallScore());
+
+        // Parse details
+        List<Map<String, Object>> stepResults = new ArrayList<>();
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            stepResults = mapper.readValue(latestResult.getDetails(), new com.fasterxml.jackson.core.type.TypeReference<List<Map<String, Object>>>() {});
+        } catch (Exception e) {
+            System.out.println("Failed to parse details: " + e.getMessage());
+        }
+
+        System.out.println("Step results parsed: " + stepResults.size() + " items");
+
+        // Run regeneration
+        entryTestService.assignPersonalRoadmap(account, latestResult.getDetectedRegion(), latestResult, stepResults);
+
+        // Load generated path
+        CustomLearningPath customPath = customLearningPathRepository.findFirstByStudentIdAndIsActiveTrueOrderByCreatedAtDesc(account.getId()).orElse(null);
+        if (customPath == null) {
+            System.out.println("No active custom learning path found after regeneration!");
+        } else {
+            System.out.println("Generated custom path ID=" + customPath.getId() + ", title=" + customPath.getTitle());
+            System.out.println("Levels count: " + customPath.getLevels().size());
+            for (int i = 0; i < customPath.getLevels().size(); i++) {
+                var pl = customPath.getLevels().get(i);
+                System.out.println(" - Level " + (i + 1) + ": " + pl.getLevel().getName() + " (errorTag=" + pl.getLevel().getErrorTag() + ", difficulty=" + pl.getLevel().getDifficultyLevel() + ")");
+            }
+        }
+        System.out.println("=== END REGENERATE TUAN PATH TEST ===");
+    }
 }
