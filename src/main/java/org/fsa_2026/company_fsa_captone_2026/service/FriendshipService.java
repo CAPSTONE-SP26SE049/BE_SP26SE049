@@ -58,9 +58,23 @@ public class FriendshipService {
                 case BLOCKED:
                     throw new ApiException("BAD_REQUEST", "Không thể gửi lời mời kết bạn");
                 case DECLINED:
-                    // Allow re-sending after a decline — remove old record
-                    friendshipRepository.delete(f);
-                    break;
+                    // Allow re-sending after a decline — update and reuse existing record to avoid Hibernate delete/insert flush conflict
+                    f.setStatus(FriendshipStatus.PENDING);
+                    f.setRequester(requester);
+                    f.setAddressee(addressee);
+                    Friendship saved = friendshipRepository.save(f);
+                    
+                    notificationService.createNotification(
+                            addressee.getId(),
+                            "FRIEND_REQUEST",
+                            "Lời mời kết bạn",
+                            (requester.getFullName() != null ? requester.getFullName() : requester.getEmail())
+                                    + " đã gửi lời mời kết bạn cho bạn",
+                            saved.getId()
+                    );
+                    
+                    log.info("Friend request re-sent (updated from declined): {} -> {}", requester.getEmail(), addressee.getEmail());
+                    return toResponse(saved, requester);
             }
         }
 

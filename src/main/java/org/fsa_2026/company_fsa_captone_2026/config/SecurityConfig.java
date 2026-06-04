@@ -116,6 +116,7 @@ public class SecurityConfig {
                             .requestMatchers(
                                     // WebSocket/SockJS endpoints must be public
                                     "/ws/**",
+                                    "/ws-raw/**",
                                     // Swagger UI endpoints
                                     "/swagger-ui.html",
                                     "/swagger-ui/**",
