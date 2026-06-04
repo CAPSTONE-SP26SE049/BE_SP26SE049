@@ -8,6 +8,9 @@ import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.ChatMessageRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.EducatorFeedbackRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.SessionDetailRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.CustomLearningPathRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.LessonPlanRepository;
+import org.fsa_2026.company_fsa_captone_2026.repository.SpeakingAttemptRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -37,6 +40,15 @@ class EducatorServiceExtensionTest {
 
     @Mock
     private EducatorFeedbackRepository educatorFeedbackRepository;
+
+    @Mock
+    private CustomLearningPathRepository customPathRepository;
+
+    @Mock
+    private LessonPlanRepository lessonPlanRepository;
+
+    @Mock
+    private SpeakingAttemptRepository speakingAttemptRepository;
 
     @Mock
     private ObjectMapper objectMapper;
@@ -69,6 +81,7 @@ class EducatorServiceExtensionTest {
         when(accountRepository.findAllByRoleCodeIn(List.of(RoleCode.USER))).thenReturn(List.of(student));
         when(sessionDetailRepository.findAll()).thenReturn(List.of(sessionDetail));
         when(educatorFeedbackRepository.count()).thenReturn(2L);
+        when(speakingAttemptRepository.averageGroqScoreWithConsentGivenTrue()).thenReturn(85.0);
 
         var summary = educatorService.getDashboardSummary(educatorEmail);
 

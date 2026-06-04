@@ -180,7 +180,12 @@ BEGIN
                         WHEN 'WRITING'   THEN 'Nghe và gõ lại chính xác (chú ý d / gi / r).'
                         ELSE 'Câu hỏi tổng hợp 3 kỹ năng - chữa ngọng d / gi / r.'
                     END,
-                'time_limit_seconds', v_seconds_per_q[v_chapter] * 10,
+                'time_limit_seconds', 
+                    CASE 
+                        WHEN v_skill_for_quiz = 'LISTENING' AND v_chapter <= 2 THEN 150
+                        WHEN v_skill_for_quiz = 'LISTENING' AND v_chapter >= 3 THEN 200
+                        ELSE v_seconds_per_q[v_chapter] * 10
+                    END,
                 'passing_score', 80,
                 'points_per_question', 10,
                 'question_count', 10,
@@ -240,15 +245,200 @@ BEGIN
                         'explanation','Cặp dễ nhầm d/gi/r: phát âm đúng "' || v_correct || '" (nghĩa: ' || v_meaning || '). Nhiều người nhầm thành "' || v_wrong || '".'
                     );
                 ELSIF v_skill = 'LISTENING' THEN
-                    v_chal_meta := jsonb_build_object(
-                        'type','LISTENING',
-                        'transcript', v_text,
-                        'audioWord', v_correct,
-                        'correctAnswer', v_correct,
-                        'options', jsonb_build_array(v_correct, v_wrong),
-                        'errorTag','N_DGIR',
-                        'explanation','AI đọc đúng từ "' || v_correct || '". Đáp án đúng là "' || v_correct || '" (nghĩa: ' || v_meaning || '), không phải "' || v_wrong || '".'
-                    );
+                    DECLARE
+                        v_rand_idx1 INT;
+                        v_rand_idx2 INT;
+                        v_dist1 TEXT;
+                        v_dist2 TEXT;
+                        v_options TEXT[] := '{}';
+                        v_all_words TEXT[];
+                        v_clean_words TEXT[] := '{}';
+                        v_word TEXT;
+                        v_distractors TEXT[] := '{}';
+                        v_idx INT;
+                        v_attempts INT := 0;
+                        v_word_count INT;
+                        v_temp TEXT;
+                        v_swap_idx INT;
+                        v_transcript TEXT;
+                    BEGIN
+                        IF v_chapter <= 2 THEN
+                            v_rand_idx1 := ((v_seed + 5) % v_pair_count) + 1;
+                            v_rand_idx2 := ((v_seed + 11) % v_pair_count) + 1;
+                            IF v_rand_idx1 = v_pair_idx THEN
+                                v_rand_idx1 := (v_rand_idx1 % v_pair_count) + 1;
+                            END IF;
+                            IF v_rand_idx2 = v_pair_idx OR v_rand_idx2 = v_rand_idx1 THEN
+                                v_rand_idx2 := ((v_rand_idx2 + 1) % v_pair_count) + 1;
+                            END IF;
+                            IF v_rand_idx2 = v_pair_idx THEN
+                                v_rand_idx2 := ((v_rand_idx2 + 1) % v_pair_count) + 1;
+                            END IF;
+
+                            v_dist1 := v_pairs[v_rand_idx1][1];
+                            v_dist2 := v_pairs[v_rand_idx2][1];
+
+                            v_options := ARRAY[v_correct, v_wrong, v_dist1, v_dist2];
+                            v_transcript := v_text;
+
+                            v_swap_idx := (v_seed % 4) + 1;
+                            v_temp := v_options[1];
+                            v_options[1] := v_options[v_swap_idx];
+                            v_options[v_swap_idx] := v_temp;
+
+                            v_swap_idx := ((v_seed + 2) % 4) + 1;
+                            v_temp := v_options[2];
+                            v_options[2] := v_options[v_swap_idx];
+                            v_options[v_swap_idx] := v_temp;
+
+                            v_chal_meta := jsonb_build_object(
+                                'type', 'LISTENING',
+                                'listeningType', 'basic',
+                                'transcript', v_transcript,
+                                'audioWord', v_correct,
+                                'correctAnswer', v_correct,
+                                'options', to_jsonb(v_options),
+                                'errorTag', 'N_DGIR',
+                                'explanation', 'Nghe từ được phát âm đúng "' || v_correct || '". Đối chiếu từ dễ nhầm lẫn "' || v_wrong || '".',
+                                'timeLimit', 15
+                            );
+                        ELSE
+                            DECLARE
+                                v_found_pair BOOLEAN := false;
+                                v_pair_start INT;
+                                v_p_idx INT;
+                            BEGIN
+                                v_pair_start := (v_seed % v_pair_count) + 1;
+                                FOR v_p_idx IN 0..(v_pair_count - 1) LOOP
+                                    v_idx := ((v_pair_start + v_p_idx - 1) % v_pair_count) + 1;
+                                    v_correct := v_pairs[v_idx][1];
+                                    v_wrong := v_pairs[v_idx][2];
+                                    v_meaning := v_pairs[v_idx][3];
+                                    
+                                    IF v_text ~* ('\y' || v_correct || '\y') THEN
+                                        SELECT (regexp_match(v_text, '\y' || v_correct || '\y', 'i'))[1] INTO v_correct;
+                                        IF substring(v_correct from 1 for 1) = upper(substring(v_correct from 1 for 1)) THEN
+                                            v_wrong := upper(substring(v_wrong from 1 for 1)) || substring(v_wrong from 2);
+                                        ELSE
+                                            v_wrong := lower(substring(v_wrong from 1 for 1)) || substring(v_wrong from 2);
+                                        END IF;
+                                        v_found_pair := true;
+                                        EXIT;
+                                    END IF;
+                                END LOOP;
+
+                                IF NOT v_found_pair THEN
+                                    v_all_words := regexp_split_to_array(v_text, '\s+');
+                                    FOREACH v_word IN ARRAY v_all_words LOOP
+                                        v_word := regexp_replace(v_word, '[.,!?;:\"''()\-]', '', 'g');
+                                        IF length(v_word) >= 2 THEN
+                                            IF lower(v_word) LIKE 'gi%' THEN
+                                                v_correct := v_word;
+                                                v_wrong := 'd' || substring(v_word from 3);
+                                                IF substring(v_correct from 1 for 1) = upper(substring(v_correct from 1 for 1)) THEN
+                                                    v_wrong := upper(substring(v_wrong from 1 for 1)) || substring(v_wrong from 2);
+                                                ELSE
+                                                    v_wrong := lower(substring(v_wrong from 1 for 1)) || substring(v_wrong from 2);
+                                                END IF;
+                                                v_found_pair := true;
+                                                EXIT;
+                                            ELSIF lower(v_word) LIKE 'd%' THEN
+                                                v_correct := v_word;
+                                                v_wrong := 'r' || substring(v_word from 2);
+                                                IF substring(v_correct from 1 for 1) = upper(substring(v_correct from 1 for 1)) THEN
+                                                    v_wrong := upper(substring(v_wrong from 1 for 1)) || substring(v_wrong from 2);
+                                                ELSE
+                                                    v_wrong := lower(substring(v_wrong from 1 for 1)) || substring(v_wrong from 2);
+                                                END IF;
+                                                v_found_pair := true;
+                                                EXIT;
+                                            ELSIF lower(v_word) LIKE 'r%' THEN
+                                                v_correct := v_word;
+                                                v_wrong := 'd' || substring(v_word from 2);
+                                                IF substring(v_correct from 1 for 1) = upper(substring(v_correct from 1 for 1)) THEN
+                                                    v_wrong := upper(substring(v_wrong from 1 for 1)) || substring(v_wrong from 2);
+                                                ELSE
+                                                    v_wrong := lower(substring(v_wrong from 1 for 1)) || substring(v_wrong from 2);
+                                                END IF;
+                                                v_found_pair := true;
+                                                EXIT;
+                                            END IF;
+                                        END IF;
+                                    END LOOP;
+                                END IF;
+
+                                IF NOT v_found_pair THEN
+                                    v_all_words := regexp_split_to_array(v_text, '\s+');
+                                    FOREACH v_word IN ARRAY v_all_words LOOP
+                                        v_word := regexp_replace(v_word, '[.,!?;:\"''()\-]', '', 'g');
+                                        IF length(v_word) >= 3 THEN
+                                            v_correct := v_word;
+                                            v_wrong := v_word || 'h';
+                                            v_found_pair := true;
+                                            EXIT;
+                                        END IF;
+                                    END LOOP;
+                                END IF;
+                            END;
+
+                            v_transcript := regexp_replace(v_text, '\y' || v_correct || '\y', v_wrong, 'i');
+
+                            v_all_words := regexp_split_to_array(v_text, '\s+');
+                            FOREACH v_word IN ARRAY v_all_words LOOP
+                                v_word := regexp_replace(v_word, '[.,!?;:\"''()\-]', '', 'g');
+                                IF v_word <> '' AND lower(v_word) <> lower(v_correct) AND lower(v_word) <> lower(v_wrong) AND NOT (v_word = ANY(v_clean_words)) THEN
+                                    v_clean_words := array_append(v_clean_words, v_word);
+                                END IF;
+                            END LOOP;
+
+                            v_word_count := array_length(v_clean_words, 1);
+                            IF v_word_count >= 3 THEN
+                                v_idx := (v_seed % v_word_count) + 1;
+                                WHILE COALESCE(array_length(v_distractors, 1), 0) < 3 AND v_attempts < 100 LOOP
+                                    v_word := v_clean_words[v_idx];
+                                    IF NOT (v_word = ANY(v_distractors)) THEN
+                                        v_distractors := array_append(v_distractors, v_word);
+                                    END IF;
+                                    v_idx := (v_idx % v_word_count) + 1;
+                                    v_attempts := v_attempts + 1;
+                                END LOOP;
+                            END IF;
+
+                            IF COALESCE(array_length(v_distractors, 1), 0) < 1 THEN
+                                v_distractors := array_append(v_distractors, 'học');
+                            END IF;
+                            IF COALESCE(array_length(v_distractors, 1), 0) < 2 THEN
+                                v_distractors := array_append(v_distractors, 'nói');
+                            END IF;
+                            IF COALESCE(array_length(v_distractors, 1), 0) < 3 THEN
+                                v_distractors := array_append(v_distractors, 'nghe');
+                            END IF;
+
+                            v_options := ARRAY[v_correct, v_distractors[1], v_distractors[2], v_distractors[3]];
+
+                            v_swap_idx := (v_seed % 4) + 1;
+                            v_temp := v_options[1];
+                            v_options[1] := v_options[v_swap_idx];
+                            v_options[v_swap_idx] := v_temp;
+
+                            v_swap_idx := ((v_seed + 2) % 4) + 1;
+                            v_temp := v_options[2];
+                            v_options[2] := v_options[v_swap_idx];
+                            v_options[v_swap_idx] := v_temp;
+
+                            v_chal_meta := jsonb_build_object(
+                                'type', 'LISTENING',
+                                'listeningType', 'advanced',
+                                'transcript', v_transcript,
+                                'correctSentence', v_text,
+                                'correctAnswer', v_correct,
+                                'options', to_jsonb(v_options),
+                                'errorTag', 'N_DGIR',
+                                'explanation', 'Trong câu phát âm sai từ "' || v_correct || '" (đọc thành "' || v_wrong || '"). Đáp án đúng là chọn từ "' || v_correct || '".',
+                                'timeLimit', 20
+                            );
+                        END IF;
+                    END;
                 ELSE
                     v_chal_meta := jsonb_build_object(
                         'type','WRITING',

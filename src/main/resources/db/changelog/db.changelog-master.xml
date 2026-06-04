@@ -153,4 +153,10 @@
     <include file="db/changelog/78-delete-user-by-email.xml"/>
     <include file="db/changelog/79-fix-duplicate-badge-icons.xml"/>
     <include file="db/changelog/80-add-last-active-at.xml"/>
+    <include file="db/changelog/81-complete-user-levels-and-rewards.xml"/>
+    <include file="db/changelog/82-complete-user-quizzes.xml"/>
+    <include file="db/changelog/83-complete-user-all-progress-force.xml"/>
+    <include file="db/changelog/84-complete-user-custom-progress.xml"/>
 </databaseChangeLog>
+
+

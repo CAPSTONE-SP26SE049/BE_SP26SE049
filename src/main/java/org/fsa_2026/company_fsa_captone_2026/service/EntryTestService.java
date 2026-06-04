@@ -441,7 +441,8 @@ public class EntryTestService {
         // Giai đoạn 2: Lọc lỗi và format lại trong JSON (đã có trong serializeDetails)
         // We no longer need to save to EntryTestResultDetail table, we just serialize them.
         
-        // Mark account as having completed the entry test
+        // Mark account as having completed the entry test and save the detected region
+        account.setRegion(detectedRegion.name());
         account.setHasDoneEntryTest(true);
         accountRepository.save(account);
 

@@ -25,6 +25,8 @@ public class DbDiagnosticTest {
     private QuizChallengeItemRepository quizChallengeItemRepository;
     @Autowired
     private ChallengeBankRepository challengeBankRepository;
+    @Autowired
+    private org.fsa_2026.company_fsa_captone_2026.repository.CustomPathProgressRepository customPathProgressRepository;
 
     @Test
     @Transactional
@@ -258,4 +260,35 @@ public class DbDiagnosticTest {
         }
         System.out.println("=== END REGENERATE TUAN PATH TEST ===");
     }
+
+    @Test
+    @Transactional
+    public void testVerifyLequocbaotxdh() {
+        System.out.println("=== START VERIFY LEQUOCBAOTXDH PROGRESS ===");
+        String email = "lequocbaotxdh@gmail.com";
+        Optional<Account> accountOpt = accountRepository.findByEmail(email);
+        if (accountOpt.isEmpty()) {
+            System.out.println("Account NOT found for email: " + email);
+            return;
+        }
+        Account account = accountOpt.get();
+        System.out.println("Account found: ID=" + account.getId() + ", HasDoneEntryTest=" + account.getHasDoneEntryTest() + ", TotalStars=" + account.getTotalStars() + ", TotalXP=" + account.getTotalExperience());
+        
+        List<AccountLearningUnit> progress = accountLearningUnitRepository.findByAccountIdWithLearningUnit(account.getId());
+        long completedLevels = progress.stream().filter(p -> "LEVEL".equals(p.getLearningUnit().getType()) && Boolean.TRUE.equals(p.getIsCompleted())).count();
+        long completedQuizzes = progress.stream().filter(p -> "QUIZ".equals(p.getLearningUnit().getType()) && Boolean.TRUE.equals(p.getIsCompleted())).count();
+        
+        System.out.println("Progress rows count: " + progress.size());
+        System.out.println("Completed levels count: " + completedLevels);
+        System.out.println("Completed quizzes count: " + completedQuizzes);
+
+        List<CustomPathProgress> customProgress = customPathProgressRepository.findAll().stream()
+            .filter(p -> p.getCustomPath().getStudent().getId().equals(account.getId()))
+            .toList();
+        System.out.println("Custom path progress rows count: " + customProgress.size());
+        long completedCustomQuizzes = customProgress.stream().filter(p -> Boolean.TRUE.equals(p.getIsCompleted())).count();
+        System.out.println("Completed custom quizzes count: " + completedCustomQuizzes);
+        System.out.println("=== END VERIFY LEQUOCBAOTXDH PROGRESS ===");
+    }
 }
+
