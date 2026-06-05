@@ -7,7 +7,7 @@
 
     <!-- CENTRAL (chữa ngọng s/x, tr/ch). 5 × 15 × 10 = 750 questions. -->
 
-    <changeSet id="76-seed-quizzes-central" author="claude" runOnChange="true">
+    <changeSet id="76-seed-quizzes-central-v2" author="claude" runOnChange="true">
         <comment>Seed CENTRAL: 75 QUIZ + 750 challenge_bank rows + quiz_challenge_item links. Idempotent.</comment>
         <sql splitStatements="false">
             <![CDATA[
@@ -68,10 +68,10 @@ DECLARE
     v_seconds_per_q INT[] := ARRAY[120,110,100,90,75];
 
     v_pairs TEXT[][] := ARRAY[
-        ARRAY['sáng', 'xáng',  'thời điểm đầu ngày',          'S_X'],
+        ARRAY['sáng', 'sang',  'thời điểm đầu ngày hoặc sang trọng', 'S_X'],
         ARRAY['sông', 'xông',  'dòng nước lớn chảy',          'S_X'],
         ARRAY['sắc',  'xắc',   'màu hoặc vẻ ngoài tươi tắn',  'S_X'],
-        ARRAY['sơn',  'xơn',   'phủ một lớp màu lên bề mặt',  'S_X'],
+        ARRAY['sơn',  'xơ',    'phủ màu hoặc sợi xơ dừa',      'S_X'],
         ARRAY['sung', 'xung',  'một loại quả',                'S_X'],
         ARRAY['sấu',  'xấu',   'một loại quả chua',           'S_X'],
         ARRAY['sót',  'xót',   'thiếu hoặc bỏ qua',           'S_X'],
@@ -79,16 +79,16 @@ DECLARE
         ARRAY['xinh', 'sinh',  'có vẻ đẹp dễ thương',         'S_X'],
         ARRAY['xôi',  'sôi',   'món ăn từ gạo nếp',           'S_X'],
         ARRAY['xanh', 'sanh',  'màu của lá cây',              'S_X'],
-        ARRAY['xích', 'sích',  'dây kim loại để buộc',        'S_X'],
+        ARRAY['xích', 'sạch',  'dây kim loại để buộc hoặc sạch sẽ', 'S_X'],
         ARRAY['trăng','chăng', 'mặt trăng trên bầu trời',     'TR_CH'],
-        ARRAY['trời', 'chời',  'không gian phía trên',        'TR_CH'],
+        ARRAY['trời', 'chơi',  'không gian phía trên hoặc chơi đùa', 'TR_CH'],
         ARRAY['trẻ',  'chẻ',   'còn ít tuổi',                 'TR_CH'],
         ARRAY['trung','chung', 'ở giữa',                       'TR_CH'],
         ARRAY['trà',  'chà',   'loại đồ uống từ lá cây',      'TR_CH'],
         ARRAY['trắc', 'chắc',  'loại gỗ quý',                  'TR_CH'],
         ARRAY['chợ',  'trợ',   'nơi mua bán hàng hoá',         'TR_CH'],
         ARRAY['chai', 'trai',  'vật đựng chất lỏng',           'TR_CH'],
-        ARRAY['chậm', 'trậm',  'tốc độ thấp',                  'TR_CH'],
+        ARRAY['chậm', 'trầm',  'tốc độ thấp hoặc âm trầm',     'TR_CH'],
         ARRAY['chuyện','truyện','sự việc đã xảy ra',          'TR_CH']
     ];
 
@@ -151,6 +151,7 @@ DECLARE
     v_meaning   TEXT;
     v_subtag    TEXT;
     v_text      TEXT;
+    v_content_text TEXT;
     v_skill_for_quiz TEXT;
     v_skill     TEXT;
     v_metadata  JSONB;
@@ -226,7 +227,7 @@ BEGIN
                 IF v_chapter = 1 THEN
                     v_text := v_correct;
                 ELSIF v_chapter = 2 THEN
-                    v_text := v_phrases[v_pair_idx];
+                    v_text := v_phrases[((v_seed - 1) % array_length(v_phrases, 1)) + 1];
                 ELSIF v_chapter = 3 THEN
                     v_text := v_sent_ch3[((v_q_idx - 1) % 10) + 1];
                 ELSIF v_chapter = 4 THEN
@@ -234,6 +235,7 @@ BEGIN
                 ELSE
                     v_text := v_sent_ch5[((v_q_idx - 1) % 10) + 1];
                 END IF;
+                v_content_text := v_text;
 
                 IF v_skill_for_quiz = 'MIX' THEN
                     v_skill := (ARRAY['SPEAKING','LISTENING','WRITING'])[((v_q_idx - 1) % 3) + 1];
@@ -458,6 +460,7 @@ BEGIN
                                 'explanation', 'Trong câu phát âm sai từ "' || v_correct || '" (đọc thành "' || v_wrong || '"). Đáp án đúng là chọn từ "' || v_correct || '".',
                                 'timeLimit', 20
                             );
+                            v_content_text := v_transcript;
                         END IF;
                     END;
                 ELSE
@@ -480,7 +483,7 @@ BEGIN
                 INSERT INTO challenge_bank
                     (id, content_text, skill_type, region, metadata_json, created_at, updated_at)
                 VALUES (
-                    v_chal_id, v_text, v_skill, 'TRUNG', v_chal_meta, NOW(), NOW()
+                    v_chal_id, v_content_text, v_skill, 'TRUNG', v_chal_meta, NOW(), NOW()
                 );
 
                 INSERT INTO quiz_challenge_item

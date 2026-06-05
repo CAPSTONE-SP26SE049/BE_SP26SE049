@@ -18,6 +18,9 @@ public interface LearningUnitRepository extends JpaRepository<LearningUnit, UUID
 
     List<LearningUnit> findByParentIdAndType(UUID parentId, String type);
 
+    @org.springframework.data.jpa.repository.Query("SELECT DISTINCT lu FROM LearningUnit lu LEFT JOIN FETCH lu.rewardCatalog LEFT JOIN FETCH lu.parent WHERE lu.parent.id IN :parentIds")
+    List<LearningUnit> findByParentIdInWithRewardCatalog(@org.springframework.data.repository.query.Param("parentIds") List<UUID> parentIds);
+
     List<LearningUnit> findByParentAndType(LearningUnit parent, String type);
 
     boolean existsByParentId(UUID parentId);

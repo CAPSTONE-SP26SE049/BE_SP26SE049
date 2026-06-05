@@ -104,7 +104,7 @@ class DailyChallengeServiceTest {
         ChallengeBank c2 = new ChallengeBank();
         c2.setId(UUID.randomUUID());
 
-        when(challengeBankRepository.findAll()).thenReturn(List.of(c1, c2));
+        when(challengeBankRepository.findBySkillType(any())).thenReturn(List.of(c1, c2));
 
         List<ChallengeBank> results = dailyChallengeService.getDailyChallenges();
 

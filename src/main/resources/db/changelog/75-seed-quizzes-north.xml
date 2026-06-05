@@ -24,7 +24,7 @@
           Challenge  id = 00000000-0000-0073-1{ch}{qq}-0000000000{q:02}
     -->
 
-    <changeSet id="75-seed-quizzes-north" author="claude" runOnChange="true">
+    <changeSet id="75-seed-quizzes-north-v2" author="claude" runOnChange="true">
         <comment>Seed NORTH region: 75 QUIZ + 750 challenge_bank rows + quiz_challenge_item links. Idempotent.</comment>
         <sql splitStatements="false">
             <![CDATA[
@@ -87,26 +87,32 @@ DECLARE
     v_seconds_per_q INT[] := ARRAY[120,110,100,90,75];
 
     v_pairs TEXT[][] := ARRAY[
-        ARRAY['nón',  'lón',  'vật đội đầu che nắng'],
-        ARRAY['nước', 'lước', 'chất lỏng để uống'],
-        ARRAY['nắng', 'lắng', 'ánh sáng mặt trời'],
-        ARRAY['nông', 'lông', 'thuộc nghề trồng trọt'],
-        ARRAY['năm',  'lăm',  'đơn vị thời gian 12 tháng'],
-        ARRAY['nỗi',  'lỗi',  'cảm xúc trong lòng'],
-        ARRAY['nụ',   'lụ',   'hoa chưa nở'],
-        ARRAY['nấm',  'lấm',  'một loại thực vật'],
-        ARRAY['nhà',  'là',   'nơi ở của gia đình'],
-        ARRAY['nói',  'lói',  'phát ra tiếng để giao tiếp'],
-        ARRAY['lá',   'ná',   'phần xanh của cây'],
-        ARRAY['lan',  'nan',  'tên một loài hoa'],
-        ARRAY['lúa',  'núa',  'cây trồng cho hạt gạo'],
-        ARRAY['leo',  'neo',  'bám lên cao'],
-        ARRAY['lon',  'non',  'hộp đựng đồ uống'],
-        ARRAY['làm',  'nàm',  'thực hiện công việc'],
-        ARRAY['lớn',  'nớn',  'kích thước to'],
-        ARRAY['lành', 'nành', 'không bị tổn thương'],
-        ARRAY['lửa',  'nửa',  'ngọn cháy nóng'],
-        ARRAY['lắng', 'nắng', 'tập trung nghe']
+        ARRAY['làm',   'nam',   'thực hiện công việc'],
+        ARRAY['nông',  'lông',  'thuộc nghề trồng trọt'],
+        ARRAY['nộp',   'lộp',   'giao nộp báo cáo'],
+        ARRAY['năm',   'lăm',   'đơn vị thời gian 12 tháng'],
+        ARRAY['nói',   'lối',   'phát ra tiếng để giao tiếp'],
+        ARRAY['nội',   'lội',   'phần bên trong'],
+        ARRAY['lại',   'nại',   'lặp lại hoặc nại cớ'],
+        ARRAY['lương', 'nương', 'thu nhập hoặc nương rẫy'],
+        ARRAY['lan',   'nan',   'tên một loài hoa'],
+        ARRAY['lắng',  'nắng',  'tập trung lắng nghe'],
+        ARRAY['nón',   'lớn',   'vật đội đầu che nắng'],
+        ARRAY['lá',    'ná',    'phần xanh của cây'],
+        ARRAY['nước',  'lược',  'chất lỏng để uống'],
+        ARRAY['lớn',   'nến',   'kích thước to'],
+        ARRAY['nấm',   'lấm',   'một loại thực vật'],
+        ARRAY['lon',   'non',   'hộp đựng đồ uống'],
+        ARRAY['lúa',   'núi',   'cây trồng cho hạt gạo'],
+        ARRAY['làng',  'nàng',  'thôn xóm quê hương'],
+        ARRAY['lên',   'nên',   'di chuyển lên cao'],
+        ARRAY['nơi',   'lơi',   'địa điểm chốn ở'],
+        ARRAY['lối',   'nối',   'đường đi lối nhỏ'],
+        ARRAY['lành',  'nành',  'không bị tổn thương'],
+        ARRAY['nỗi',   'lỗi',   'cảm xúc trong lòng'],
+        ARRAY['nụ',    'lũ',    'hoa chưa nở'],
+        ARRAY['leo',   'neo',   'bám lên cao'],
+        ARRAY['lửa',   'nửa',   'ngọn cháy nóng']
     ];
 
     v_phrases TEXT[] := ARRAY[
@@ -166,6 +172,7 @@ DECLARE
     v_wrong     TEXT;
     v_meaning   TEXT;
     v_text      TEXT;
+    v_content_text TEXT;
     v_skill_for_quiz TEXT;
     v_skill     TEXT;
     v_metadata  JSONB;
@@ -240,7 +247,7 @@ BEGIN
                 IF v_chapter = 1 THEN
                     v_text := v_correct;
                 ELSIF v_chapter = 2 THEN
-                    v_text := v_phrases[v_pair_idx];
+                    v_text := v_phrases[((v_seed - 1) % array_length(v_phrases, 1)) + 1];
                 ELSIF v_chapter = 3 THEN
                     v_text := v_sent_ch3[((v_q_idx - 1) % 10) + 1];
                 ELSIF v_chapter = 4 THEN
@@ -248,6 +255,7 @@ BEGIN
                 ELSE
                     v_text := v_sent_ch5[((v_q_idx - 1) % 10) + 1];
                 END IF;
+                v_content_text := v_text;
 
                 IF v_skill_for_quiz = 'MIX' THEN
                     v_skill := (ARRAY['SPEAKING','LISTENING','WRITING'])[((v_q_idx - 1) % 3) + 1];
@@ -446,6 +454,7 @@ BEGIN
                                 'explanation', 'Trong câu phát âm sai từ "' || v_correct || '" (đọc thành "' || v_wrong || '"). Đáp án đúng là chọn từ "' || v_correct || '".',
                                 'timeLimit', 20
                             );
+                            v_content_text := v_transcript;
                         END IF;
                     END;
                 ELSE
@@ -468,7 +477,7 @@ BEGIN
                 INSERT INTO challenge_bank
                     (id, content_text, skill_type, region, metadata_json, created_at, updated_at)
                 VALUES (
-                    v_chal_id, v_text, v_skill, 'BAC', v_chal_meta, NOW(), NOW()
+                    v_chal_id, v_content_text, v_skill, 'BAC', v_chal_meta, NOW(), NOW()
                 );
 
                 INSERT INTO quiz_challenge_item

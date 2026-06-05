@@ -173,10 +173,7 @@ public class DailyChallengeService {
 
             List<LearningUnit> quizzes = learningUnitRepository.findByParentAndType(activeLevel, "QUIZ");
             List<UUID> quizIds = quizzes.stream().map(LearningUnit::getId).collect(Collectors.toList());
-            List<QuizChallengeItem> challengeItems = new ArrayList<>();
-            for (UUID qid : quizIds) {
-                challengeItems.addAll(quizChallengeItemRepository.findByQuizIdOrderByOrderIndex(qid));
-            }
+            List<QuizChallengeItem> challengeItems = quizIds.isEmpty() ? List.of() : quizChallengeItemRepository.findByQuizIdIn(quizIds);
 
             List<UUID> challengeIds = challengeItems.stream()
                     .map(item -> item.getChallengeBankId() != null ? item.getChallengeBankId() : item.getChallengeId())
@@ -204,11 +201,8 @@ public class DailyChallengeService {
         // 6. Bù đắp câu hỏi phát âm từ vùng miền tương ứng nếu số lượng câu hỏi của level < 3
         Set<UUID> presentIds = speakingChallenges.stream().map(ChallengeBank::getId).collect(Collectors.toSet());
         if (speakingChallenges.size() < 3) {
-            final String finalReg = regionFilter;
-            List<ChallengeBank> regionalFallback = challengeBankRepository.findAll().stream()
-                    .filter(c -> c.getSkillType() == org.fsa_2026.company_fsa_captone_2026.entity.enums.SkillType.SPEAKING 
-                            && finalReg.equalsIgnoreCase(c.getRegion()))
-                    .collect(Collectors.toList());
+            List<ChallengeBank> regionalFallback = challengeBankRepository.findBySkillTypeAndRegionIgnoreCase(
+                    org.fsa_2026.company_fsa_captone_2026.entity.enums.SkillType.SPEAKING, regionFilter);
 
             for (ChallengeBank c : regionalFallback) {
                 if (!presentIds.contains(c.getId())) {
@@ -291,7 +285,7 @@ public class DailyChallengeService {
 
         // Nếu không có câu nào hoặc ngày bị lệch, thực hiện xoay tua mới
         if (challenges.isEmpty()) {
-            List<ChallengeBank> all = challengeBankRepository.findAll();
+            List<ChallengeBank> all = challengeBankRepository.findBySkillType(org.fsa_2026.company_fsa_captone_2026.entity.enums.SkillType.SPEAKING);
             if (all.isEmpty()) {
                 log.warn("ChallengeBank is empty. Cannot rotate daily challenges.");
                 return Collections.emptyList();

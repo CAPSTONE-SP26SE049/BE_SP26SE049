@@ -7,7 +7,7 @@
 
     <!-- SOUTH (chữa ngọng d/gi/r). 5 × 15 × 10 = 750 questions. -->
 
-    <changeSet id="77-seed-quizzes-south" author="claude" runOnChange="true">
+    <changeSet id="77-seed-quizzes-south-v2" author="claude" runOnChange="true">
         <comment>Seed SOUTH: 75 QUIZ + 750 challenge_bank rows + quiz_challenge_item links. Idempotent.</comment>
         <sql splitStatements="false">
             <![CDATA[
@@ -69,25 +69,25 @@ DECLARE
 
     v_pairs TEXT[][] := ARRAY[
         ARRAY['da',     'gia',  'lớp ngoài cơ thể người'],
-        ARRAY['dạy',    'rạy',  'truyền kiến thức cho người khác'],
+        ARRAY['dạy',    'rẫy',  'truyền kiến thức cho người khác'],
         ARRAY['dòng',   'ròng', 'dải nước chảy liên tục'],
         ARRAY['dỗ',     'giỗ',  'làm cho hết khóc'],
         ARRAY['dán',    'rán',  'gắn lên bằng hồ hoặc keo'],
-        ARRAY['dầu',    'giầu', 'chất lỏng dùng để rán'],
+        ARRAY['dầu',    'giàu', 'chất lỏng dùng để rán hoặc giàu có'],
         ARRAY['dập',    'rập',  'làm tắt một cách nhanh chóng'],
         ARRAY['dìu',    'rìu',  'đỡ bước đi'],
         ARRAY['gia',    'da',   'người thân trong nhà'],
         ARRAY['giàu',   'dầu',  'có nhiều của cải'],
         ARRAY['giỗ',    'dỗ',   'ngày tưởng nhớ người đã mất'],
         ARRAY['giấu',   'dấu',  'che đi không cho biết'],
-        ARRAY['giặt',   'dặt',  'làm sạch quần áo bằng nước'],
-        ARRAY['giận',   'dận',  'cảm xúc tức tối'],
-        ARRAY['rạp',    'dạp',  'nơi chiếu phim'],
+        ARRAY['giặt',   'dệt',  'làm sạch quần áo bằng nước hoặc dệt vải'],
+        ARRAY['giận',   'dân',  'cảm xúc tức tối hoặc người dân'],
+        ARRAY['rạp',    'dập',  'nơi chiếu phim hoặc dập tắt'],
         ARRAY['rán',    'dán',  'nấu bằng dầu nóng'],
         ARRAY['rộng',   'dộng', 'có diện tích lớn'],
         ARRAY['rừng',   'dừng', 'vùng đất nhiều cây cối'],
-        ARRAY['rau',    'dau',  'các loại lá ăn được'],
-        ARRAY['ruộng',  'duộng','cánh đồng trồng lúa']
+        ARRAY['rau',    'dâu',  'các loại lá ăn được hoặc quả dâu'],
+        ARRAY['ruộng',  'rộng', 'cánh đồng trồng lúa hoặc rộng rãi']
     ];
 
     v_phrases TEXT[] := ARRAY[
@@ -147,6 +147,7 @@ DECLARE
     v_wrong     TEXT;
     v_meaning   TEXT;
     v_text      TEXT;
+    v_content_text TEXT;
     v_skill_for_quiz TEXT;
     v_skill     TEXT;
     v_metadata  JSONB;
@@ -221,7 +222,7 @@ BEGIN
                 IF v_chapter = 1 THEN
                     v_text := v_correct;
                 ELSIF v_chapter = 2 THEN
-                    v_text := v_phrases[v_pair_idx];
+                    v_text := v_phrases[((v_seed - 1) % array_length(v_phrases, 1)) + 1];
                 ELSIF v_chapter = 3 THEN
                     v_text := v_sent_ch3[((v_q_idx - 1) % 10) + 1];
                 ELSIF v_chapter = 4 THEN
@@ -229,6 +230,7 @@ BEGIN
                 ELSE
                     v_text := v_sent_ch5[((v_q_idx - 1) % 10) + 1];
                 END IF;
+                v_content_text := v_text;
 
                 IF v_skill_for_quiz = 'MIX' THEN
                     v_skill := (ARRAY['SPEAKING','LISTENING','WRITING'])[((v_q_idx - 1) % 3) + 1];
@@ -437,6 +439,7 @@ BEGIN
                                 'explanation', 'Trong câu phát âm sai từ "' || v_correct || '" (đọc thành "' || v_wrong || '"). Đáp án đúng là chọn từ "' || v_correct || '".',
                                 'timeLimit', 20
                             );
+                            v_content_text := v_transcript;
                         END IF;
                     END;
                 ELSE
@@ -459,7 +462,7 @@ BEGIN
                 INSERT INTO challenge_bank
                     (id, content_text, skill_type, region, metadata_json, created_at, updated_at)
                 VALUES (
-                    v_chal_id, v_text, v_skill, 'NAM', v_chal_meta, NOW(), NOW()
+                    v_chal_id, v_content_text, v_skill, 'NAM', v_chal_meta, NOW(), NOW()
                 );
 
                 INSERT INTO quiz_challenge_item
