@@ -708,17 +708,17 @@ public class EntryTestService {
         String normalized = tagOrCategory.toUpperCase().replaceAll("[^A-Z0-9_]", "");
         
         // North / NL matching
-        if (normalized.contains("NORTH") || normalized.contains("NL") || normalized.contains("LN") || normalized.contains("B_NL")) {
+        if (normalized.contains("NORTH") || normalized.contains("NL") || normalized.contains("LN") || normalized.contains("B_NL") || normalized.contains("0003000000000001") || normalized.contains("L_N")) {
             return "B_NL";
         }
         
         // Central / SX / TRCH matching
-        if (normalized.contains("CENTRAL") || normalized.contains("SX") || normalized.contains("TR_CH") || normalized.contains("TRCH") || normalized.contains("T_SX_TRCH")) {
+        if (normalized.contains("CENTRAL") || normalized.contains("SX") || normalized.contains("TR_CH") || normalized.contains("TRCH") || normalized.contains("T_SX_TRCH") || normalized.contains("0003000000000002") || normalized.contains("0003000000000003") || normalized.contains("CH_TR")) {
             return "T_SX_TRCH";
         }
         
         // South / DGIR matching
-        if (normalized.contains("SOUTH") || normalized.contains("DGIR") || normalized.contains("DIR") || normalized.contains("DRGI") || normalized.contains("N_DGIR")) {
+        if (normalized.contains("SOUTH") || normalized.contains("DGIR") || normalized.contains("DIR") || normalized.contains("DRGI") || normalized.contains("N_DGIR") || normalized.contains("0002000000000001") || normalized.contains("0002000000000002") || normalized.contains("V_D") || normalized.contains("TONE")) {
             return "N_DGIR";
         }
         
