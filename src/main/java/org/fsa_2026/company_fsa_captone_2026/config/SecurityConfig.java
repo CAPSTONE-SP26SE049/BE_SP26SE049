@@ -137,6 +137,7 @@ public class SecurityConfig {
                                     "/",
                                     "/error",
                                     "/favicon.ico",
+                                    "/auth-redirect.html",
 
                                     // Public badge catalog (learners can view without login)
                                     "/api/v1/public/badges/catalog",
