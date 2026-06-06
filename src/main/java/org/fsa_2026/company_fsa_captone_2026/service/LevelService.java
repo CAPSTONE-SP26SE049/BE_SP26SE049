@@ -28,6 +28,7 @@ public class LevelService {
     private final AccountRepository accountRepository;
     private final org.fsa_2026.company_fsa_captone_2026.repository.CustomLearningPathRepository customLearningPathRepository;
     private final org.fsa_2026.company_fsa_captone_2026.repository.EntryTestResultRepository resultRepository;
+    private final RoadmapRuleService roadmapRuleService;
 
     /**
      * Lấy danh sách level theo dialect — Fix U-01/U-02: parse UUID an toàn + bắt buộc dialect tồn tại trong DB.
@@ -123,9 +124,14 @@ public class LevelService {
         int entryTestUnlockedCount = 1;
         if (lastTest.isPresent()) {
             double score = lastTest.get().getOverallScore();
-            if (score >= 100) entryTestUnlockedCount = 4;
-            else if (score >= 80) entryTestUnlockedCount = 3;
-            else if (score >= 60) entryTestUnlockedCount = 2;
+            List<String> difficulties = roadmapRuleService.getDifficultiesForScore(score);
+            if (difficulties.contains("BEGINNER")) {
+                entryTestUnlockedCount = 1;
+            } else if (difficulties.contains("INTERMEDIATE")) {
+                entryTestUnlockedCount = 3;
+            } else if (difficulties.contains("ADVANCED")) {
+                entryTestUnlockedCount = 5;
+            }
         }
 
         boolean previousCompleted = true; // First level in any roadmap is unlocked by default
