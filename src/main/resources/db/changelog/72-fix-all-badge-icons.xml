@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet id="72-fix-all-local-badge-icons" author="antigravity">
+        <comment>Replace all broken local /icons/badges/ paths with working flaticon CDN URLs</comment>
+
+        <!-- Learning badges -->
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/3135/3135706.png' WHERE code = 'LEARN_FIRST_LEVEL' OR code = 'LEARN_FIRST_STEP';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/2232/2232688.png' WHERE code = 'LEARN_5_LEVELS' OR code = 'LEARN_DILIGENT';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/3176/3176366.png' WHERE code = 'LEARN_10_LEVELS';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/1067/1067357.png' WHERE code = 'LEARN_15_LEVELS';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/684/684908.png'   WHERE code = 'LEARN_NORTH_COMPLETE' OR code = 'CONQUEROR_NORTH';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/684/684831.png'   WHERE code = 'LEARN_CENTRAL_COMPLETE';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/684/684852.png'   WHERE code = 'LEARN_SOUTH_COMPLETE';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/3176/3176272.png' WHERE code = 'LEARN_ALL_REGIONS';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/1828/1828884.png' WHERE code = 'LEARN_BEGINNER_DONE' OR code = 'STAR_COLLECTOR';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/1828/1828970.png' WHERE code = 'LEARN_INTERMEDIATE_DONE';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/1828/1828961.png' WHERE code = 'LEARN_ADVANCED_DONE';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/1828/1828884.png' WHERE code = 'LEARN_FIRST_3STAR';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/3588/3588294.png' WHERE code = 'LEARN_10_3STAR';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/3588/3588614.png' WHERE code = 'LEARN_ALL_3STAR';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/190/190411.png'   WHERE code = 'LEARN_RETRY_WIN' OR code = 'ERROR_DESTROYER';</sql>
+
+        <!-- Phoneme badges -->
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/3588/3588294.png' WHERE code = 'PHONEME_FIRST_PASS' OR code = 'PHONEME_MASTER';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/2620/2620244.png' WHERE code = 'PHONEME_NL_MASTER';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/2620/2620244.png' WHERE code = 'PHONEME_SX_MASTER';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/2620/2620244.png' WHERE code = 'PHONEME_DGIR_MASTER';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/2620/2620244.png' WHERE code = 'PHONEME_TRCH_MASTER';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/3588/3588614.png' WHERE code = 'PHONEME_ALL_PAIRS';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/1995/1995574.png' WHERE code = 'PHONEME_TONE_GOOD' OR code = 'SMART_LEARNER';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/1995/1995574.png' WHERE code = 'PHONEME_TONE_MASTER';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/3588/3588294.png' WHERE code = 'PHONEME_PERFECT_SESSION';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/3588/3588294.png' WHERE code = 'PHONEME_PERFECT_5';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/3135/3135706.png' WHERE code = 'PHONEME_ENTRY_DONE';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/3176/3176366.png' WHERE code = 'PHONEME_SPEED' OR code = 'SPEED_RACER';</sql>
+
+        <!-- Minigame badges -->
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' WHERE code = 'MINI_FIRST_PLAY';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' WHERE code = 'MINI_10_PLAYS';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' WHERE code = 'MINI_50_PLAYS';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' WHERE code LIKE 'MINI_%';</sql>
+
+        <!-- Social badges -->
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/833/833472.png'   WHERE code = 'FRIENDLY_USER';</sql>
+        <sql>UPDATE reward_catalog SET icon_url = 'https://cdn-icons-png.flaticon.com/512/3468/3468377.png' WHERE code = 'DAILY_GIFT';</sql>
+
+        <!-- Fallback: fix ALL remaining broken local paths -->
+        <sql>
+            UPDATE reward_catalog
+            SET icon_url = 'https://cdn-icons-png.flaticon.com/512/1067/1067357.png'
+            WHERE icon_url LIKE '/icons/badges/%'
+               OR icon_url LIKE '%iconarchive%'
+               OR icon_url IS NULL
+               OR icon_url = '';
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

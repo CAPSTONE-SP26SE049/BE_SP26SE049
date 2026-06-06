@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="82-complete-user-quizzes" author="antigravity">
+        <comment>Unlock and complete all individual quizzes (stages) for lequocbaotxdh@gmail.com</comment>
+        <sql splitStatements="false">
+            <![CDATA[
+            DO $$
+            DECLARE
+                v_account_id UUID;
+            BEGIN
+                -- Find the account ID for lequocbaotxdh@gmail.com
+                SELECT id INTO v_account_id FROM account WHERE email = 'lequocbaotxdh@gmail.com';
+                
+                IF v_account_id IS NOT NULL THEN
+                    -- 1. Unlock and complete all learning units of type 'QUIZ'
+                    INSERT INTO account_learning_unit (id, created_at, updated_at, created_by, updated_by, account_id, learning_unit_id, stars_earned, is_completed, highest_score, is_unlocked)
+                    SELECT 
+                        gen_random_uuid(), 
+                        NOW(), 
+                        NOW(), 
+                        'system', 
+                        'system', 
+                        v_account_id, 
+                        lu.id, 
+                        3, 
+                        true, 
+                        100.00, 
+                        true
+                    FROM learning_unit lu
+                    WHERE lu.type = 'QUIZ'
+                    ON CONFLICT (account_id, learning_unit_id) DO UPDATE 
+                    SET 
+                        stars_earned = 3,
+                        is_completed = true,
+                        highest_score = 100.00,
+                        is_unlocked = true,
+                        updated_at = NOW();
+
+                    -- 2. Update account table to reflect total stars from all quizzes and higher experience
+                    UPDATE account 
+                    SET 
+                        total_stars = COALESCE((SELECT COUNT(*) * 3 FROM learning_unit WHERE type = 'QUIZ'), 675),
+                        total_experience = 50000,
+                        updated_at = NOW()
+                    WHERE id = v_account_id;
+                END IF;
+            END $$;
+            ]]>
+        </sql>
+    </changeSet>
+</databaseChangeLog>

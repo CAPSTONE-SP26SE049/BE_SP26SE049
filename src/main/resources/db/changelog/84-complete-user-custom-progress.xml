@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <changeSet id="complete-user-custom-progress-force-run-v1" author="antigravity" runAlways="true">
+        <comment>Force complete all custom path progress records for lequocbaotxdh@gmail.com</comment>
+        <sql splitStatements="false">
+            <![CDATA[
+            DO $$
+            DECLARE
+                v_account_id UUID;
+            BEGIN
+                -- Find the account ID for lequocbaotxdh@gmail.com
+                SELECT id INTO v_account_id FROM account WHERE email = 'lequocbaotxdh@gmail.com';
+
+                IF v_account_id IS NOT NULL THEN
+                    -- Insert completed custom path progress for the user's custom learning paths
+                    INSERT INTO custom_path_progress (id, custom_path_id, learning_unit_id, score, is_completed, created_at, updated_at)
+                    SELECT 
+                        gen_random_uuid(),
+                        clp.id,
+                        q.id,
+                        100,
+                        true,
+                        NOW(),
+                        NOW()
+                    FROM custom_learning_paths clp
+                    JOIN custom_path_levels cpl ON clp.id = cpl.custom_path_id
+                    JOIN learning_unit lvl ON cpl.level_id = lvl.id
+                    JOIN learning_unit q ON q.parent_id = lvl.id AND q.type = 'QUIZ'
+                    WHERE clp.student_id = v_account_id
+                    ON CONFLICT (custom_path_id, learning_unit_id) DO UPDATE 
+                    SET is_completed = true, score = 100, updated_at = NOW();
+                END IF;
+            END $$;
+            ]]>
+        </sql>
+    </changeSet>
+</databaseChangeLog>

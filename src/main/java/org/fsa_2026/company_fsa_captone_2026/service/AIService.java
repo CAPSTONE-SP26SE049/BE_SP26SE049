@@ -47,7 +47,7 @@ public class AIService {
     @Value("${asr.local.sampling-rate:16000}")
     private int localAsrSamplingRate;
 
-    public static final String SYSTEM_INSTRUCTION = "Bạn là chuyên gia phân tích phát âm tiếng Việt. So sánh rawText với targetText và trả về nhận xét sư phạm, cụ thể, hữu ích. Hệ thống hiện tại hỗ trợ chẩn đoán và phân tích các lỗi phát âm/vùng miền sau:\n{availableErrorTags}\nHãy ưu tiên đối chiếu phát hiện lỗi xem người học có mắc phải lỗi nào trong danh sách trên hay không. Không được trả lời chung chung, không được lặp lại nguyên văn targetText, và không được dùng câu ngắn kiểu 'Phát âm chưa chính xác' nếu chưa giải thích vì sao.";
+    public static final String SYSTEM_INSTRUCTION = "Bạn là chuyên gia phân tích phát âm tiếng Việt. QUAN TRỌNG: rawText là những gì người học THỰC SỰ ĐÃ NÓI (do ASR nhận diện). targetText là từ/câu CHUẨN mà người học CẦN phát âm đúng. Nhiệm vụ: đánh giá xem người học có phát âm đúng targetText không, dựa trên rawText. Nếu rawText khác targetText, hãy giải thích người học đã nói sai chỗ nào so với targetText, KHÔNG phải ngược lại. Hệ thống hỗ trợ chẩn đoán các lỗi phát âm/vùng miền sau:\n{availableErrorTags}\nHãy ưu tiên đối chiếu phát hiện lỗi xem người học có mắc phải lỗi nào trong danh sách trên hay không. Không được trả lời chung chung, không được lặp lại nguyên văn targetText, và không được dùng câu ngắn kiểu 'Phát âm chưa chính xác' nếu chưa giải thích vì sao.";
     public static final String JSON_SCHEMA_INSTRUCTION = "Trả về JSON thuần túy với các fields: accuracy (0-100), detectedError (mô tả lỗi cụ thể), feedback (ít nhất 2 câu, nêu lỗi và cách sửa), suggestion (gợi ý ngắn gọn), errorDetail (diễn giải chi tiết hơn feedback), isRegional (boolean), isCorrect (boolean), shapeKey (exact_match, near_match, pronunciation_mismatch, regional_error, missing_input).";
 
     private final ObjectMapper objectMapper;
@@ -185,14 +185,23 @@ public class AIService {
     private AzureTranscriptionResult transcribeWithLocalAsr(byte[] audioData, String targetText) {
         long start = System.currentTimeMillis();
         try {
+            boolean isWebm = audioData != null && audioData.length >= 4 &&
+                    audioData[0] == 0x1A &&
+                    audioData[1] == 0x45 &&
+                    (audioData[2] & 0xFF) == 0xDF &&
+                    (audioData[3] & 0xFF) == 0xA3;
+
+            String mimeType = isWebm ? "audio/webm" : "audio/wav";
+            final String filename = isWebm ? "recording.webm" : "recording.wav";
+
             org.springframework.util.MultiValueMap<String, Object> body = new org.springframework.util.LinkedMultiValueMap<>();
             HttpHeaders audioHeaders = new HttpHeaders();
-            audioHeaders.setContentType(MediaType.parseMediaType("audio/wav"));
+            audioHeaders.setContentType(MediaType.parseMediaType(mimeType));
             org.springframework.core.io.ByteArrayResource audioResource = new org.springframework.core.io.ByteArrayResource(
                     audioData) {
                 @Override
                 public String getFilename() {
-                    return "recording.wav";
+                    return filename;
                 }
             };
             body.add("audio", new HttpEntity<>(audioResource, audioHeaders));
@@ -243,13 +252,17 @@ public class AIService {
         }
     }
 
-    public Map<String, Object> chatWithGroq(String message) {
+    public Map<String, Object> chatWithGroq(String systemInstruction, String message) {
         String activeKey = systemConfigService.getValue("groq.api-key", groqApiKey);
         if (activeKey == null || activeKey.isBlank()) {
             throw new ApiException("CONFIG_ERROR",
                     "Groq API Key chưa được cấu hình. Vui lòng kiểm tra biến môi trường GROQ_API_KEY hoặc cấu hình trong hệ thống.");
         }
-        return chatWithGroqOrFallback(message);
+        return chatWithGroqOrFallback(systemInstruction, message);
+    }
+
+    public Map<String, Object> chatWithGroq(String message) {
+        return chatWithGroq("Bạn là trợ lý học tập tiếng Việt thân thiện và thông minh.", message);
     }
 
     /**
@@ -272,7 +285,7 @@ public class AIService {
      * @return accuracy, feedback, isCorrect, …
      */
     public Map<String, Object> provideFeedback(String transcribedText, String targetText, String focusErrorTag) {
-        if (transcribedText == null || targetText == null || transcribedText.isBlank() || targetText.isBlank()) {
+        if (targetText == null || targetText.isBlank()) {
             return new HashMap<>(Map.of(
                     "isCorrect", false,
                     "accuracy", 0,
@@ -282,6 +295,18 @@ public class AIService {
                     "score", 0,
                     "suggestion", "Vui lòng gửi đầy đủ văn bản nhận diện và văn bản mẫu.",
                     "errorDetail", "Thiếu dữ liệu đầu vào để chấm điểm.",
+                    "aiProvider", "groq"));
+        }
+        if (transcribedText == null || transcribedText.isBlank()) {
+            return new HashMap<>(Map.of(
+                    "isCorrect", false,
+                    "accuracy", 0,
+                    "errorType", "no_speech_detected",
+                    "feedback", "Hệ thống không nhận diện được giọng nói. Hãy thử nói to và rõ hơn, đặt micro gần miệng hơn, và đảm bảo không có tiếng ồn xung quanh.",
+                    "shapeKey", "missing_input",
+                    "score", 0,
+                    "suggestion", "Nói to, rõ ràng và giữ micro gần miệng khoảng 10–15 cm.",
+                    "errorDetail", "ASR không nhận diện được âm thanh từ micro.",
                     "aiProvider", "groq"));
         }
 
@@ -314,16 +339,50 @@ public class AIService {
             normalized.put("aiProvider", "groq");
             return normalized;
         } catch (Exception e) {
-            log.error("Groq feedback failed", e);
-            throw new ApiException("AI_ERROR", "Không thể gọi Groq AI Feedback: " + e.getMessage());
+            log.error("Groq feedback failed, falling back to local evaluation", e);
+            int fallbackAccuracy = calculateLocalAccuracy(transcribedText, targetText);
+            boolean isCorrect = fallbackAccuracy >= 80;
+            
+            Map<String, Object> fallback = new HashMap<>();
+            fallback.put("isCorrect", isCorrect);
+            fallback.put("accuracy", fallbackAccuracy);
+            fallback.put("errorType", isCorrect ? "minor_error" : "major_error");
+            fallback.put("feedback", "AI Service (Groq) đang bị lỗi kết nối mạng. Điểm số ước lượng tự động: " + fallbackAccuracy + "%.");
+            fallback.put("shapeKey", "fallback");
+            fallback.put("score", fallbackAccuracy);
+            fallback.put("suggestion", "Vui lòng thử lại sau hoặc sử dụng VPN nếu kết nối bị chặn.");
+            fallback.put("errorDetail", "Fallback do lỗi: " + e.getMessage());
+            fallback.put("aiProvider", "local_fallback");
+            fallback.put("groqLatencyMs", System.currentTimeMillis() - start);
+            return fallback;
         }
     }
 
-    private Map<String, Object> chatWithGroqOrFallback(String message) {
+    private int calculateLocalAccuracy(String transcribedText, String targetText) {
+        String t = normalizeForComparison(transcribedText);
+        String tgt = normalizeForComparison(targetText);
+        if (t.equals(tgt)) return 100;
+        
+        String[] tWords = t.split("\\s+");
+        String[] tgtWords = tgt.split("\\s+");
+        if (tgtWords.length == 0) return 0;
+        
+        int matches = 0;
+        java.util.List<String> targetList = new java.util.ArrayList<>(java.util.Arrays.asList(tgtWords));
+        for (String word : tWords) {
+            if (targetList.remove(word)) {
+                matches++;
+            }
+        }
+        
+        return Math.min(100, Math.max(0, (int) Math.round((double) matches / tgtWords.length * 100)));
+    }
+
+    private Map<String, Object> chatWithGroqOrFallback(String systemInstruction, String message) {
         String lastError = "Unknown error";
         for (String modelName : groqModelCandidates()) {
             try {
-                Map<String, Object> raw = callGroqModel(message, modelName);
+                Map<String, Object> raw = callGroqModel(systemInstruction, message, modelName);
                 if (raw != null)
                     return raw;
             } catch (Exception e) {
@@ -331,6 +390,14 @@ public class AIService {
             }
         }
         throw new ApiException("AI_ERROR", "Không thể gọi Groq API: " + lastError);
+    }
+
+    private Map<String, Object> chatWithGroqOrFallback(String message) {
+        String activeSystemInstruction = systemConfigService.getValue("prompt.pronunciation-system-instruction", SYSTEM_INSTRUCTION);
+        if (activeSystemInstruction.contains("{availableErrorTags}")) {
+            activeSystemInstruction = activeSystemInstruction.replace("{availableErrorTags}", getAvailableErrorTagsText());
+        }
+        return chatWithGroqOrFallback(activeSystemInstruction, message);
     }
 
     private List<String> groqModelCandidates() {
@@ -495,16 +562,11 @@ public class AIService {
                 .replace("{focusInstruction}", focusInstruction);
     }
 
-    private Map<String, Object> callGroqModel(String userMessage, String modelName) {
+    private Map<String, Object> callGroqModel(String systemInstruction, String userMessage, String modelName) {
         String activeKey = systemConfigService.getValue("groq.api-key", groqApiKey);
         if (activeKey == null || activeKey.isBlank()) {
             throw new ApiException("CONFIG_ERROR",
                     "Groq API Key chưa được cấu hình. Vui lòng kiểm tra biến môi trường GROQ_API_KEY hoặc cấu hình trong hệ thống.");
-        }
-
-        String activeSystemInstruction = systemConfigService.getValue("prompt.pronunciation-system-instruction", SYSTEM_INSTRUCTION);
-        if (activeSystemInstruction.contains("{availableErrorTags}")) {
-            activeSystemInstruction = activeSystemInstruction.replace("{availableErrorTags}", getAvailableErrorTagsText());
         }
 
         String activeEndpoint = systemConfigService.getValue("groq.endpoint", groqEndpoint);
@@ -512,7 +574,7 @@ public class AIService {
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", modelName);
         requestBody.put("messages", List.of(
-                Map.of("role", "system", "content", activeSystemInstruction),
+                Map.of("role", "system", "content", systemInstruction),
                 Map.of("role", "user", "content", userMessage)));
         requestBody.put("temperature", 0.2);
         requestBody.put("response_format", Map.of("type", "json_object"));
@@ -529,11 +591,19 @@ public class AIService {
         return parseAndNormalizeOpenAiStyleResponse(response.getBody(), null, null, true);
     }
 
-    private Map<String, Object> callGroqModel(String prompt) {
+    private Map<String, Object> callGroqModelSpecificModel(String userMessage, String modelName) {
+        String activeSystemInstruction = systemConfigService.getValue("prompt.pronunciation-system-instruction", SYSTEM_INSTRUCTION);
+        if (activeSystemInstruction.contains("{availableErrorTags}")) {
+            activeSystemInstruction = activeSystemInstruction.replace("{availableErrorTags}", getAvailableErrorTagsText());
+        }
+        return callGroqModel(activeSystemInstruction, userMessage, modelName);
+    }
+
+    private Map<String, Object> callGroqModel(String systemInstruction, String prompt) {
         Exception lastError = null;
         for (String modelName : groqModelCandidates()) {
             try {
-                return callGroqModel(prompt, modelName);
+                return callGroqModel(systemInstruction, prompt, modelName);
             } catch (Exception e) {
                 lastError = e;
             }
@@ -543,10 +613,21 @@ public class AIService {
         throw new ApiException("AI_ERROR", "Không thể gọi Groq API với các model đã cấu hình.");
     }
 
+    private Map<String, Object> callGroqModel(String prompt) {
+        String activeSystemInstruction = systemConfigService.getValue("prompt.pronunciation-system-instruction", SYSTEM_INSTRUCTION);
+        if (activeSystemInstruction.contains("{availableErrorTags}")) {
+            activeSystemInstruction = activeSystemInstruction.replace("{availableErrorTags}", getAvailableErrorTagsText());
+        }
+        return callGroqModel(activeSystemInstruction, prompt);
+    }
+
     private String normalizeForComparison(String text) {
         if (text == null)
             return "";
-        return text.trim().toLowerCase(Locale.ROOT).replaceAll("\\s+", " ");
+        return text.trim()
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[.,!?\"'()\\-—;:]", "") // Loại bỏ các dấu câu cơ bản
+                .replaceAll("\\s+", " ");
     }
 
     private Map<String, Object> normalizeFeedbackResponse(Map<String, Object> raw, String transcribedText,
@@ -663,9 +744,15 @@ public class AIService {
     }
 
     public Map<String, Object> explainQuizAnswer(String question, String selectedAnswer, String correctAnswer,
-            String skillType, String transcript, String correctSentence) {
+            String skillType, String transcript, String correctSentence, Boolean isCorrect) {
         boolean isTimeout = selectedAnswer.contains("chưa chọn đáp án");
-        String resultStatus = selectedAnswer.equalsIgnoreCase(correctAnswer) ? "CHÍNH XÁC" : "CHƯA ĐÚNG";
+        
+        String resultStatus;
+        if (isCorrect != null) {
+            resultStatus = isCorrect ? "CHÍNH XÁC" : "CHƯA ĐÚNG";
+        } else {
+            resultStatus = selectedAnswer.equalsIgnoreCase(correctAnswer) ? "CHÍNH XÁC" : "CHƯA ĐÚNG";
+        }
 
         String template = systemConfigService.getValue("prompt.quiz-explanation", 
                 "Bạn là giáo viên dạy Tiếng Việt vui nhộn và tận tâm. Hãy giải thích ngắn gọn (1-3 câu) lý do vì sao đáp án là {status}. {timeoutDetail} Câu hỏi: \"{question}\". Người dùng chọn: \"{selectedAnswer}\". Đáp án đúng là: \"{correctAnswer}\". Kỹ năng: {skillType}. {hearingDetail} {correctDetail} Hãy giúp người dùng hiểu rõ kiến thức một cách thân thiện. Trả về JSON có field 'explanation'.");

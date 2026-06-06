@@ -51,9 +51,15 @@ public class AIController {
     @PostMapping("/evaluate-pronunciation")
     public Map<String, Object> evaluatePronunciation(
             @RequestParam("audio") MultipartFile audio,
-            @RequestParam("targetText") String targetText) throws IOException {
+            @RequestParam("targetText") String targetText,
+            @RequestParam(value = "dialect", required = false) String dialect) throws IOException {
 
-        Map<String, Object> result = new java.util.HashMap<>(aiService.evaluatePronunciation(audio, targetText));
+        String focusErrorTag = null;
+        if (dialect != null && !dialect.isBlank()) {
+            focusErrorTag = aiService.findErrorTagUnitId(dialect);
+        }
+
+        Map<String, Object> result = new java.util.HashMap<>(aiService.evaluatePronunciation(audio, targetText, focusErrorTag));
 
         // Upload to Firebase
         try {
@@ -157,8 +163,12 @@ public class AIController {
         result.put("processingTimeMs", processingTimeMs);
         result.put("feedback", aiFeedback);
         result.put("groqFeedback", aiFeedback);
-        result.put("aiScore", result.get("accuracy"));
-        result.put("score", result.get("accuracy"));
+        // Hệ thống chấm điểm (ASR) là chuẩn; AI chỉ feedback, không ghi đè điểm.
+        int finalScore = (asrScore != null) ? asrScore : extractInteger(result.get("accuracy"));
+        boolean finalIsCorrect = finalScore >= 80;
+        result.put("aiScore", result.get("accuracy"));     // điểm tham khảo từ AI
+        result.put("score", finalScore);                       // điểm chính thức từ ASR
+        result.put("isCorrect", finalIsCorrect);               // Cập nhật trạng thái đúng/sai dựa trên điểm thực tế
         result.put("suggestion", aiFeedback);
         result.put("errorDetail", aiFeedback);
         result.put("transcribedText", transcribedText);
@@ -168,26 +178,14 @@ public class AIController {
         result.put("recordId", recordId);
 
         if (consentGiven && authentication != null) {
-            int score = 0;
-            Object scoreObj = result.get("accuracy");
-            if (scoreObj instanceof Number number) {
-                score = number.intValue();
-            }
-
-            boolean isCorrect = false;
-            Object isCorrectObj = result.get("isCorrect");
-            if (isCorrectObj instanceof Boolean bool) {
-                isCorrect = bool;
-            }
-
             speakingAttemptService.saveAttemptAsync(
                     authentication.getName(),
                     challengeId,
                     targetText,
                     transcribedText,
                     audioUrl,
-                    score,
-                    isCorrect,
+                    finalScore,
+                    finalIsCorrect,
                     dialect,
                     processingTimeMs,
                     asrProcessingTimeMs,
@@ -225,13 +223,14 @@ public class AIController {
         String skillType = (String) request.get("skillType");
         String transcript = (String) request.get("transcript");
         String correctSentence = (String) request.get("correctSentence");
+        Boolean isCorrect = (Boolean) request.get("isCorrect");
 
         if (question == null || selectedAnswer == null || correctAnswer == null) {
             throw new ApiException("BAD_REQUEST", "Thiếu thông tin câu hỏi hoặc đáp án");
         }
 
         return aiService.explainQuizAnswer(question, selectedAnswer, correctAnswer, skillType, transcript,
-                correctSentence);
+                correctSentence, isCorrect);
     }
 
     private Long extractLong(Object value) {

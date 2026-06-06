@@ -273,6 +273,15 @@ public class AdminController {
                 .body(ApiResponse.success("Tạo câu hỏi thành công", response));
     }
 
+    @PostMapping("/content/challenge-bank/batch")
+    @Operation(summary = "Batch Upsert Challenge Bank Items", description = "Create or update multiple challenges in the question bank")
+    public ResponseEntity<ApiResponse<List<ChallengeBank>>> batchUpsertChallengeBankItems(
+            @Valid @RequestBody List<ChallengeBankRequest> requests) {
+        log.info("Admin batch upserting {} challenge bank items", requests.size());
+        List<ChallengeBank> response = challengeBankService.batchUpsertChallenges(requests);
+        return ResponseEntity.ok(ApiResponse.success("Lưu hàng loạt câu hỏi thành công", response));
+    }
+
     @PutMapping("/content/challenge-bank/{id}")
     @Operation(summary = "Update Challenge Bank Item", description = "Update an existing challenge bank item by ID")
     public ResponseEntity<ApiResponse<ChallengeBank>> updateChallengeBankItem(

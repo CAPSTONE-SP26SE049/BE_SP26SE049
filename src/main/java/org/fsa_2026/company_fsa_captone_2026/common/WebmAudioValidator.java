@@ -11,9 +11,10 @@ import java.util.Locale;
 public final class WebmAudioValidator {
 
     private static final String WEBM_EXTENSION = ".webm";
+    private static final String WAV_EXTENSION = ".wav";
     private static final String MSG_EMPTY = "File âm thanh không được để trống";
-    private static final String MSG_FORMAT = "Chỉ chấp nhận file âm thanh định dạng .webm";
-    private static final String MSG_URL_FORMAT = "URL âm thanh phải trỏ tới file .webm";
+    private static final String MSG_FORMAT = "Chỉ chấp nhận file âm thanh định dạng .webm hoặc .wav";
+    private static final String MSG_URL_FORMAT = "URL âm thanh phải trỏ tới file .webm hoặc .wav";
 
     private WebmAudioValidator() {
     }
@@ -29,13 +30,14 @@ public final class WebmAudioValidator {
             throw new BadRequestException(MSG_EMPTY);
         }
         String filename = audioFile.getOriginalFilename();
-        if (filename == null || !filename.toLowerCase(Locale.ROOT).endsWith(WEBM_EXTENSION)) {
+        if (filename == null || (!filename.toLowerCase(Locale.ROOT).endsWith(WEBM_EXTENSION) && !filename.toLowerCase(Locale.ROOT).endsWith(WAV_EXTENSION))) {
             throw new BadRequestException(MSG_FORMAT);
         }
         String contentType = audioFile.getContentType();
         if (contentType != null && !contentType.isBlank()) {
             String normalized = contentType.toLowerCase(Locale.ROOT);
             boolean allowedType = normalized.contains("webm")
+                    || normalized.contains("wav")
                     || "application/octet-stream".equals(normalized);
             if (!allowedType) {
                 throw new BadRequestException(MSG_FORMAT);
@@ -54,7 +56,7 @@ public final class WebmAudioValidator {
             return;
         }
         String path = audioUrl.split("\\?")[0].toLowerCase(Locale.ROOT);
-        if (!path.contains(WEBM_EXTENSION)) {
+        if (!path.contains(WEBM_EXTENSION) && !path.contains(WAV_EXTENSION)) {
             throw new BadRequestException(MSG_URL_FORMAT);
         }
     }

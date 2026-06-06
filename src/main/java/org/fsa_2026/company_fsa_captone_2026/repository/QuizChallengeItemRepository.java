@@ -11,6 +11,7 @@ import java.util.UUID;
 public interface QuizChallengeItemRepository extends JpaRepository<QuizChallengeItem, UUID> {
     List<QuizChallengeItem> findByChallengeIdOrderByOrderIndex(UUID challengeId);
     List<QuizChallengeItem> findByQuizIdOrderByOrderIndex(UUID quizId);
+    List<QuizChallengeItem> findByQuizIdIn(List<UUID> quizIds);
     List<QuizChallengeItem> findByChallengeId(UUID challengeId);
     long countByQuizId(UUID quizId);
     void deleteByChallengeBankId(UUID challengeBankId);

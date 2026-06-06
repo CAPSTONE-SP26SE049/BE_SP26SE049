@@ -34,6 +34,38 @@ public class DebugController {
     private final org.fsa_2026.company_fsa_captone_2026.repository.EntryTestResultRepository entryTestResultRepository;
     private final org.fsa_2026.company_fsa_captone_2026.repository.CustomLearningPathRepository customLearningPathRepository;
     private final org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository accountRepository;
+    private final org.fsa_2026.company_fsa_captone_2026.service.EntryTestService entryTestService;
+
+    @GetMapping("/regenerate-path")
+    public ResponseEntity<Map<String, Object>> regeneratePath(@RequestParam String email) {
+        log.info("[DEBUG] Regenerating custom path for email: {}", email);
+        org.fsa_2026.company_fsa_captone_2026.entity.Account account = accountRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + email));
+
+        org.fsa_2026.company_fsa_captone_2026.entity.EntryTestResult latestResult = entryTestResultRepository.findFirstByAccountIdOrderByCreatedAtDesc(account.getId())
+                .orElseThrow(() -> new IllegalArgumentException("No entry test result found for: " + email));
+
+        List<Map<String, Object>> stepResults;
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            stepResults = mapper.readValue(latestResult.getDetails(), new com.fasterxml.jackson.core.type.TypeReference<List<Map<String, Object>>>() {});
+        } catch (Exception e) {
+            log.error("Failed to parse details for entry test result", e);
+            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "Failed to parse details: " + e.getMessage()));
+        }
+
+        entryTestService.assignPersonalRoadmap(account, latestResult.getDetectedRegion(), latestResult, stepResults);
+
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("success", true);
+        resp.put("message", "Custom path regenerated successfully");
+        resp.put("email", email);
+        resp.put("detectedRegion", latestResult.getDetectedRegion());
+        resp.put("overallScore", latestResult.getOverallScore());
+        resp.put("stepResultsCount", stepResults.size());
+
+        return ResponseEntity.ok(resp);
+    }
 
     @GetMapping("/challenge-bank")
     public ResponseEntity<Map<String, Object>> getAllChallenges() {

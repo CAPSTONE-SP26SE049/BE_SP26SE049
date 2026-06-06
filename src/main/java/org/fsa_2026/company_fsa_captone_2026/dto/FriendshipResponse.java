@@ -26,4 +26,6 @@ public class FriendshipResponse {
     private String avatarUrl;
     private String status;
     private Instant createdAt;
+    private Boolean isOnline;
+    private Instant lastActiveAt;
 }

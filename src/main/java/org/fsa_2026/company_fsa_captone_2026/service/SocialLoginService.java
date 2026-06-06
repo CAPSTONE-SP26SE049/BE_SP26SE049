@@ -270,6 +270,9 @@ public class SocialLoginService {
                         .region(account.getRegion())
                         .avatarUrl(account.getAvatarUrl())
                         .currentStreakDays(account.getCurrentStreakDays())
+                        .totalStars(account.getTotalStars() != null ? account.getTotalStars() : 0)
+                        .totalExperience(account.getTotalExperience() != null ? account.getTotalExperience() : 0)
+                        .hasDoneEntryTest(account.getHasDoneEntryTest() != null && account.getHasDoneEntryTest())
                         .build())
                 .build();
     }

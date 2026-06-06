@@ -8,6 +8,7 @@ import org.fsa_2026.company_fsa_captone_2026.entity.Notification;
 import org.fsa_2026.company_fsa_captone_2026.exception.ApiException;
 import org.fsa_2026.company_fsa_captone_2026.repository.AccountRepository;
 import org.fsa_2026.company_fsa_captone_2026.repository.NotificationRepository;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final AccountRepository accountRepository;
+    private final SimpMessagingTemplate simpMessagingTemplate;
 
     /**
      * Create a new notification for a recipient.
@@ -42,6 +44,14 @@ public class NotificationService {
 
         notificationRepository.save(notification);
         log.info("Notification created: type={}, recipient={}", type, recipientId);
+
+        try {
+            NotificationResponse resp = toResponse(notification);
+            simpMessagingTemplate.convertAndSend("/topic/notifications/" + recipientId, resp);
+            log.info("Notification sent via WebSocket to /topic/notifications/{}", recipientId);
+        } catch (Exception ex) {
+            log.error("Failed to broadcast notification via WebSocket", ex);
+        }
     }
 
     /**
@@ -75,6 +85,17 @@ public class NotificationService {
 
         notification.setIsRead(true);
         notificationRepository.save(notification);
+    }
+
+    /**
+     * Mark all notifications as read for current user.
+     */
+    @Transactional
+    public void markAllAsRead(String email) {
+        Account account = accountRepository.findByEmail(email)
+                .orElseThrow(() -> new ApiException("NOT_FOUND", "Không tìm thấy người dùng"));
+
+        notificationRepository.markAllAsReadByRecipientId(account.getId());
     }
 
     /**

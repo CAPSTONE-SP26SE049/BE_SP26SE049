@@ -392,6 +392,7 @@ public class AdminChallengeBankExcelService {
             case WRITING -> "Viết";
             case SPEAKING -> "Nói";
             case ENTRY_TEST -> "Kiểm tra đầu vào";
+            case MIX -> "Tổng hợp";
         };
     }
 

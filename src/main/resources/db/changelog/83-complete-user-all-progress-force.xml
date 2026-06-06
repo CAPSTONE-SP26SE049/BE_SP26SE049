@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="83-complete-user-all-progress-force-v3" author="antigravity" runAlways="true">
+        <comment>Force unlock all achievements, badges, levels, and quizzes for lequocbaotxdh@gmail.com</comment>
+        <sql splitStatements="false">
+            <![CDATA[
+            DO $$
+            DECLARE
+                v_account_id UUID;
+            BEGIN
+                -- Find the account ID for lequocbaotxdh@gmail.com
+                SELECT id INTO v_account_id FROM account WHERE email = 'lequocbaotxdh@gmail.com';
+                
+                IF v_account_id IS NOT NULL THEN
+                    -- 1. Mark entry test as completed
+                    UPDATE account SET has_done_entry_test = true WHERE id = v_account_id;
+
+                    -- 2. Unlock and complete all learning units of type 'LEVEL'
+                    INSERT INTO account_learning_unit (id, created_at, updated_at, created_by, updated_by, account_id, learning_unit_id, stars_earned, is_completed, highest_score, is_unlocked)
+                    SELECT 
+                        gen_random_uuid(), 
+                        NOW(), 
+                        NOW(), 
+                        'system', 
+                        'system', 
+                        v_account_id, 
+                        lu.id, 
+                        3, 
+                        true, 
+                        100.00, 
+                        true
+                    FROM learning_unit lu
+                    WHERE lu.type = 'LEVEL'
+                    ON CONFLICT (account_id, learning_unit_id) DO UPDATE 
+                    SET 
+                        stars_earned = 3,
+                        is_completed = true,
+                        highest_score = 100.00,
+                        is_unlocked = true,
+                        updated_at = NOW();
+
+                    -- 3. Unlock and complete all learning units of type 'QUIZ'
+                    INSERT INTO account_learning_unit (id, created_at, updated_at, created_by, updated_by, account_id, learning_unit_id, stars_earned, is_completed, highest_score, is_unlocked)
+                    SELECT 
+                        gen_random_uuid(), 
+                        NOW(), 
+                        NOW(), 
+                        'system', 
+                        'system', 
+                        v_account_id, 
+                        lu.id, 
+                        3, 
+                        true, 
+                        100.00, 
+                        true
+                    FROM learning_unit lu
+                    WHERE lu.type = 'QUIZ'
+                    ON CONFLICT (account_id, learning_unit_id) DO UPDATE 
+                    SET 
+                        stars_earned = 3,
+                        is_completed = true,
+                        highest_score = 100.00,
+                        is_unlocked = true,
+                        updated_at = NOW();
+
+                    -- 4. Unlock all active rewards (badges and achievements)
+                    INSERT INTO account_reward (id, account_id, reward_catalog_id, status, progress_value, unlocked_at, created_at, updated_at)
+                    SELECT 
+                        gen_random_uuid(), 
+                        v_account_id, 
+                        rc.id, 
+                        'UNLOCKED', 
+                        100, 
+                        NOW(), 
+                        NOW(), 
+                        NOW()
+                    FROM reward_catalog rc
+                    WHERE rc.is_active = true
+                    ON CONFLICT (account_id, reward_catalog_id) DO UPDATE 
+                    SET 
+                        status = 'UNLOCKED',
+                        progress_value = 100,
+                        unlocked_at = COALESCE(account_reward.unlocked_at, NOW()),
+                        updated_at = NOW();
+
+                    -- 5. Update account table directly to reflect all stars, points (total_experience), and streak
+                    UPDATE account 
+                    SET 
+                        total_experience = 50000, 
+                        total_stars = COALESCE((SELECT COUNT(*) * 3 FROM learning_unit WHERE type = 'QUIZ'), 675),
+                        max_streak_days = 30,
+                        current_streak_days = 30,
+                        last_activity_date = CURRENT_DATE,
+                        updated_at = NOW()
+                    WHERE id = v_account_id;
+                END IF;
+            END $$;
+            ]]>
+        </sql>
+    </changeSet>
+</databaseChangeLog>

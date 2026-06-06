@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet id="71-fix-achievement-icon-urls" author="antigravity">
+        <comment>Replace broken iconarchive.com URLs with working CDN icons from shields.io/simple-icons or emoji-based SVG data URIs</comment>
+
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="https://cdn-icons-png.flaticon.com/512/3135/3135706.png"/>
+            <where>code = 'LEARN_FIRST_STEP'</where>
+        </update>
+
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="https://cdn-icons-png.flaticon.com/512/2232/2232688.png"/>
+            <where>code = 'LEARN_DILIGENT'</where>
+        </update>
+
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="https://cdn-icons-png.flaticon.com/512/3588/3588294.png"/>
+            <where>code = 'PHONEME_MASTER'</where>
+        </update>
+
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="https://cdn-icons-png.flaticon.com/512/684/684908.png"/>
+            <where>code = 'CONQUEROR_NORTH'</where>
+        </update>
+
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="https://cdn-icons-png.flaticon.com/512/1828/1828884.png"/>
+            <where>code = 'STAR_COLLECTOR'</where>
+        </update>
+
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="https://cdn-icons-png.flaticon.com/512/190/190411.png"/>
+            <where>code = 'ERROR_DESTROYER'</where>
+        </update>
+
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="https://cdn-icons-png.flaticon.com/512/1995/1995574.png"/>
+            <where>code = 'SMART_LEARNER'</where>
+        </update>
+
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="https://cdn-icons-png.flaticon.com/512/3176/3176366.png"/>
+            <where>code = 'SPEED_RACER'</where>
+        </update>
+
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="https://cdn-icons-png.flaticon.com/512/833/833472.png"/>
+            <where>code = 'FRIENDLY_USER'</where>
+        </update>
+
+        <update tableName="reward_catalog">
+            <column name="icon_url" value="https://cdn-icons-png.flaticon.com/512/3468/3468377.png"/>
+            <where>code = 'DAILY_GIFT'</where>
+        </update>
+
+        <!-- Fix any other badges using iconarchive -->
+        <sql>
+            UPDATE reward_catalog
+            SET icon_url = 'https://cdn-icons-png.flaticon.com/512/1067/1067357.png'
+            WHERE icon_url LIKE '%iconarchive%' AND code NOT IN (
+                'LEARN_FIRST_STEP','LEARN_DILIGENT','PHONEME_MASTER','CONQUEROR_NORTH',
+                'STAR_COLLECTOR','ERROR_DESTROYER','SMART_LEARNER','SPEED_RACER',
+                'FRIENDLY_USER','DAILY_GIFT'
+            );
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

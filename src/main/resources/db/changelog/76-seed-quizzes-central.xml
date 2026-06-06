@@ -1,0 +1,502 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- CENTRAL (chữa ngọng s/x, tr/ch). 5 × 15 × 10 = 750 questions. -->
+
+    <changeSet id="76-seed-quizzes-central-v2" author="claude" runOnChange="true">
+        <comment>Seed CENTRAL: 75 QUIZ + 750 challenge_bank rows + quiz_challenge_item links. Idempotent.</comment>
+        <sql splitStatements="false">
+            <![CDATA[
+DO $$
+DECLARE
+    v_old_quiz_ids UUID[];
+BEGIN
+    SELECT array_agg(id) INTO v_old_quiz_ids
+    FROM learning_unit
+    WHERE type='QUIZ'
+      AND parent_id IN (
+          '00000000-0000-0000-0073-210000000000'::uuid,
+          '00000000-0000-0000-0073-220000000000'::uuid,
+          '00000000-0000-0000-0073-230000000000'::uuid,
+          '00000000-0000-0000-0073-240000000000'::uuid,
+          '00000000-0000-0000-0073-250000000000'::uuid
+      );
+
+    IF v_old_quiz_ids IS NOT NULL AND array_length(v_old_quiz_ids,1) > 0 THEN
+        IF EXISTS (SELECT FROM information_schema.tables WHERE table_name='quiz_challenge_item') THEN
+            DELETE FROM quiz_challenge_item WHERE quiz_id = ANY(v_old_quiz_ids);
+        END IF;
+        IF EXISTS (SELECT FROM information_schema.tables WHERE table_name='account_learning_unit') THEN
+            DELETE FROM account_learning_unit WHERE learning_unit_id = ANY(v_old_quiz_ids);
+        END IF;
+        IF EXISTS (SELECT FROM information_schema.tables WHERE table_name='custom_path_progress') THEN
+            DELETE FROM custom_path_progress WHERE learning_unit_id = ANY(v_old_quiz_ids);
+        END IF;
+        IF EXISTS (SELECT FROM information_schema.tables WHERE table_name='content_item') THEN
+            DELETE FROM content_item WHERE learning_unit_id = ANY(v_old_quiz_ids);
+        END IF;
+        DELETE FROM learning_unit WHERE id = ANY(v_old_quiz_ids);
+    END IF;
+
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name='speaking_attempt') THEN
+        DELETE FROM speaking_attempt WHERE challenge_id IN (
+            SELECT id FROM challenge_bank WHERE id::text LIKE '00000000-0000-0073-2%'
+        );
+    END IF;
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name='daily_challenge_attempt') THEN
+        DELETE FROM daily_challenge_attempt WHERE challenge_id IN (
+            SELECT id FROM challenge_bank WHERE id::text LIKE '00000000-0000-0073-2%'
+        );
+    END IF;
+    DELETE FROM challenge_bank WHERE id::text LIKE '00000000-0000-0073-2%';
+END $$;
+
+DO $$
+DECLARE
+    v_levels UUID[] := ARRAY[
+        '00000000-0000-0000-0073-210000000000'::uuid,
+        '00000000-0000-0000-0073-220000000000'::uuid,
+        '00000000-0000-0000-0073-230000000000'::uuid,
+        '00000000-0000-0000-0073-240000000000'::uuid,
+        '00000000-0000-0000-0073-250000000000'::uuid
+    ];
+    v_chapter_themes TEXT[] := ARRAY['Chào hỏi','Gia đình','Công việc','Mua sắm','Du lịch'];
+    v_seconds_per_q INT[] := ARRAY[120,110,100,90,75];
+
+    v_pairs TEXT[][] := ARRAY[
+        ARRAY['sáng', 'sang',  'thời điểm đầu ngày hoặc sang trọng', 'S_X'],
+        ARRAY['sông', 'xông',  'dòng nước lớn chảy',          'S_X'],
+        ARRAY['sắc',  'xắc',   'màu hoặc vẻ ngoài tươi tắn',  'S_X'],
+        ARRAY['sơn',  'xơ',    'phủ màu hoặc sợi xơ dừa',      'S_X'],
+        ARRAY['sung', 'xung',  'một loại quả',                'S_X'],
+        ARRAY['sấu',  'xấu',   'một loại quả chua',           'S_X'],
+        ARRAY['sót',  'xót',   'thiếu hoặc bỏ qua',           'S_X'],
+        ARRAY['xa',   'sa',    'cách một khoảng cách lớn',    'S_X'],
+        ARRAY['xinh', 'sinh',  'có vẻ đẹp dễ thương',         'S_X'],
+        ARRAY['xôi',  'sôi',   'món ăn từ gạo nếp',           'S_X'],
+        ARRAY['xanh', 'sanh',  'màu của lá cây',              'S_X'],
+        ARRAY['xích', 'sạch',  'dây kim loại để buộc hoặc sạch sẽ', 'S_X'],
+        ARRAY['trăng','chăng', 'mặt trăng trên bầu trời',     'TR_CH'],
+        ARRAY['trời', 'chơi',  'không gian phía trên hoặc chơi đùa', 'TR_CH'],
+        ARRAY['trẻ',  'chẻ',   'còn ít tuổi',                 'TR_CH'],
+        ARRAY['trung','chung', 'ở giữa',                       'TR_CH'],
+        ARRAY['trà',  'chà',   'loại đồ uống từ lá cây',      'TR_CH'],
+        ARRAY['trắc', 'chắc',  'loại gỗ quý',                  'TR_CH'],
+        ARRAY['chợ',  'trợ',   'nơi mua bán hàng hoá',         'TR_CH'],
+        ARRAY['chai', 'trai',  'vật đựng chất lỏng',           'TR_CH'],
+        ARRAY['chậm', 'trầm',  'tốc độ thấp hoặc âm trầm',     'TR_CH'],
+        ARRAY['chuyện','truyện','sự việc đã xảy ra',          'TR_CH']
+    ];
+
+    v_phrases TEXT[] := ARRAY[
+        'buổi sáng đẹp trời',  'dòng sông quê',         'màu sắc rực rỡ',         'sơn cửa nhà mới',     'quả sung chín',
+        'quả sấu chua',         'bỏ sót một câu',        'đường xa quá',            'em bé xinh xắn',      'nồi xôi nóng',
+        'lá cây xanh tươi',     'cuộn xích sắt',         'ánh trăng tròn',          'bầu trời trong xanh','em bé trẻ thơ',
+        'miền trung quê hương','một ấm trà nóng',       'gỗ trắc quý hiếm',        'phiên chợ sớm',        'một chai nước suối',
+        'đi chậm thôi',         'kể chuyện vui'
+    ];
+
+    v_sent_ch3 TEXT[] := ARRAY[
+        'Sáng nay sếp triệu tập cuộc họp về sản xuất.',
+        'Chuyên viên đang xử lý sự cố trong dây chuyền.',
+        'Chị Trinh phụ trách sổ sách của phòng kế toán.',
+        'Sản phẩm mới được xuất xưởng vào đầu tuần sau.',
+        'Trưởng phòng đã trao đổi với khách hàng từ sáng.',
+        'Sếp trẻ rất chu đáo trong việc chăm sóc nhân viên.',
+        'Chiến lược sản xuất xanh là trọng tâm năm nay.',
+        'Sai sót trong báo cáo đã được phát hiện kịp thời.',
+        'Trong sản xuất, sai sót nhỏ có thể gây tổn thất lớn.',
+        'Chuyên môn của chị Sáu giúp đội xử lý vấn đề rất nhanh.'
+    ];
+
+    v_sent_ch4 TEXT[] := ARRAY[
+        'Chị Trang ra chợ Xuân mua một cân sấu chín và vài trái xoài tươi.',
+        'Trên sạp hàng, các sản phẩm xanh sạch được xếp gọn gàng theo từng loại.',
+        'Trước khi mua, chị thường xem kỹ hạn sử dụng trên chai sữa.',
+        'Phiên chợ sáng ở miền Trung trao đổi nhiều sản vật của quê nhà.',
+        'Trong siêu thị, sản phẩm được sắp xếp theo từng chuyên mục riêng biệt.',
+        'Sạp xôi sáng đầu chợ luôn đông khách vì hương vị đặc trưng của địa phương.',
+        'Chị Sáu chọn một bịch sương sâm và hai trái xoài chín để mang về.',
+        'Tại chợ Trung, các sản vật được lựa chọn kỹ trước khi bày bán.',
+        'Chị Xuân chọn xoài tròn, sấu chua và một ít trái sung cho bữa cơm chiều.',
+        'Mỗi sáng chị Trang ra chợ sớm để xếp hàng chọn được hàng tươi nhất.'
+    ];
+
+    v_sent_ch5 TEXT[] := ARRAY[
+        'Sáng sớm, chuyến xe đưa chúng tôi sang miền Trung lăn bánh trên con đường còn đẫm sương.',
+        'Trong chuyến đi này, sông Hương trong xanh chảy chầm chậm qua vùng đất thơ ca xứ Huế.',
+        'Chuyến tàu sáng đưa nhóm bạn lên Sa Pa, lúc đó sương sớm còn phủ trắng những đỉnh núi cao.',
+        'Trên dòng sông Sài Gòn, ánh sáng buổi sớm chiếu xuống các sạp hàng san sát hai bên bờ.',
+        'Chuyện về xứ Trung với sương sớm, trăng treo và sông trong là điều du khách nhớ lâu.',
+        'Sáng sớm trên đảo Trường Sa, sóng xanh trong vắt trải dài tới tận chân trời xa.',
+        'Trên đỉnh Sa Pa, sương phủ kín, trăng sáng và bầu trời trong xanh tạo cảm giác thanh bình.',
+        'Chuyến đi sang miền Trung là dịp để chiêm ngưỡng sông trong và sương sớm phủ núi.',
+        'Trên dòng sông chảy qua xứ Trung, ánh sáng chiếu rọi cả buổi sáng và buổi chiều.',
+        'Sáng sớm chuyến tàu sang Trung, hành khách thường ngắm sương sa nhẹ trên dòng sông.'
+    ];
+
+    v_quiz_id   UUID;
+    v_chal_id   UUID;
+    v_chapter   INT;
+    v_quiz_idx  INT;
+    v_q_idx     INT;
+    v_seed      INT;
+    v_pair      TEXT[];
+    v_correct   TEXT;
+    v_wrong     TEXT;
+    v_meaning   TEXT;
+    v_subtag    TEXT;
+    v_text      TEXT;
+    v_content_text TEXT;
+    v_skill_for_quiz TEXT;
+    v_skill     TEXT;
+    v_metadata  JSONB;
+    v_chal_meta JSONB;
+    v_pair_idx  INT;
+    v_pair_count INT := array_length(v_pairs, 1);
+BEGIN
+    FOR v_chapter IN 1..5 LOOP
+        FOR v_quiz_idx IN 1..15 LOOP
+            IF v_quiz_idx <= 5 THEN
+                v_skill_for_quiz := 'SPEAKING';
+            ELSIF v_quiz_idx <= 9 THEN
+                v_skill_for_quiz := 'LISTENING';
+            ELSIF v_quiz_idx <= 12 THEN
+                v_skill_for_quiz := 'WRITING';
+            ELSE
+                v_skill_for_quiz := 'MIX';
+            END IF;
+
+            v_quiz_id := ('00000000-0000-0073-2' ||
+                          v_chapter::text ||
+                          lpad(v_quiz_idx::text, 2, '0') ||
+                          '-000000000000')::uuid;
+
+            v_metadata := jsonb_build_object(
+                'description', 'Bài kiểm tra ' || v_skill_for_quiz || ' - chương "' || v_chapter_themes[v_chapter] || '" - chữa ngọng s/x và tr/ch (Trung).',
+                'instructions',
+                    CASE v_skill_for_quiz
+                        WHEN 'SPEAKING'  THEN 'Đọc to và rõ phần văn bản, chú ý phân biệt s/x và tr/ch.'
+                        WHEN 'LISTENING' THEN 'Nghe AI đọc và chọn từ phát âm đúng (s/x hoặc tr/ch).'
+                        WHEN 'WRITING'   THEN 'Nghe và gõ lại chính xác (chú ý s/x và tr/ch).'
+                        ELSE 'Câu hỏi tổng hợp 3 kỹ năng - chữa ngọng s/x và tr/ch.'
+                    END,
+                'time_limit_seconds', 
+                    CASE 
+                        WHEN v_skill_for_quiz = 'LISTENING' AND v_chapter <= 2 THEN 150
+                        WHEN v_skill_for_quiz = 'LISTENING' AND v_chapter >= 3 THEN 200
+                        ELSE v_seconds_per_q[v_chapter] * 10
+                    END,
+                'passing_score', 80,
+                'points_per_question', 10,
+                'question_count', 10,
+                'comment', '',
+                'skill_type', v_skill_for_quiz,
+                'orderIndex', v_quiz_idx,
+                'status', 'APPROVED'
+            );
+
+            INSERT INTO learning_unit
+                (id, parent_id, name, type, metadata_json, difficulty_level, error_tag,
+                 created_at, updated_at, created_by, updated_by)
+            VALUES (
+                v_quiz_id,
+                v_levels[v_chapter],
+                'Trung - C' || v_chapter || ' - Quiz ' || v_quiz_idx || ' (' || v_skill_for_quiz || ')',
+                'QUIZ',
+                v_metadata,
+                CASE WHEN v_chapter <= 2 THEN 'BEGINNER'
+                     WHEN v_chapter <= 4 THEN 'INTERMEDIATE'
+                     ELSE 'ADVANCED' END,
+                'T_SX_TRCH',
+                NOW(), NOW(), 'system', 'system'
+            );
+
+            FOR v_q_idx IN 1..10 LOOP
+                v_seed := ((v_chapter - 1) * 150) + ((v_quiz_idx - 1) * 10) + v_q_idx;
+                v_pair_idx := ((v_seed - 1) % v_pair_count) + 1;
+                v_correct := v_pairs[v_pair_idx][1];
+                v_wrong   := v_pairs[v_pair_idx][2];
+                v_meaning := v_pairs[v_pair_idx][3];
+                v_subtag  := v_pairs[v_pair_idx][4];
+
+                IF v_chapter = 1 THEN
+                    v_text := v_correct;
+                ELSIF v_chapter = 2 THEN
+                    v_text := v_phrases[((v_seed - 1) % array_length(v_phrases, 1)) + 1];
+                ELSIF v_chapter = 3 THEN
+                    v_text := v_sent_ch3[((v_q_idx - 1) % 10) + 1];
+                ELSIF v_chapter = 4 THEN
+                    v_text := v_sent_ch4[((v_q_idx - 1) % 10) + 1];
+                ELSE
+                    v_text := v_sent_ch5[((v_q_idx - 1) % 10) + 1];
+                END IF;
+                v_content_text := v_text;
+
+                IF v_skill_for_quiz = 'MIX' THEN
+                    v_skill := (ARRAY['SPEAKING','LISTENING','WRITING'])[((v_q_idx - 1) % 3) + 1];
+                ELSE
+                    v_skill := v_skill_for_quiz;
+                END IF;
+
+                IF v_skill = 'SPEAKING' THEN
+                    v_chal_meta := jsonb_build_object(
+                        'type','SPEAKING',
+                        'transcript', v_text,
+                        'targetWords', jsonb_build_array(v_correct),
+                        'errorTag','T_' || v_subtag,
+                        'explanation','Cặp dễ nhầm ' || v_subtag || ': phát âm đúng "' || v_correct || '" (nghĩa: ' || v_meaning || '). Nhiều người nhầm thành "' || v_wrong || '".'
+                    );
+                ELSIF v_skill = 'LISTENING' THEN
+                    DECLARE
+                        v_rand_idx1 INT;
+                        v_rand_idx2 INT;
+                        v_dist1 TEXT;
+                        v_dist2 TEXT;
+                        v_options TEXT[] := '{}';
+                        v_all_words TEXT[];
+                        v_clean_words TEXT[] := '{}';
+                        v_word TEXT;
+                        v_distractors TEXT[] := '{}';
+                        v_idx INT;
+                        v_attempts INT := 0;
+                        v_word_count INT;
+                        v_temp TEXT;
+                        v_swap_idx INT;
+                        v_transcript TEXT;
+                    BEGIN
+                        IF v_chapter <= 2 THEN
+                            v_rand_idx1 := ((v_seed + 5) % v_pair_count) + 1;
+                            v_rand_idx2 := ((v_seed + 11) % v_pair_count) + 1;
+                            IF v_rand_idx1 = v_pair_idx THEN
+                                v_rand_idx1 := (v_rand_idx1 % v_pair_count) + 1;
+                            END IF;
+                            IF v_rand_idx2 = v_pair_idx OR v_rand_idx2 = v_rand_idx1 THEN
+                                v_rand_idx2 := ((v_rand_idx2 + 1) % v_pair_count) + 1;
+                            END IF;
+                            IF v_rand_idx2 = v_pair_idx THEN
+                                v_rand_idx2 := ((v_rand_idx2 + 1) % v_pair_count) + 1;
+                            END IF;
+
+                            v_dist1 := v_pairs[v_rand_idx1][1];
+                            v_dist2 := v_pairs[v_rand_idx2][1];
+
+                            v_options := ARRAY[v_correct, v_wrong, v_dist1, v_dist2];
+                            v_transcript := v_text;
+
+                            v_swap_idx := (v_seed % 4) + 1;
+                            v_temp := v_options[1];
+                            v_options[1] := v_options[v_swap_idx];
+                            v_options[v_swap_idx] := v_temp;
+
+                            v_swap_idx := ((v_seed + 2) % 4) + 1;
+                            v_temp := v_options[2];
+                            v_options[2] := v_options[v_swap_idx];
+                            v_options[v_swap_idx] := v_temp;
+
+                            v_chal_meta := jsonb_build_object(
+                                'type', 'LISTENING',
+                                'listeningType', 'basic',
+                                'transcript', v_transcript,
+                                'audioWord', v_correct,
+                                'correctAnswer', v_correct,
+                                'options', to_jsonb(v_options),
+                                'errorTag', 'T_' || v_subtag,
+                                'explanation', 'Nghe từ được phát âm đúng "' || v_correct || '". Đối chiếu từ dễ nhầm lẫn "' || v_wrong || '".',
+                                'timeLimit', 15
+                            );
+                        ELSE
+                            DECLARE
+                                v_found_pair BOOLEAN := false;
+                                v_pair_start INT;
+                                v_p_idx INT;
+                            BEGIN
+                                v_pair_start := (v_seed % v_pair_count) + 1;
+                                FOR v_p_idx IN 0..(v_pair_count - 1) LOOP
+                                    v_idx := ((v_pair_start + v_p_idx - 1) % v_pair_count) + 1;
+                                    v_correct := v_pairs[v_idx][1];
+                                    v_wrong := v_pairs[v_idx][2];
+                                    v_meaning := v_pairs[v_idx][3];
+                                    
+                                    IF v_text ~* ('\y' || v_correct || '\y') THEN
+                                        SELECT (regexp_match(v_text, '\y' || v_correct || '\y', 'i'))[1] INTO v_correct;
+                                        IF substring(v_correct from 1 for 1) = upper(substring(v_correct from 1 for 1)) THEN
+                                            v_wrong := upper(substring(v_wrong from 1 for 1)) || substring(v_wrong from 2);
+                                        ELSE
+                                            v_wrong := lower(substring(v_wrong from 1 for 1)) || substring(v_wrong from 2);
+                                        END IF;
+                                        v_subtag := v_pairs[v_idx][4];
+                                        v_found_pair := true;
+                                        EXIT;
+                                    END IF;
+                                END LOOP;
+
+                                IF NOT v_found_pair THEN
+                                    v_all_words := regexp_split_to_array(v_text, '\s+');
+                                    FOREACH v_word IN ARRAY v_all_words LOOP
+                                        v_word := regexp_replace(v_word, '[.,!?;:\"''()\-]', '', 'g');
+                                        IF length(v_word) >= 2 THEN
+                                            IF lower(v_word) LIKE 's%' THEN
+                                                v_correct := v_word;
+                                                v_wrong := 'x' || substring(v_word from 2);
+                                                IF substring(v_correct from 1 for 1) = upper(substring(v_correct from 1 for 1)) THEN
+                                                    v_wrong := upper(substring(v_wrong from 1 for 1)) || substring(v_wrong from 2);
+                                                ELSE
+                                                    v_wrong := lower(substring(v_wrong from 1 for 1)) || substring(v_wrong from 2);
+                                                END IF;
+                                                v_subtag := 'SX';
+                                                v_found_pair := true;
+                                                EXIT;
+                                            ELSIF lower(v_word) LIKE 'x%' THEN
+                                                v_correct := v_word;
+                                                v_wrong := 's' || substring(v_word from 2);
+                                                IF substring(v_correct from 1 for 1) = upper(substring(v_correct from 1 for 1)) THEN
+                                                    v_wrong := upper(substring(v_wrong from 1 for 1)) || substring(v_wrong from 2);
+                                                ELSE
+                                                    v_wrong := lower(substring(v_wrong from 1 for 1)) || substring(v_wrong from 2);
+                                                END IF;
+                                                v_subtag := 'SX';
+                                                v_found_pair := true;
+                                                EXIT;
+                                            ELSIF lower(v_word) LIKE 'tr%' THEN
+                                                v_correct := v_word;
+                                                v_wrong := 'ch' || substring(v_word from 3);
+                                                IF substring(v_correct from 1 for 1) = upper(substring(v_correct from 1 for 1)) THEN
+                                                    v_wrong := upper(substring(v_wrong from 1 for 1)) || substring(v_wrong from 2);
+                                                ELSE
+                                                    v_wrong := lower(substring(v_wrong from 1 for 1)) || substring(v_wrong from 2);
+                                                END IF;
+                                                v_subtag := 'TRCH';
+                                                v_found_pair := true;
+                                                EXIT;
+                                            ELSIF lower(v_word) LIKE 'ch%' THEN
+                                                v_correct := v_word;
+                                                v_wrong := 'tr' || substring(v_word from 3);
+                                                IF substring(v_correct from 1 for 1) = upper(substring(v_correct from 1 for 1)) THEN
+                                                    v_wrong := upper(substring(v_wrong from 1 for 1)) || substring(v_wrong from 2);
+                                                ELSE
+                                                    v_wrong := lower(substring(v_wrong from 1 for 1)) || substring(v_wrong from 2);
+                                                END IF;
+                                                v_subtag := 'TRCH';
+                                                v_found_pair := true;
+                                                EXIT;
+                                            END IF;
+                                        END IF;
+                                    END LOOP;
+                                END IF;
+
+                                IF NOT v_found_pair THEN
+                                    v_all_words := regexp_split_to_array(v_text, '\s+');
+                                    FOREACH v_word IN ARRAY v_all_words LOOP
+                                        v_word := regexp_replace(v_word, '[.,!?;:\"''()\-]', '', 'g');
+                                        IF length(v_word) >= 3 THEN
+                                            v_correct := v_word;
+                                            v_wrong := v_word || 'h';
+                                            v_subtag := 'SX';
+                                            v_found_pair := true;
+                                            EXIT;
+                                        END IF;
+                                    END LOOP;
+                                END IF;
+                            END;
+
+                            v_transcript := regexp_replace(v_text, '\y' || v_correct || '\y', v_wrong, 'i');
+
+                            v_all_words := regexp_split_to_array(v_text, '\s+');
+                            FOREACH v_word IN ARRAY v_all_words LOOP
+                                v_word := regexp_replace(v_word, '[.,!?;:\"''()\-]', '', 'g');
+                                IF v_word <> '' AND lower(v_word) <> lower(v_correct) AND lower(v_word) <> lower(v_wrong) AND NOT (v_word = ANY(v_clean_words)) THEN
+                                    v_clean_words := array_append(v_clean_words, v_word);
+                                END IF;
+                            END LOOP;
+
+                            v_word_count := array_length(v_clean_words, 1);
+                            IF v_word_count >= 3 THEN
+                                v_idx := (v_seed % v_word_count) + 1;
+                                WHILE COALESCE(array_length(v_distractors, 1), 0) < 3 AND v_attempts < 100 LOOP
+                                    v_word := v_clean_words[v_idx];
+                                    IF NOT (v_word = ANY(v_distractors)) THEN
+                                        v_distractors := array_append(v_distractors, v_word);
+                                    END IF;
+                                    v_idx := (v_idx % v_word_count) + 1;
+                                    v_attempts := v_attempts + 1;
+                                END LOOP;
+                            END IF;
+
+                            IF COALESCE(array_length(v_distractors, 1), 0) < 1 THEN
+                                v_distractors := array_append(v_distractors, 'học');
+                            END IF;
+                            IF COALESCE(array_length(v_distractors, 1), 0) < 2 THEN
+                                v_distractors := array_append(v_distractors, 'nói');
+                            END IF;
+                            IF COALESCE(array_length(v_distractors, 1), 0) < 3 THEN
+                                v_distractors := array_append(v_distractors, 'nghe');
+                            END IF;
+
+                            v_options := ARRAY[v_correct, v_distractors[1], v_distractors[2], v_distractors[3]];
+
+                            v_swap_idx := (v_seed % 4) + 1;
+                            v_temp := v_options[1];
+                            v_options[1] := v_options[v_swap_idx];
+                            v_options[v_swap_idx] := v_temp;
+
+                            v_swap_idx := ((v_seed + 2) % 4) + 1;
+                            v_temp := v_options[2];
+                            v_options[2] := v_options[v_swap_idx];
+                            v_options[v_swap_idx] := v_temp;
+
+                            v_chal_meta := jsonb_build_object(
+                                'type', 'LISTENING',
+                                'listeningType', 'advanced',
+                                'transcript', v_transcript,
+                                'correctSentence', v_text,
+                                'correctAnswer', v_correct,
+                                'options', to_jsonb(v_options),
+                                'errorTag', 'T_' || v_subtag,
+                                'explanation', 'Trong câu phát âm sai từ "' || v_correct || '" (đọc thành "' || v_wrong || '"). Đáp án đúng là chọn từ "' || v_correct || '".',
+                                'timeLimit', 20
+                            );
+                            v_content_text := v_transcript;
+                        END IF;
+                    END;
+                ELSE
+                    v_chal_meta := jsonb_build_object(
+                        'type','WRITING',
+                        'transcript', v_text,
+                        'expectedAnswer', v_text,
+                        'targetWords', jsonb_build_array(v_correct),
+                        'errorTag','T_' || v_subtag,
+                        'explanation','Nghe và gõ chính xác. Lưu ý từ "' || v_correct || '" (nghĩa: ' || v_meaning || ') - viết theo ' || v_subtag || ' cho đúng.'
+                    );
+                END IF;
+
+                v_chal_id := ('00000000-0000-0073-2' ||
+                              v_chapter::text ||
+                              lpad(v_quiz_idx::text, 2, '0') ||
+                              '-0000000000' ||
+                              lpad(v_q_idx::text, 2, '0'))::uuid;
+
+                INSERT INTO challenge_bank
+                    (id, content_text, skill_type, region, metadata_json, created_at, updated_at)
+                VALUES (
+                    v_chal_id, v_content_text, v_skill, 'TRUNG', v_chal_meta, NOW(), NOW()
+                );
+
+                INSERT INTO quiz_challenge_item
+                    (id, quiz_id, challenge_bank_id, challenge_id, order_index)
+                VALUES (
+                    gen_random_uuid(), v_quiz_id, v_chal_id, v_chal_id, v_q_idx
+                );
+            END LOOP;
+        END LOOP;
+    END LOOP;
+END $$;
+            ]]>
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

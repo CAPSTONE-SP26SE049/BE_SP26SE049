@@ -31,8 +31,9 @@ public class TTSService {
             headers.set("speed", "");
             headers.set("prosody", "1");
 
-            // FPT AI expects raw text in body
-            HttpEntity<String> entity = new HttpEntity<>(text, headers);
+            // FPT AI requires at least 3 characters; pad short text with spaces
+            String paddedText = text.length() < 3 ? text + " ".repeat(3 - text.length()) : text;
+            HttpEntity<String> entity = new HttpEntity<>(paddedText, headers);
             log.info("Calling FPT AI TTS for text: {}", text.substring(0, Math.min(text.length(), 20)) + "...");
 
             ResponseEntity<Map> response = restTemplate.exchange(FPT_API_URL, HttpMethod.POST, entity, Map.class);

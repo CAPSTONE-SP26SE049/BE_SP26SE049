@@ -67,5 +67,8 @@ public class LevelProgressResponse implements Serializable {
 
         /** Số thứ tự bài quiz trong level (1-indexed) */
         private Integer orderIndex;
+
+        /** Số câu hỏi trong quiz */
+        private Integer questionCount;
     }
 }

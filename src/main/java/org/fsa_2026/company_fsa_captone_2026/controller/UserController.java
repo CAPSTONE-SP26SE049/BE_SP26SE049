@@ -16,6 +16,8 @@ import org.fsa_2026.company_fsa_captone_2026.service.ChallengeBankService;
 import org.fsa_2026.company_fsa_captone_2026.service.QuizService;
 import org.fsa_2026.company_fsa_captone_2026.service.UserProfileService;
 
+import jakarta.validation.Valid;
+import org.fsa_2026.company_fsa_captone_2026.dto.ChangePasswordRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -79,6 +81,16 @@ public class UserController {
                 UserProfileResponse updatedProfile = userProfileService.updateProfile(authentication.getName(),
                                 request);
                 return ResponseEntity.ok(ApiResponse.success("Cập nhật thông tin thành công", updatedProfile));
+        }
+
+        @PutMapping("/password")
+        @Operation(summary = "Change password", description = "Đổi mật khẩu cho người dùng hiện tại", security = @SecurityRequirement(name = "bearer-jwt"))
+        public ResponseEntity<ApiResponse<Void>> changePassword(
+                        Authentication authentication,
+                        @RequestBody @Valid ChangePasswordRequest request) {
+                log.info("Change password for user: {}", authentication.getName());
+                userProfileService.changePassword(authentication.getName(), request);
+                return ResponseEntity.ok(ApiResponse.success("Đổi mật khẩu thành công", null));
         }
 
         @GetMapping("/levels/{levelId}/quizzes")

@@ -441,7 +441,8 @@ public class EntryTestService {
         // Giai đoạn 2: Lọc lỗi và format lại trong JSON (đã có trong serializeDetails)
         // We no longer need to save to EntryTestResultDetail table, we just serialize them.
         
-        // Mark account as having completed the entry test
+        // Mark account as having completed the entry test and save the detected region
+        account.setRegion(detectedRegion.name());
         account.setHasDoneEntryTest(true);
         accountRepository.save(account);
 
@@ -590,26 +591,18 @@ public class EntryTestService {
             }
 
             String resolvedErrorTagId = findErrorTagUnitId(cat);
-            log.info("[Roadmap] Xử lý category={} -> errorTagUnitId={}, difficulties={}", cat, resolvedErrorTagId, difficultiesToAssign);
+            String targetTag = mapToLevelErrorTag(resolvedErrorTagId != null ? resolvedErrorTagId : cat);
+            log.info("[Roadmap] Xử lý category={} -> errorTagUnitId={}, targetTag={}, difficulties={}", cat, resolvedErrorTagId, targetTag, difficultiesToAssign);
 
             for (String diff : difficultiesToAssign) {
-                List<LearningUnit> units;
-                if (resolvedErrorTagId != null) {
-                    units = learningUnitRepository.findByTypeAndErrorTagIgnoreCaseAndDifficultyLevelIgnoreCase("LEVEL", resolvedErrorTagId, diff);
-                    if (units.isEmpty()) {
-                        // Fallback dùng tên category gốc nếu UUID không khớp
-                        units = learningUnitRepository.findByTypeAndErrorTagIgnoreCaseAndDifficultyLevelIgnoreCase("LEVEL", cat, diff);
-                    }
-                } else {
-                    units = learningUnitRepository.findByTypeAndErrorTagIgnoreCaseAndDifficultyLevelIgnoreCase("LEVEL", cat, diff);
+                List<LearningUnit> units = learningUnitRepository.findByTypeAndErrorTagIgnoreCaseAndDifficultyLevelIgnoreCase("LEVEL", targetTag, diff);
+
+                if (units.isEmpty()) {
+                    log.info("[Roadmap] Không tìm thấy unit với difficulty={}, fallback toàn bộ errorTag={}", diff, targetTag);
+                    units = learningUnitRepository.findByTypeAndErrorTagIgnoreCase("LEVEL", targetTag);
                 }
 
-                if (units.isEmpty() && resolvedErrorTagId != null) {
-                    log.info("[Roadmap] Không tìm thấy unit với difficulty={}, fallback toàn bộ errorTagId={}", diff, resolvedErrorTagId);
-                    units = learningUnitRepository.findByTypeAndErrorTagIgnoreCase("LEVEL", resolvedErrorTagId);
-                }
-
-                log.info("[Roadmap] Tìm thấy {} units cho category={} (errorTagId={}) difficulty={}", units.size(), cat, resolvedErrorTagId, diff);
+                log.info("[Roadmap] Tìm thấy {} units cho category={} (targetTag={}) difficulty={}", units.size(), cat, targetTag, diff);
 
                 for (LearningUnit unit : units) {
                     customPath.addLevel(unit, orderIndex++);
@@ -702,12 +695,34 @@ public class EntryTestService {
                     } catch (Exception ignored) {}
                     return false;
                 })
-                .map(lu -> lu.getId().toString())
+                .map(lu -> lu.getErrorTag() != null ? lu.getErrorTag() : lu.getId().toString())
                 .findFirst()
                 .orElseGet(() -> {
                     log.warn("[Roadmap] Không tìm thấy ERROR_TAG nào khớp với category='{}'", categorySearch);
                     return null;
                 });
+    }
+
+    private String mapToLevelErrorTag(String tagOrCategory) {
+        if (tagOrCategory == null) return null;
+        String normalized = tagOrCategory.toUpperCase().replaceAll("[^A-Z0-9_]", "");
+        
+        // North / NL matching
+        if (normalized.contains("NORTH") || normalized.contains("NL") || normalized.contains("LN") || normalized.contains("B_NL")) {
+            return "B_NL";
+        }
+        
+        // Central / SX / TRCH matching
+        if (normalized.contains("CENTRAL") || normalized.contains("SX") || normalized.contains("TR_CH") || normalized.contains("TRCH") || normalized.contains("T_SX_TRCH")) {
+            return "T_SX_TRCH";
+        }
+        
+        // South / DGIR matching
+        if (normalized.contains("SOUTH") || normalized.contains("DGIR") || normalized.contains("DIR") || normalized.contains("DRGI") || normalized.contains("N_DGIR")) {
+            return "N_DGIR";
+        }
+        
+        return tagOrCategory;
     }
 
     private String findErrorTagName(String cat) {

@@ -215,47 +215,56 @@ public class CustomLearningPathService {
                 Map<UUID, CustomPathProgress> progressMap = progressList.stream()
                                 .collect(Collectors.toMap(p -> p.getLearningUnit().getId(), p -> p, (a, b) -> a));
 
+                List<UUID> levelIds = path.getLevels().stream()
+                                .map(pl -> pl.getLevel().getId())
+                                .collect(Collectors.toList());
+
+                List<LearningUnit> allQuizzes = levelIds.isEmpty() ? List.of()
+                                : learningUnitRepository.findByParentIdInWithRewardCatalog(levelIds);
+
+                Map<UUID, List<LearningUnit>> quizzesByLevelId = allQuizzes.stream()
+                                .collect(Collectors.groupingBy(q -> q.getParent().getId()));
+
                 List<PathLevelResponse> levelResponses = path.getLevels().stream()
                                 .map(pl -> {
                                         LearningUnit level = pl.getLevel();
-                                        List<LearningUnit> quizzes = learningUnitRepository
-                                                        .findByParentId(level.getId());
+                                        List<LearningUnit> quizzes = quizzesByLevelId.getOrDefault(level.getId(), List.of());
 
                                         List<PathQuizResponse> quizResponses = quizzes.stream()
-                                                        .sorted(Comparator.comparingInt(this::parseLevelOrder))
-                                                        .map(q -> {
-                                                                CustomPathProgress p = progressMap.get(q.getId());
-                                                                return PathQuizResponse.builder()
-                                                                                .quizId(q.getId())
-                                                                                .title(q.getName())
-                                                                                .orderIndex(parseLevelOrder(q))
-                                                                                .skillType(parseSkillType(q))
-                                                                                .score(p != null ? p.getScore() : 0)
-                                                                                .isCompleted(p != null
-                                                                                                ? p.getIsCompleted()
-                                                                                                : false)
-                                                                                .rewardName(q.getRewardCatalog() != null
-                                                                                                ? q.getRewardCatalog()
-                                                                                                                .getName()
-                                                                                                : null)
-                                                                                .rewardIconUrl(q.getRewardCatalog() != null
-                                                                                                ? q.getRewardCatalog()
-                                                                                                                .getIconUrl()
-                                                                                                : null)
-                                                                                .build();
-                                                        }).collect(Collectors.toList());
+                                                         .sorted(Comparator.comparingInt(this::parseLevelOrder))
+                                                         .map(q -> {
+                                                                 CustomPathProgress p = progressMap.get(q.getId());
+                                                                 return PathQuizResponse.builder()
+                                                                                 .quizId(q.getId())
+                                                                                 .title(q.getName())
+                                                                                 .orderIndex(parseLevelOrder(q))
+                                                                                 .skillType(parseSkillType(q))
+                                                                                 .score(p != null ? p.getScore() : 0)
+                                                                                 .isCompleted(p != null
+                                                                                                 ? p.getIsCompleted()
+                                                                                                 : false)
+                                                                                 .rewardName(q.getRewardCatalog() != null
+                                                                                                 ? q.getRewardCatalog()
+                                                                                                                 .getName()
+                                                                                                 : null)
+                                                                                 .rewardIconUrl(q.getRewardCatalog() != null
+                                                                                                 ? q.getRewardCatalog()
+                                                                                                                 .getIconUrl()
+                                                                                                 : null)
+                                                                                 .build();
+                                                         }).collect(Collectors.toList());
 
-                                        return PathLevelResponse.builder()
-                                                        .levelId(level.getId())
-                                                        .levelName(level.getName())
-                                                        .region(level.getParent() != null ? level.getParent().getName()
-                                                                        : "Unknown")
-                                                        .orderIndex(pl.getOrderIndex())
-                                                        .quizzes(quizResponses)
-                                                        .build();
-                                })
-                                .sorted(Comparator.comparing(PathLevelResponse::getOrderIndex))
-                                .collect(Collectors.toList());
+                                         return PathLevelResponse.builder()
+                                                         .levelId(level.getId())
+                                                         .levelName(level.getName())
+                                                         .region(level.getParent() != null ? level.getParent().getName()
+                                                                         : "Unknown")
+                                                         .orderIndex(pl.getOrderIndex())
+                                                         .quizzes(quizResponses)
+                                                         .build();
+                                 })
+                                 .sorted(Comparator.comparing(PathLevelResponse::getOrderIndex))
+                                 .collect(Collectors.toList());
 
                 return CustomPathResponse.builder()
                                 .id(path.getId())

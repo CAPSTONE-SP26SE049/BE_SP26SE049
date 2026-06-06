@@ -22,7 +22,7 @@ public class FeedbackService {
         private final EducatorFeedbackRepository feedbackRepository;
         private final SpeakingAttemptRepository attemptRepository;
         private final AccountRepository accountRepository;
-        private final NotificationRepository notificationRepository;
+        private final NotificationService notificationService;
 
         @Transactional
         public FeedbackResponse sendFeedback(CreateFeedbackRequest request, String educatorUsername) {
@@ -54,15 +54,14 @@ public class FeedbackService {
 
                 feedbackRepository.save(feedback);
 
-                // Create notification for student
-                Notification notification = Notification.builder()
-                                .recipient(student)
-                                .type("EDUCATOR_FEEDBACK")
-                                .title("Bạn có nhận xét mới từ giáo viên")
-                                .message(request.getComment())
-                                .isRead(false)
-                                .build();
-                notificationRepository.save(notification);
+                // Create notification for student via service (to trigger websocket)
+                notificationService.createNotification(
+                                student.getId(),
+                                "EDUCATOR_FEEDBACK",
+                                "Bạn có nhận xét mới từ giáo viên",
+                                request.getComment(),
+                                feedback.getId()
+                );
 
                 return FeedbackResponse.builder()
                                 .id(feedback.getId())

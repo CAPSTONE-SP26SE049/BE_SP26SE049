@@ -57,4 +57,8 @@ $RECYCLE.BIN/
 # --- Cho MacOS (Phòng hờ bạn khác trong nhóm dùng MacBook) ---
 .DS_Store
 .AppleDouble
-.LSOverridesrc/main/resources/firebase-service-account.json
+.LSOverride
+src/main/resources/firebase-service-account.json
+
+# Local Hugging Face deployment folder
+LocalASR_Server_hf_deploy/

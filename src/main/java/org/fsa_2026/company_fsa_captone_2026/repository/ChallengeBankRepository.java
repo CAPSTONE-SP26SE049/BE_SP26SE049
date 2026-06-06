@@ -14,4 +14,6 @@ public interface ChallengeBankRepository extends JpaRepository<ChallengeBank, UU
     boolean existsByContentTextAndSkillType(String contentText, SkillType skillType);
 
     List<ChallengeBank> findBySkillType(SkillType skillType);
+
+    List<ChallengeBank> findBySkillTypeAndRegionIgnoreCase(SkillType skillType, String region);
 }

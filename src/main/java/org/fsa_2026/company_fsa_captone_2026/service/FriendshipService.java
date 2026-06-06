@@ -373,6 +373,8 @@ public class FriendshipService {
                 .avatarUrl(other.getAvatarUrl())
                 .status(friendship.getStatus().name())
                 .createdAt(friendship.getCreatedAt())
+                .isOnline(org.fsa_2026.company_fsa_captone_2026.config.WebSocketEventListener.isUserOnline(other.getId()))
+                .lastActiveAt(other.getLastActiveAt())
                 .build();
     }
 }

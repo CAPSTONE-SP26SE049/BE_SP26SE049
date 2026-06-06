@@ -231,6 +231,7 @@ public class ChallengeExcelService {
                 List.of("Vui lòng đọc câu sau", "CENTRAL",
                          "Trời nắng chang chang vườn hoa vẫy gọi", "Chú ý âm sắc")
             );
+            case MIX -> List.of();
         };
     }
 
