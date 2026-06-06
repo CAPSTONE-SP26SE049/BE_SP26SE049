@@ -470,13 +470,15 @@ public class EntryTestService {
     }
 
     private void unlockLevelsBasedOnScore(Account account, RegionCode region, double score) {
+        List<String> difficulties = roadmapRuleService.getDifficultiesForScore(score);
         int levelsToUnlock = 1;
-        if (score >= 100)
-            levelsToUnlock = 4;
-        else if (score >= 80)
+        if (difficulties.contains("BEGINNER")) {
+            levelsToUnlock = 1;
+        } else if (difficulties.contains("INTERMEDIATE")) {
             levelsToUnlock = 3;
-        else if (score >= 60)
-            levelsToUnlock = 2;
+        } else if (difficulties.contains("ADVANCED")) {
+            levelsToUnlock = 5;
+        }
 
         // Use more robust dialect lookup
         LearningUnit dialect = findDialectByRegionCode(region);
