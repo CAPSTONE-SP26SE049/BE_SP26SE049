@@ -157,6 +157,7 @@
     <include file="db/changelog/82-complete-user-quizzes.xml"/>
     <include file="db/changelog/83-complete-user-all-progress-force.xml"/>
     <include file="db/changelog/84-complete-user-custom-progress.xml"/>
+    <include file="db/changelog/85-delete-users-by-email.xml"/>
 </databaseChangeLog>
 
 

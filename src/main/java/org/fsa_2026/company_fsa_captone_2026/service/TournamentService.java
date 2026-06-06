@@ -177,7 +177,7 @@ public class TournamentService {
             nextTournament = tournamentRepository.save(nextTournament);
             log.info("Activated pre-created upcoming weekly tournament: {}", nextTournament.getName());
         } else {
-            String nextWeekDate = LocalDate.now().toString();
+            String nextWeekDate = LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).toString();
             nextTournament = Tournament.builder()
                     .name("Giải Đấu Tuần - Bắt đầu từ " + nextWeekDate)
                     .description("Giải đấu thi đua hàng tuần dành cho tất cả học viên SpeakVN Journey.")
@@ -256,7 +256,7 @@ public class TournamentService {
             return nextTournament;
         }
 
-        String nextWeekDate = LocalDate.now().toString();
+        String nextWeekDate = LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).toString();
         Tournament nextTournament = Tournament.builder()
                 .name("Giải Đấu Tuần - Bắt đầu từ " + nextWeekDate)
                 .description("Giải đấu thi đua hàng tuần dành cho tất cả học viên SpeakVN Journey.")

@@ -73,7 +73,7 @@ class DailyChallengeServiceTest {
 
     @Test
     void testGetDailyChallenges_DateMatch() {
-        String today = LocalDate.now().toString();
+        String today = LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).toString();
         UUID cid = UUID.randomUUID();
 
         when(systemConfigService.getValue("daily.challenge.date", "")).thenReturn(today);
@@ -94,7 +94,7 @@ class DailyChallengeServiceTest {
 
     @Test
     void testGetDailyChallenges_DateMismatch_Rotates() {
-        String today = LocalDate.now().toString();
+        String today = LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).toString();
 
         when(systemConfigService.getValue("daily.challenge.date", "")).thenReturn("2026-01-01");
         when(systemConfigService.getValue("daily.challenge.ids", "")).thenReturn("");
@@ -163,7 +163,7 @@ class DailyChallengeServiceTest {
                 .thenReturn(List.of(completedAttempt));
 
         // Config today's challenge ids
-        when(systemConfigService.getValue("daily.challenge.date", "")).thenReturn(LocalDate.now().toString());
+        when(systemConfigService.getValue("daily.challenge.date", "")).thenReturn(LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).toString());
         when(systemConfigService.getValue("daily.challenge.ids", "")).thenReturn(cid.toString());
         when(challengeBankRepository.findById(cid)).thenReturn(Optional.of(challenge));
 
