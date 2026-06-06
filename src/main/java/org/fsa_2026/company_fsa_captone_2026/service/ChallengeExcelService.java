@@ -72,8 +72,14 @@ public class ChallengeExcelService {
     private static final String COL_READING_WRONG_WORD = "Từ bị sai (Wrong Word)";
     private static final String COL_READING_CORRECT_WORD = "Từ viết đúng (Correct Word)";
 
+    /** 4 kỹ năng dùng cho template MIXED quiz (không gồm ENTRY_TEST / MIX). */
+    private static final List<SkillType> QUIZ_TEMPLATE_SKILLS = List.of(
+            SkillType.READING, SkillType.LISTENING, SkillType.WRITING, SkillType.SPEAKING
+    );
+
     /**
      * Trả về danh sách headers cho từng skill type.
+     * Dùng chung cho Template Download, Import và Export — đảm bảo tên cột khớp 100%.
      */
     private List<String> getHeaders(SkillType skillType) {
         List<String> headers = new ArrayList<>(List.of(COL_CONTENT_TEXT, COL_REGION));
@@ -93,104 +99,28 @@ public class ChallengeExcelService {
     // ════════════════════════════════════════════════════════════════════
 
     /**
-     * Tạo file Excel mẫu (.xlsx) cho kỹ năng chỉ định, bao gồm 2 dòng dữ liệu mẫu.
+     * Tạo file Excel mẫu (.xlsx) cho kỹ năng chỉ định.
+     * Dòng 1 = header (khớp hàm Import), dòng 2 = một dòng dữ liệu mẫu.
      */
     public byte[] generateTemplate(SkillType skillType) {
         try (Workbook workbook = new XSSFWorkbook()) {
-            Sheet sheet = workbook.createSheet("Template_" + skillType.name());
-
-            List<String> headers = getHeaders(skillType);
-
-            // === Header row (bold, blue background) ===
-            CellStyle headerStyle = workbook.createCellStyle();
-            Font headerFont = workbook.createFont();
-            headerFont.setBold(true);
-            headerFont.setColor(IndexedColors.WHITE.getIndex());
-            headerStyle.setFont(headerFont);
-            headerStyle.setFillForegroundColor(IndexedColors.ROYAL_BLUE.getIndex());
-            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-            headerStyle.setBorderBottom(BorderStyle.THIN);
-
-            Row headerRow = sheet.createRow(0);
-            for (int i = 0; i < headers.size(); i++) {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(headers.get(i));
-                cell.setCellStyle(headerStyle);
-            }
-
-            // === Sample data rows ===
-            List<List<String>> sampleData = getSampleData(skillType);
-            for (int r = 0; r < sampleData.size(); r++) {
-                Row row = sheet.createRow(r + 1);
-                List<String> values = sampleData.get(r);
-                for (int c = 0; c < values.size(); c++) {
-                    row.createCell(c).setCellValue(values.get(c));
-                }
-            }
-
-            // Auto-size columns
-            for (int i = 0; i < headers.size(); i++) {
-                sheet.autoSizeColumn(i);
-                // Min width 15 chars
-                if (sheet.getColumnWidth(i) < 15 * 256) {
-                    sheet.setColumnWidth(i, 15 * 256);
-                }
-            }
-
+            writeTemplateSheet(workbook, skillType);
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             workbook.write(out);
             return out.toByteArray();
-
         } catch (Exception e) {
             throw new RuntimeException("Không thể tạo template Excel cho " + skillType, e);
         }
     }
 
     /**
-     * Tạo file Excel mẫu (.xlsx) với nhiều sheet cho MIXED quiz (tất cả 4 kỹ năng).
+     * Tạo file Excel mẫu (.xlsx) với nhiều sheet cho MIXED quiz (4 kỹ năng).
      */
     public byte[] generateMixedTemplate() {
         try (Workbook workbook = new XSSFWorkbook()) {
-            for (SkillType st : SkillType.values()) {
-                Sheet sheet = workbook.createSheet("Template_" + st.name());
-                List<String> headers = getHeaders(st);
-
-                // Header style
-                CellStyle headerStyle = workbook.createCellStyle();
-                Font headerFont = workbook.createFont();
-                headerFont.setBold(true);
-                headerFont.setColor(IndexedColors.WHITE.getIndex());
-                headerStyle.setFont(headerFont);
-                headerStyle.setFillForegroundColor(IndexedColors.ROYAL_BLUE.getIndex());
-                headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-                headerStyle.setBorderBottom(BorderStyle.THIN);
-
-                Row headerRow = sheet.createRow(0);
-                for (int i = 0; i < headers.size(); i++) {
-                    Cell cell = headerRow.createCell(i);
-                    cell.setCellValue(headers.get(i));
-                    cell.setCellStyle(headerStyle);
-                }
-
-                // Sample data
-                List<List<String>> sampleData = getSampleData(st);
-                for (int r = 0; r < sampleData.size(); r++) {
-                    Row row = sheet.createRow(r + 1);
-                    List<String> values = sampleData.get(r);
-                    for (int c = 0; c < values.size(); c++) {
-                        row.createCell(c).setCellValue(values.get(c));
-                    }
-                }
-
-                // Auto-size
-                for (int i = 0; i < headers.size(); i++) {
-                    sheet.autoSizeColumn(i);
-                    if (sheet.getColumnWidth(i) < 15 * 256) {
-                        sheet.setColumnWidth(i, 15 * 256);
-                    }
-                }
+            for (SkillType st : QUIZ_TEMPLATE_SKILLS) {
+                writeTemplateSheet(workbook, st);
             }
-
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             workbook.write(out);
             return out.toByteArray();
@@ -199,37 +129,86 @@ public class ChallengeExcelService {
         }
     }
 
+    /**
+     * Ghi một sheet template: header row + đúng 1 sample row (dòng 2).
+     */
+    private void writeTemplateSheet(Workbook workbook, SkillType skillType) {
+        Sheet sheet = workbook.createSheet("Template_" + skillType.name());
+        List<String> headers = getHeaders(skillType);
+
+        CellStyle headerStyle = workbook.createCellStyle();
+        Font headerFont = workbook.createFont();
+        headerFont.setBold(true);
+        headerFont.setColor(IndexedColors.WHITE.getIndex());
+        headerStyle.setFont(headerFont);
+        headerStyle.setFillForegroundColor(IndexedColors.ROYAL_BLUE.getIndex());
+        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        headerStyle.setBorderBottom(BorderStyle.THIN);
+
+        Row headerRow = sheet.createRow(0);
+        for (int i = 0; i < headers.size(); i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers.get(i));
+            cell.setCellStyle(headerStyle);
+        }
+
+        List<List<String>> sampleData = getSampleData(skillType);
+        if (!sampleData.isEmpty()) {
+            List<String> sampleRow = sampleData.get(0);
+            if (sampleRow.size() != headers.size()) {
+                throw new IllegalStateException(String.format(
+                        "Template %s: sample row có %d cột nhưng header có %d cột",
+                        skillType, sampleRow.size(), headers.size()));
+            }
+            Row row = sheet.createRow(1);
+            for (int c = 0; c < sampleRow.size(); c++) {
+                row.createCell(c).setCellValue(sampleRow.get(c));
+            }
+        }
+
+        for (int i = 0; i < headers.size(); i++) {
+            sheet.autoSizeColumn(i);
+            if (sheet.getColumnWidth(i) < 15 * 256) {
+                sheet.setColumnWidth(i, 15 * 256);
+            }
+        }
+    }
+
+    /**
+     * Dữ liệu mẫu cho template — mỗi skill trả về đúng 1 dòng, thứ tự cột khớp {@link #getHeaders}.
+     * Region dùng mã NORTH / CENTRAL / SOUTH (không dùng tiếng Việt) vì Import parse theo mã này.
+     */
     private List<List<String>> getSampleData(SkillType skillType) {
         return switch (skillType) {
             case READING -> List.of(
                 List.of("Tìm lỗi sai L/N trong câu", "NORTH",
-                         "Con trâu đang ăn cỏ trên lồng.", "lồng.", "đồng", "Cánh đồng rộng lớn."),
-                List.of("Tìm từ viết SAI trong câu", "CENTRAL",
-                         "Trời nạnh quá mọi người mặc áo ấm", "nạnh", "lạnh", "L/N, nạnh -> lạnh")
+                         "Con trâu đang ăn cỏ trên lồng.", "lồng.", "đồng", "Cánh đồng rộng lớn.")
             );
             case LISTENING -> List.of(
                 List.of("Nghe và chọn từ đúng", "SOUTH",
-                         "Lúa nếp", "Lúa nết", "Núa nếp", "Lúa tẻ", "Lúa nếp", "Lúa nếp là lúa nếp làng"),
-                List.of("Nghe và chọn từ đúng", "SOUTH",
-                         "Nón lá", "Lón lá", "Nón nà", "Nóm lá", "Nón lá", "Chiếc nón lá Việt Nam")
+                         "Lúa nếp", "Lúa nết", "Núa nếp", "Lúa tẻ", "Lúa nếp", "Lúa nếp là lúa nếp làng")
             );
             case WRITING -> List.of(
-                List.of("Chọn từ đúng chính tả để điền vào chỗ trống", "NORTH",
-                         "Lúa _ là lúa nếp làng", "nếp", "nếp cái,nếp thơm", "Ngược lại with nếp là tẻ"),
-                List.of("Điền từ vào chỗ trống", "CENTRAL",
-                         "Chiếc nón _ Việt Nam", "lá", "", "Làm từ lá cọ")
+                List.of(
+                        "Điền từ đúng vào chỗ trống",
+                        "CENTRAL",
+                        "Sạch _ là điều kiện cần có",
+                        "sẽ",
+                        "sẽ,sệ",
+                        "Dùng ký hiệu _ cho chỗ trống. Region: NORTH/CENTRAL/SOUTH. Đáp án phụ cách nhau bằng dấu phẩy."
+                )
             );
             case SPEAKING -> List.of(
-                List.of("Đọc to câu sau", "SOUTH",
-                         "Lúa nếp là lúa nếp làng", "Chú ý phân biệt N và L"),
-                List.of("Phát âm câu sau", "NORTH",
-                         "Con lợn nằm trong chuồng", "Chú ý âm đầu L")
+                List.of(
+                        "Đọc to cụm từ sau",
+                        "CENTRAL",
+                        "Sạch sẽ",
+                        "Region phải là NORTH, CENTRAL hoặc SOUTH. Transcript là nội dung học viên cần đọc."
+                )
             );
             case ENTRY_TEST -> List.of(
                 List.of("Vui lòng đọc câu sau để đánh giá giọng đọc của bạn", "NORTH",
-                         "Lúa nếp là lúa nếp làng", "Hãy đọc chậm và rõ ràng"),
-                List.of("Vui lòng đọc câu sau", "CENTRAL",
-                         "Trời nắng chang chang vườn hoa vẫy gọi", "Chú ý âm sắc")
+                         "Lúa nếp là lúa nếp làng", "Hãy đọc chậm và rõ ràng")
             );
             case MIX -> List.of();
         };
