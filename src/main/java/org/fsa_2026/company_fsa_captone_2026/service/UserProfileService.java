@@ -36,7 +36,14 @@ public class UserProfileService {
             account.setPhone(request.getPhone());
         }
         if (request.getRegion() != null) {
-            account.setRegion(normalizeRegionForStorage(request.getRegion()));
+            String targetRegion = normalizeRegionForStorage(request.getRegion());
+            if (account.getRegion() != null && !account.getRegion().isBlank()) {
+                if (!account.getRegion().equalsIgnoreCase(targetRegion)) {
+                    throw new ApiException("BAD_REQUEST", "Không thể thay đổi khu vực học đã đăng ký");
+                }
+            } else {
+                account.setRegion(targetRegion);
+            }
         }
 
         accountRepository.save(account);

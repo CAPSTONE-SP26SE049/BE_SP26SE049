@@ -36,6 +36,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DailyChallengeService {
 
+    private static final java.time.ZoneId ZONE_VN = java.time.ZoneId.of("Asia/Ho_Chi_Minh");
+
     private final ChallengeBankRepository challengeBankRepository;
     private final SystemConfigService systemConfigService;
     private final StudySessionRepository studySessionRepository;
@@ -233,7 +235,7 @@ public class DailyChallengeService {
         if (speakingChallenges.size() <= 3) {
             selected = speakingChallenges;
         } else {
-            long seed = Objects.hash(account.getId(), LocalDate.now().toString());
+            long seed = Objects.hash(account.getId(), LocalDate.now(ZONE_VN).toString());
             Random rand = new Random(seed);
             List<ChallengeBank> shuffled = new ArrayList<>(speakingChallenges);
             Collections.shuffle(shuffled, rand);
@@ -266,7 +268,7 @@ public class DailyChallengeService {
     }
 
     private List<ChallengeBank> getGlobalDailyChallenges() {
-        String todayStr = LocalDate.now().toString();
+        String todayStr = LocalDate.now(ZONE_VN).toString();
         String configDate = systemConfigService.getValue("daily.challenge.date", "");
         String configIds = systemConfigService.getValue("daily.challenge.ids", "");
 
@@ -387,7 +389,7 @@ public class DailyChallengeService {
                 .map(ChallengeBank::getId)
                 .collect(Collectors.toSet());
 
-        Instant startOfToday = LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
+        Instant startOfToday = LocalDate.now(ZONE_VN).atStartOfDay(ZONE_VN).toInstant();
         List<DailyChallengeAttempt> todayCorrectAttempts = dailyChallengeAttemptRepository
                 .findByAccountIdAndIsCorrectTrueAndCreatedAtGreaterThanEqual(account.getId(), startOfToday);
 
@@ -440,7 +442,7 @@ public class DailyChallengeService {
             return Collections.emptyList();
         }
         Account account = accountOpt.get();
-        Instant startOfToday = LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
+        Instant startOfToday = LocalDate.now(ZONE_VN).atStartOfDay(ZONE_VN).toInstant();
         List<DailyChallengeAttempt> todayCorrectAttempts = dailyChallengeAttemptRepository
                 .findByAccountIdAndIsCorrectTrueAndCreatedAtGreaterThanEqual(account.getId(), startOfToday);
         return todayCorrectAttempts.stream()

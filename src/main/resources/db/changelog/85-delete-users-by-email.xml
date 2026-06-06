@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="delete-users-baolq-topik" author="antigravity">
+        <validCheckSum>ANY</validCheckSum>
+        <sql>
+            -- 1. Delete dependent child records of custom_learning_paths
+            DELETE FROM custom_path_progress WHERE custom_path_id IN (
+                SELECT id FROM custom_learning_paths 
+                WHERE student_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'))
+                   OR educator_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'))
+            );
+            DELETE FROM custom_path_levels WHERE custom_path_id IN (
+                SELECT id FROM custom_learning_paths 
+                WHERE student_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'))
+                   OR educator_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'))
+            );
+            DELETE FROM custom_learning_paths 
+            WHERE student_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'))
+               OR educator_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'));
+
+            -- 2. Delete educator feedback referencing user or their attempts
+            DELETE FROM educator_feedback 
+            WHERE student_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'))
+               OR educator_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'))
+               OR speaking_attempt_id IN (
+                   SELECT id FROM speaking_attempt 
+                   WHERE account_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'))
+               );
+
+            -- 3. Delete dependent child records of study_sessions (session_detail)
+            DELETE FROM session_detail WHERE session_id IN (
+                SELECT id FROM study_session 
+                WHERE account_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'))
+            );
+            DELETE FROM study_session WHERE account_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'));
+
+            -- 4. Delete lesson plans
+            DELETE FROM lesson_plans WHERE educator_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'));
+            DELETE FROM lesson_plan WHERE educator_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'));
+
+            -- 5. Delete simple direct reference tables
+            DELETE FROM refresh_token WHERE account_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'));
+            DELETE FROM account_learning_unit WHERE account_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'));
+            DELETE FROM account_reward WHERE account_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'));
+            DELETE FROM daily_challenge_attempt WHERE account_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'));
+            DELETE FROM friendship WHERE requester_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com')) 
+                                      OR addressee_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'));
+            DELETE FROM leaderboard_entry WHERE account_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'));
+            DELETE FROM speaking_attempt WHERE account_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'));
+            DELETE FROM tournament_participant WHERE account_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'));
+            DELETE FROM user_feedback WHERE sender_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'));
+            DELETE FROM notification WHERE recipient_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'));
+            DELETE FROM chat_message WHERE sender_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com')) 
+                                        OR recipient_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'));
+            DELETE FROM entry_test_result WHERE account_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'));
+            
+            -- Newly discovered database references
+            DELETE FROM account_daily_challenge WHERE account_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'));
+            DELETE FROM account_quest_progress WHERE account_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'));
+            DELETE FROM student_assignment WHERE student_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'))
+                                              OR educator_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'));
+            DELETE FROM quest WHERE student_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'));
+            DELETE FROM daily_challenge_completion WHERE account_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'));
+            DELETE FROM account_dashboard_summary WHERE account_id IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'));
+            UPDATE challenge_bank SET created_by = NULL WHERE created_by IN (SELECT id FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com'));
+            
+            -- 6. Finally delete the accounts themselves
+            DELETE FROM account WHERE email IN ('baolqse181942@fpt.edu.vn', 'topik345666@gmail.com');
+        </sql>
+    </changeSet>
+</databaseChangeLog>

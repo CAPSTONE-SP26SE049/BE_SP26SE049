@@ -301,7 +301,7 @@ public class AuthService {
      * Must be called BEFORE saving the account.
      */
     void updateLoginStreak(Account account) {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
         LocalDate last = account.getLastLoginDate();
 
         if (last == null) {
