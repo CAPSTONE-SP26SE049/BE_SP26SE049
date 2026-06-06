@@ -33,7 +33,7 @@ public class ChallengeExcelController {
 
     @GetMapping("/api/v1/excel/challenge-bank/{skillType}/template")
     @Operation(summary = "Tải template Excel mẫu theo kỹ năng",
-               description = "skillType: READING, LISTENING, WRITING, SPEAKING. File .xlsx có header + 2 dòng dữ liệu mẫu.")
+               description = "skillType: READING, LISTENING, WRITING, SPEAKING. File .xlsx: dòng 1 = header (khớp Import), dòng 2 = 1 dòng mẫu.")
     public ResponseEntity<byte[]> downloadTemplate(@PathVariable String skillType) {
         SkillType skill = parseSkillType(skillType);
         byte[] file = excelService.generateTemplate(skill);
@@ -109,7 +109,7 @@ public class ChallengeExcelController {
 
     @GetMapping("/api/v1/excel/challenge-bank/mixed/template")
     @Operation(summary = "Tải template Excel tổng hợp (4 kỹ năng)",
-               description = "File .xlsx có 4 sheet: READING, LISTENING, WRITING, SPEAKING — mỗi sheet có header + 2 dòng dữ liệu mẫu.")
+               description = "File .xlsx có 4 sheet: READING, LISTENING, WRITING, SPEAKING — mỗi sheet: header + 1 dòng mẫu.")
     public ResponseEntity<byte[]> downloadMixedTemplate() {
         byte[] file = excelService.generateMixedTemplate();
 
