@@ -276,8 +276,8 @@ public class QuizService {
         // 5. Tính số sao dựa trên phần trăm: >=40% (1 sao), >=60% (2 sao), >=80% (3 sao)
         int stars = calculateStarsBasedOnPercentage(percentage);
 
-        // 6. Theo yêu cầu: Chỉ coi là hoàn thành (để mở quiz sau) nếu đạt >= 2 sao (tức >= 60%)
-        boolean passed = stars >= 2;
+        // 6. Theo yêu cầu: Chỉ coi là hoàn thành (để mở quiz sau) nếu đạt >= 1 sao (tức >= 40%)
+        boolean passed = stars >= 1;
 
         // 7. Lưu progress vào AccountLearningUnit (Lưu score là phần trăm)
         saveProgress(account, quiz, stars, passed, (int) Math.round(percentage));
@@ -321,7 +321,7 @@ public class QuizService {
         return QuizCompleteResponse.builder()
                 .passed(passed)
                 .score(percentageInt)
-                .passingScore(60) // Theo yêu cầu mới: Cần đạt 60% để tính là Pass (mở màn tiếp)
+                .passingScore(50) // Theo yêu cầu mới: Cần đạt 50% để tính là Pass (mở màn tiếp)
                 .starsEarned(stars)
                 .earnedReward(earnedReward)
                 .rewardAlreadyEarned(alreadyEarned)
@@ -604,13 +604,13 @@ public class QuizService {
      * Tính số sao theo yêu cầu mới:
      * - >= 80%: 3 sao
      * - >= 60%: 2 sao
-     * - >= 40%: 1 sao
-     * - < 40%: 0 sao
+     * - >= 50%: 1 sao
+     * - < 50%: 0 sao
      */
     private int calculateStarsBasedOnPercentage(double percentage) {
         if (percentage >= 80) return 3;
         if (percentage >= 60) return 2;
-        if (percentage >= 40) return 1;
+        if (percentage >= 50) return 1;
         return 0;
     }
 
