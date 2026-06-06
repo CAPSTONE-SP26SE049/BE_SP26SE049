@@ -127,7 +127,7 @@ public class MinigameChallengeController {
                 "- Hãy tìm ra tất cả các từ viết SAI chính tả hoặc bị NGỌNG, LẪN LỘN giữa các phụ âm đang luyện tập (ví dụ: gõ/nói \"ninh\" thay vì \"linh\" trong cụm \"nấm linh chi\"; gõ \"lem\" thay vì \"nem\" trong \"nem lụi\"; gõ \"lường\" thay vì \"nướng\"...) và xếp vào mảng \"incorrectWords\".\n" +
                 "- Bạn phải phân tích kỹ ngữ cảnh của từ đó trong câu để xác định xem người học có thực sự bị nhầm lẫn âm hay không.\n" +
                 "- Một từ tuyệt đối KHÔNG được xuất hiện đồng thời ở cả hai danh sách \"correctWords\" và \"incorrectWords\". Nếu từ đó đã viết sai chính tả (ví dụ: \"ninh\" thay vì \"linh\"), nó chỉ được phép nằm trong \"incorrectWords\" và tuyệt đối không được xuất hiện trong \"correctWords\".\n" +
-                "TUYỆT ĐỐI không sử dụng chữ viết Cyrillic (như нално, направо, налево...), tiếng Nga, tiếng Anh hay bất kỳ ngôn ngữ nào khác ngoài tiếng Việt.\n" +
+                "TUYỆT ĐỐI không sử dụng chữ viết Cyrillic (như нално, направо, налево...), tiếng Nga, tiếng Anh (nghiêm cấm các từ tiếng Anh thông dụng như 'lunch', 'dinner', 'cafe', 'party', 'bus'...) hay bất kỳ ngôn ngữ nào khác ngoài tiếng Việt. 100% nội dung phản hồi trong 'reply' phải là tiếng Việt chuẩn.\n" +
                 "Hãy trả về phản hồi dưới dạng JSON thuần túy có định dạng chính xác sau:\n" +
                 "{\n" +
                 "  \"reply\": \"nội dung phản hồi tiếng Việt tự nhiên của bạn\",\n" +

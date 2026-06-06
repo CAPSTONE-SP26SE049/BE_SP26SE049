@@ -94,6 +94,25 @@ async def transcribe_audio(
         with open(TEMP_FILE, "wb") as buffer:
             shutil.copyfileobj(uploaded_file.file, buffer)
 
+        # Chuyển đổi file âm thanh sang WAV 16kHz mono bằng pydub và static_ffmpeg
+        try:
+            import static_ffmpeg
+            static_ffmpeg.add_paths()
+            from pydub import AudioSegment
+            
+            # Load audio file (pydub tự nhận diện định dạng từ dữ liệu hoặc extension)
+            audio_segment = AudioSegment.from_file(TEMP_FILE)
+            
+            # Convert to 16kHz, mono
+            audio_segment = audio_segment.set_frame_rate(16000).set_channels(1)
+            
+            # Export đè lên TEMP_FILE dưới dạng WAV chuẩn PCM
+            audio_segment.export(TEMP_FILE, format="wav")
+            print(f"✅ Đã chuyển đổi âm thanh sang WAV 16kHz mono thành công")
+        except Exception as conv_err:
+            print(f"⚠️ Lỗi khi convert sang WAV bằng pydub/static_ffmpeg: {str(conv_err)}")
+            # Nếu convert lỗi, vẫn tiếp tục để NeMo tự thử đọc file gốc
+
         # 2. Gọi model để nhận dạng
         # Hỗ trợ cả phiên bản NeMo cũ (paths2audio_files) và mới (audio)
         try:

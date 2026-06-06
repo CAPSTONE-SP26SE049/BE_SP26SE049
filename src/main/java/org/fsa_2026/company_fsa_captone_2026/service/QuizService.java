@@ -461,6 +461,8 @@ public class QuizService {
                     quiz.getName(), quiz.getId(), reward.getName(), reward.getId(), rewardEarned);
             }
 
+            int qCount = (int) quizChallengeItemRepository.countByQuizId(quiz.getId());
+
             LevelProgressResponse.QuizProgressItem item = LevelProgressResponse.QuizProgressItem.builder()
                     .quizId(quiz.getId())
                     .quizName(quiz.getName())
@@ -475,6 +477,7 @@ public class QuizService {
                     .rewardCatalogId(reward != null ? reward.getId() : null)
                     .rewardEarned(rewardEarned)
                     .skillType(extractSkillTypeFromMetadata(quiz))
+                    .questionCount(qCount)
                     .build();
 
             quizItems.add(item);
